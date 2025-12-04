@@ -20,13 +20,7 @@ import {
   mockDischargeChecklists,
   mockSystemNotifications,
   mockChatMessages,
-  mockServices,
-  mockHospitalFloors,
-  mockAIAssistant,
-  mockFutureAppointments,
-  mockFollowUpAlerts,
-  mockPrivacySettings,
-  mockAppointmentSummaries
+  mockServices
 } from './mock-data';
 import type { 
   Patient, 
@@ -46,13 +40,7 @@ import type {
   MedicalEvolution,
   DischargeChecklist,
   SystemNotification,
-  ChatMessage,
-  HospitalFloor,
-  AIAssistant,
-  FutureAppointment,
-  FollowUpAlert,
-  PrivacySettings,
-  AppointmentSummary
+  ChatMessage
 } from './types';
 
 interface HospitalContextType {
@@ -75,13 +63,6 @@ interface HospitalContextType {
   dischargeChecklists: DischargeChecklist[];
   systemNotifications: SystemNotification[];
   chatMessages: ChatMessage[];
-  // Nuevos estados para funcionalidades avanzadas
-  hospitalFloors: HospitalFloor[];
-  aiAssistants: AIAssistant[];
-  futureAppointments: FutureAppointment[];
-  followUpAlerts: FollowUpAlert[];
-  privacySettings: PrivacySettings[];
-  appointmentSummaries: AppointmentSummary[];
 
   // Funciones para pacientes
   addPatient: (patient: Omit<Patient, 'id'>) => void;
@@ -144,14 +125,6 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
   const [dischargeChecklists, setDischargeChecklists] = useState<DischargeChecklist[]>(mockDischargeChecklists);
   const [systemNotifications] = useState<SystemNotification[]>(mockSystemNotifications);
   const [chatMessages] = useState<ChatMessage[]>(mockChatMessages);
-  
-  // Nuevos estados para funcionalidades avanzadas
-  const [hospitalFloors] = useState<HospitalFloor[]>(mockHospitalFloors);
-  const [aiAssistants] = useState<AIAssistant[]>(mockAIAssistant);
-  const [futureAppointments, setFutureAppointments] = useState<FutureAppointment[]>(mockFutureAppointments);
-  const [followUpAlerts, setFollowUpAlerts] = useState<FollowUpAlert[]>(mockFollowUpAlerts);
-  const [privacySettings] = useState<PrivacySettings[]>(mockPrivacySettings);
-  const [appointmentSummaries] = useState<AppointmentSummary[]>(mockAppointmentSummaries);
 
   // Efectos para persistir datos en localStorage
   useEffect(() => {
@@ -527,13 +500,6 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
     dischargeChecklists,
     systemNotifications,
     chatMessages,
-    // Nuevos estados
-    hospitalFloors,
-    aiAssistants,
-    futureAppointments,
-    followUpAlerts,
-    privacySettings,
-    appointmentSummaries,
 
     // Funciones
     addPatient,

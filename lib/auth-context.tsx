@@ -9,7 +9,7 @@ interface AuthContextType {
   loading: boolean;
   showPasswordRecovery: boolean;
   setShowPasswordRecovery: (show: boolean) => void;
-  login: (dni: string, password: string, rememberMe?: boolean, professionalId?: string) => Promise<void>;
+  login: (dni: string, password: string, rememberMe?: boolean) => Promise<void>;
   logout: () => void;
   createUser: (userData: Omit<User, 'id' | 'lastLogin'>) => void;
   updateUser: (userId: string, updates: Partial<User>) => void;
@@ -24,17 +24,17 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Credenciales por defecto para demostración
-const defaultCredentials: Record<string, { password: string; role: UserRole; professionalId: string }> = {
-  '12345678A': { password: 'admin123', role: 'admin', professionalId: 'ADM001' },
-  '23456789B': { password: 'doctor123', role: 'doctor', professionalId: 'MED001' },
-  '34567890C': { password: 'doctor123', role: 'doctor', professionalId: 'MED002' },
-  '45678901D': { password: 'nurse123', role: 'nurse', professionalId: 'ENF001' },
-  '56789012E': { password: 'clean123', role: 'cleaning', professionalId: 'LIM001' },
-  '67890123F': { password: 'nurse123', role: 'nurse', professionalId: 'ENF002' },
-  '78901234G': { password: 'pharmacy123', role: 'pharmacy', professionalId: 'FAR001' },
-  '89012345H': { password: 'radiology123', role: 'radiology', professionalId: 'RAD001' },
-  '90123456I': { password: 'admission123', role: 'admission', professionalId: 'ADM002' },
-  '01234567J': { password: 'social123', role: 'social_work', professionalId: 'SOC001' }
+const defaultCredentials: Record<string, { password: string; role: UserRole }> = {
+  '12345678A': { password: 'admin123', role: 'admin' },
+  '23456789B': { password: 'doctor123', role: 'doctor' },
+  '34567890C': { password: 'doctor123', role: 'doctor' },
+  '45678901D': { password: 'nurse123', role: 'nurse' },
+  '56789012E': { password: 'clean123', role: 'cleaning' },
+  '67890123F': { password: 'nurse123', role: 'nurse' },
+  '78901234G': { password: 'pharmacy123', role: 'pharmacy' },
+  '89012345H': { password: 'radiology123', role: 'radiology' },
+  '90123456I': { password: 'admission123', role: 'admission' },
+  '01234567J': { password: 'social123', role: 'social_work' }
 };
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -65,7 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(false);
   }, []);
 
-  const login = useCallback(async (dni: string, password: string, rememberMe = false, professionalId?: string): Promise<void> => {
+  const login = useCallback(async (dni: string, password: string, rememberMe = false): Promise<void> => {
     setLoading(true);
     
     // Simular delay de red
@@ -75,57 +75,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const foundUser = mockUsers.find(u => u.dni === dni);
     const credentials = defaultCredentials[dni];
     
-    // Validar credenciales completas
-    if (!foundUser || !credentials || 
-        credentials.password !== password ||
-        (professionalId && credentials.professionalId !== professionalId)) {
+    if (!foundUser || !credentials || credentials.password !== password) {
       setLoading(false);
-      
-      // Registrar intento fallido
-      addAuditLog({
-        action: 'LOGIN_FAILED',
-        resource: 'system',
-        details: {
-          dni,
-          professionalId: professionalId || 'NO_PROVIDED',
-          reason: !foundUser ? 'USER_NOT_FOUND' : 
-                  credentials.password !== password ? 'WRONG_PASSWORD' :
-                  'WRONG_PROFESSIONAL_ID',
-          timestamp: new Date()
-        }
-      });
-      
-      throw new Error('Credenciales incorrectas. Verifica DNI, contraseña e ID profesional.');
+      throw new Error('DNI o contraseña incorrectos');
     }
     
     // Actualizar último login
     const updatedUser = {
       ...foundUser,
-      lastLogin: new Date(),
-      professionalId: credentials.professionalId
+      lastLogin: new Date()
     };
     
     setUser(updatedUser);
     
     // Guardar en localStorage si remember me está activado
     if (rememberMe) {
-      localStorage.setItem('hospital_user', JSON.stringify({ 
-        dni: updatedUser.dni,
-        professionalId: credentials.professionalId
-      }));
+      localStorage.setItem('hospital_user', JSON.stringify({ dni: updatedUser.dni }));
       localStorage.setItem('hospital_remember', 'true');
     }
     
-    // Registro de auditoría exitoso
+    // Registro de auditoría
     addAuditLog({
       action: 'LOGIN',
       resource: 'system',
-      details: {
-        professionalId: credentials.professionalId,
-        loginMethod: 'password',
+      details: { 
         successful: true,
         rememberMe,
-        timestamp: new Date()
+        loginMethod: 'password'
       }
     });
     

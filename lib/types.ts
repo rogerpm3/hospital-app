@@ -24,7 +24,6 @@ export interface User {
   department?: string;
   specialization?: string;
   licenseNumber?: string;
-  professionalId?: string; // Nuevo campo para ID profesional
   isActive: boolean;
   lastLogin?: Date;
   profilePicture?: string;
@@ -40,39 +39,6 @@ export interface User {
   };
   twoFactorEnabled?: boolean;
   lastPasswordChange?: Date;
-  anonymousId?: string; // Para mostrar de forma anónima
-  assignedUnit?: string; // Unidad asignada
-  failedLoginAttempts?: number; // Contador de intentos fallidos
-  isLocked?: boolean; // Estado de bloqueo
-  lastFailedLogin?: Date;
-  // Para usuarios de tipo familia
-  relatedPatientId?: string; // Para usuarios familia
-  relationshipToPatient?: string; // Relación con el paciente
-  accessLevel?: 'full' | 'limited' | 'basic'; // Nivel de acceso
-}
-
-// Nuevas interfaces para organización hospitalaria
-export interface HospitalUnit {
-  id: string;
-  name: string;
-  floor: number;
-  capacity: number;
-  specialization: string;
-  description: string;
-  isActive: boolean;
-  rooms: string[]; // IDs de habitaciones
-  staff: string[]; // IDs de personal asignado
-}
-
-export interface HospitalFloor {
-  id: string;
-  number: number;
-  name: string;
-  description: string;
-  units: HospitalUnit[];
-  totalCapacity: number;
-  currentOccupancy: number;
-  isRestricted?: boolean;
 }
 
 export interface Patient {
@@ -115,11 +81,6 @@ export interface Patient {
   riskLevel?: 'Low' | 'Medium' | 'High' | 'Critical';
   isolationRequired?: boolean;
   codeStatus?: 'Full Code' | 'DNR' | 'Limited Code';
-  // Nuevos campos para asignación de unidad
-  assignedUnit?: string;
-  assignedFloor?: number;
-  assignedWard?: string;
-  anonymousId?: string; // Para mostrar en lugar del nombre cuando sea necesario
 }
 
 export interface Room {
@@ -448,78 +409,13 @@ export interface DischargeChecklist {
   status: 'In Progress' | 'Ready' | 'Completed';
   completedBy?: string;
   completedDate?: Date;
-  // Nuevos campos para mejoras
-  futureAppointments: FutureAppointment[];
-  medicalRecommendations: string[];
-  dischargeSummaryPdf?: string; // URL del PDF generado
-  followUpAlerts: FollowUpAlert[];
-}
-
-export interface FutureAppointment {
-  id: string;
-  patientId: string;
-  type: 'Lab Test' | 'Follow-up Consultation' | 'Procedure' | 'Imaging' | 'Therapy';
-  description: string;
-  scheduledDate: Date;
-  provider: string;
-  location: string;
-  instructions?: string;
-  reminderDays: number[];
-}
-
-export interface FollowUpAlert {
-  id: string;
-  patientId: string;
-  alertType: 'appointment' | 'medication' | 'test-result' | 'check-up';
-  title: string;
-  description: string;
-  dueDate: Date;
-  priority: 'Low' | 'Medium' | 'High' | 'Critical';
-  isActive: boolean;
-  completedDate?: Date;
-}
-
-// Control de privacidad para diferentes roles
-export interface PrivacySettings {
-  id: string;
-  userId: string;
-  role: UserRole;
-  canViewFullName: boolean;
-  canViewMedicalHistory: boolean;
-  canViewVitalSigns: boolean;
-  canViewClinicalNotes: boolean;
-  canViewDiagnosis: boolean;
-  canViewMedications: boolean;
-  canViewFinancialInfo: boolean;
-  maxPatientDataAccess: 'none' | 'basic' | 'clinical' | 'full';
-  allowedPatientIds?: string[]; // Para usuarios familia
-}
-
-export interface AIAssistant {
-  id: string;
-  name: string;
-  avatar: string; // URL del icono del robot
-  status: 'online' | 'offline' | 'busy';
-  capabilities: string[];
-}
-
-export interface AIQuery {
-  id: string;
-  userId: string;
-  assistantId: string;
-  query: string;
-  category: 'medical' | 'administrative' | 'search' | 'statistics' | 'quick-action';
-  timestamp: Date;
-  response?: string;
-  confidence?: number;
-  feedback?: 'helpful' | 'not-helpful' | 'partially-helpful';
 }
 
 export interface AIAssistance {
   id: string;
   patientId: string;
   requesterId: string;
-  requestType: 'Diagnosis' | 'Treatment' | 'Drug Interaction' | 'Clinical Decision' | 'Risk Assessment' | 'Search' | 'Statistics' | 'Quick Action';
+  requestType: 'Diagnosis' | 'Treatment' | 'Drug Interaction' | 'Clinical Decision' | 'Risk Assessment';
   query: string;
   aiResponse: string;
   confidence: number;
@@ -527,30 +423,6 @@ export interface AIAssistance {
   feedback?: 'Helpful' | 'Not Helpful' | 'Partially Helpful';
   humanOverride?: boolean;
   implementedSuggestions?: string[];
-}
-
-// Nueva interface para vista de calendario mejorada
-export interface CalendarView {
-  id: string;
-  viewType: 'daily' | 'weekly' | 'monthly';
-  date: Date;
-  filters: {
-    specialty?: string[];
-    room?: string[];
-    provider?: string[];
-    status?: string[];
-  };
-}
-
-export interface AppointmentSummary {
-  date: Date;
-  total: number;
-  confirmed: number;
-  pending: number;
-  cancelled: number;
-  completed: number;
-  bySpecialty: Record<string, number>;
-  byStatus: Record<string, number>;
 }
 
 export interface SystemNotification {
@@ -612,36 +484,29 @@ export const rolePermissions: Record<UserRole, string[]> = {
     'manage_users', 'manage_system', 'view_all_patients', 'manage_rooms', 
     'view_analytics', 'manage_appointments', 'manage_admissions', 'manage_discharge',
     'view_audit_logs', 'manage_staff', 'view_communication', 'manage_medical_orders',
-    'view_nursing_notes', 'manage_bed_assignments', 'view_hospital_floors', 'manage_hospital_units',
-    'manage_privacy_settings', 'view_full_patient_data', 'access_ai_assistant',
-    'view_financial_info', 'generate_discharge_pdfs', 'manage_future_appointments',
-    'view_anonymous_ids', 'manage_professional_ids', 'unlock_user_accounts'
+    'view_nursing_notes', 'manage_bed_assignments'
   ],
   doctor: [
     'view_patients', 'manage_medical_records', 'create_medical_orders', 'view_lab_results',
     'manage_appointments', 'create_prescriptions', 'view_imaging', 'manage_discharge',
-    'view_nursing_notes', 'create_evolution_notes', 'view_rounds', 'view_communication',
-    'view_hospital_floors', 'access_ai_assistant', 'view_clinical_data', 
-    'create_future_appointments', 'view_bed_overview', 'generate_medical_pdfs'
+    'view_nursing_notes', 'create_evolution_notes', 'view_rounds', 'view_communication'
   ],
   nurse: [
     'view_patients', 'manage_nursing_notes', 'record_vital_signs', 'administer_medication',
     'view_medical_orders', 'manage_patient_care', 'view_communication', 'update_bed_status',
-    'record_fluid_balance', 'assess_wounds', 'use_clinical_scales', 'view_hospital_floors',
-    'reserve_beds', 'access_ai_assistant_limited', 'view_clinical_data'
+    'record_fluid_balance', 'assess_wounds', 'use_clinical_scales'
   ],
   auxiliary: [
     'view_patients', 'record_vital_signs', 'basic_patient_care', 'view_communication',
-    'update_bed_status', 'transport_patients', 'view_basic_patient_info'
+    'update_bed_status', 'transport_patients'
   ],
   cleaning: [
     'view_room_status', 'update_cleaning_status', 'view_bed_assignments', 
-    'manage_cleaning_tasks', 'view_communication', 'view_basic_patient_info',
-    'view_hospital_floors_limited', 'mark_beds_cleaning_required'
+    'manage_cleaning_tasks', 'view_communication'
   ],
   pharmacy: [
     'view_prescriptions', 'manage_medication_inventory', 'check_drug_interactions',
-    'view_patients', 'view_communication', 'dispense_medications', 'access_ai_assistant_limited'
+    'view_patients', 'view_communication', 'dispense_medications'
   ],
   radiology: [
     'view_imaging_orders', 'manage_imaging_results', 'view_patients', 'view_communication',
@@ -649,9 +514,7 @@ export const rolePermissions: Record<UserRole, string[]> = {
   ],
   admission: [
     'manage_admissions', 'manage_appointments', 'view_patients', 'manage_bed_assignments',
-    'view_room_availability', 'view_communication', 'patient_registration', 'view_hospital_floors',
-    'create_patient_profiles', 'verify_identity', 'manage_insurance', 'manage_waiting_list',
-    'initial_bed_assignment', 'manage_transfers', 'view_hospital_status'
+    'view_room_availability', 'view_communication', 'patient_registration'
   ],
   social_work: [
     'view_patients', 'manage_discharge_planning', 'coordinate_home_care', 
@@ -659,28 +522,27 @@ export const rolePermissions: Record<UserRole, string[]> = {
   ],
   patient: [
     'view_own_records', 'view_appointments', 'view_test_results', 'communicate_with_staff',
-    'view_discharge_instructions', 'view_own_schedule', 'request_appointments'
+    'view_discharge_instructions'
   ],
   family: [
-    'view_patient_status', 'receive_updates', 'limited_communication', 'view_visiting_hours',
-    'view_basic_patient_info', 'view_general_condition', 'view_room_location'
+    'view_patient_status', 'receive_updates', 'limited_communication', 'view_visiting_hours'
   ]
 };
 
 // Definición de elementos de menú por rol
 export const roleMenuItems: Record<UserRole, string[]> = {
   admin: [
-    'dashboard', 'hospital-floors', 'patients', 'staff', 'user-management', 'rooms', 'bed-management', 
-    'appointments', 'admissions', 'medical-orders', 'rounds', 'discharge', 
-    'analytics', 'communication', 'audit', 'access-logs', 'privacy-settings', 'ai-assistant', 'settings'
+    'dashboard', 'patients', 'staff', 'rooms', 'bed-management', 'appointments', 
+    'admissions', 'medical-orders', 'rounds', 'discharge', 'analytics', 
+    'communication', 'audit', 'settings'
   ],
   doctor: [
     'dashboard', 'patients', 'appointments', 'medical-orders', 'rounds', 
-    'discharge', 'communication', 'analytics', 'bed-overview', 'ai-assistant'
+    'discharge', 'communication', 'analytics'
   ],
   nurse: [
     'dashboard', 'patients', 'nursing', 'bed-management', 'medical-orders', 
-    'communication', 'rounds', 'ai-assistant'
+    'communication', 'rounds'
   ],
   auxiliary: [
     'dashboard', 'patients', 'nursing', 'bed-management', 'communication'
@@ -689,22 +551,22 @@ export const roleMenuItems: Record<UserRole, string[]> = {
     'dashboard', 'cleaning', 'communication'
   ],
   pharmacy: [
-    'dashboard', 'patients', 'medical-orders', 'communication', 'ai-assistant'
+    'dashboard', 'patients', 'medical-orders', 'communication'
   ],
   radiology: [
     'dashboard', 'patients', 'medical-orders', 'communication'
   ],
   admission: [
-    'dashboard', 'hospital-floors', 'patients', 'admissions', 'appointments', 
-    'bed-management', 'rooms', 'communication', 'patient-registration'
+    'dashboard', 'patients', 'admissions', 'appointments', 'bed-management', 
+    'rooms', 'communication'
   ],
   social_work: [
     'dashboard', 'patients', 'discharge', 'communication'
   ],
   patient: [
-    'dashboard', 'appointments', 'records', 'communication', 'my-schedule'
+    'dashboard', 'appointments', 'records', 'communication'
   ],
   family: [
-    'dashboard', 'patient-status', 'communication', 'visiting-hours'
+    'dashboard', 'patient-status', 'communication'
   ]
 };
