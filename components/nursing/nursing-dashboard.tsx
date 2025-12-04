@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import VitalSignsPanel from './vital-signs-panel';
+import MedicationAdministrationPanel from './medication-administration-panel';
+import NursingNotesPanel from './nursing-notes-panel';
 import { 
   Activity, 
   Thermometer, 
@@ -286,111 +288,11 @@ export default function NursingDashboard() {
         </TabsContent>
 
         <TabsContent value="medications" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Administración de Medicamentos</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {medications.filter(med => med.status === 'Active').map(medication => {
-                  const patient = patients.find(p => p.id === medication.patientId);
-                  return (
-                    <div key={medication.id} className="p-4 border rounded-lg">
-                      <div className="flex items-center justify-between mb-3">
-                        <div>
-                          <h4 className="font-semibold">{medication.name}</h4>
-                          <p className="text-sm text-muted-foreground">
-                            {patient?.firstName} {patient?.lastName} - Habitación {patient?.roomId}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-medium">{medication.dosage}</div>
-                          <div className="text-sm text-muted-foreground">{medication.frequency}</div>
-                        </div>
-                      </div>
-                      <div className="grid gap-2 md:grid-cols-3 text-sm">
-                        <div>
-                          <span className="font-medium">Vía:</span> {medication.route}
-                        </div>
-                        <div>
-                          <span className="font-medium">Prescrito por:</span> {medication.prescribedBy}
-                        </div>
-                        <div>
-                          <span className="font-medium">Inicio:</span> {medication.startDate.toLocaleDateString()}
-                        </div>
-                      </div>
-                      {medication.instructions && (
-                        <div className="mt-2 p-2 bg-gray-50 rounded text-sm">
-                          <span className="font-medium">Instrucciones:</span> {medication.instructions}
-                        </div>
-                      )}
-                      <div className="mt-3 flex gap-2">
-                        <Button size="sm" className="flex items-center gap-2">
-                          <Plus className="h-3 w-3" />
-                          Administrar
-                        </Button>
-                        <Button size="sm" variant="outline">
-                          Ver Historial
-                        </Button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
+          <MedicationAdministrationPanel />
         </TabsContent>
 
         <TabsContent value="notes" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Notas de Enfermería</CardTitle>
-                <Button size="sm" className="flex items-center gap-2">
-                  <Plus className="h-4 w-4" />
-                  Nueva Nota
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {nursingNotes.map(note => {
-                  const patient = patients.find(p => p.id === note.patientId);
-                  return (
-                    <div key={note.id} className="p-4 border rounded-lg">
-                      <div className="flex items-center justify-between mb-2">
-                        <div>
-                          <h4 className="font-semibold">
-                            {patient?.firstName} {patient?.lastName} - Habitación {patient?.roomId}
-                          </h4>
-                          <p className="text-sm text-muted-foreground">
-                            {note.nurseName} • {note.timestamp.toLocaleString()} • Turno {note.shift}
-                          </p>
-                        </div>
-                        <Badge variant="outline">{note.category}</Badge>
-                      </div>
-                      <div className="space-y-2 text-sm">
-                        <div>
-                          <span className="font-medium">Subjetivo:</span> {note.subjective}
-                        </div>
-                        <div>
-                          <span className="font-medium">Objetivo:</span> {note.objective}
-                        </div>
-                        <div>
-                          <span className="font-medium">Plan:</span> {note.plan}
-                        </div>
-                      </div>
-                      {note.flaggedForPhysician && (
-                        <div className="mt-2">
-                          <Badge variant="destructive">Marcado para médico</Badge>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
+          <NursingNotesPanel />
         </TabsContent>
 
         <TabsContent value="assessments" className="space-y-4">

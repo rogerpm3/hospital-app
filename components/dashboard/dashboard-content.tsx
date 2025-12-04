@@ -15,6 +15,7 @@ import AuditLogList from '../audit/audit-log-list';
 
 // Componentes de gestión de camas
 import BedManagementDashboard from '../bed-management/bed-management-dashboard';
+import CleaningDashboard from '../cleaning/cleaning-dashboard';
 
 // Componentes de enfermería
 import NursingDashboard from '../nursing/nursing-dashboard';
@@ -39,6 +40,21 @@ import AnalyticsDashboard from '../analytics/analytics-dashboard';
 
 // Componentes de comunicación
 import CommunicationDashboard from '../communication/communication-dashboard';
+
+// Componente de plantas hospitalarias
+import HospitalFloorsDashboard from '../hospital-floors/hospital-floors-dashboard';
+
+// Componente de asistente IA
+import AIAssistantDashboard from '../ai-assistant/ai-assistant-dashboard';
+
+// Componente de logs de acceso
+import AccessLogsPanel from '../security/access-logs-panel';
+
+// Componente de configuración de privacidad
+import PrivacySettingsDashboard from '../privacy/privacy-settings-dashboard';
+
+// Componente de gestión de usuarios
+import UserManagementDashboard from '../user-management/user-management-dashboard';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -499,7 +515,22 @@ export default function DashboardContent({ activeSection, setActiveSection }: Da
       );
 
     case 'cleaning':
-      return <BedManagementDashboard />;
+      return <CleaningDashboard />;
+
+    case 'hospital-floors':
+      return <HospitalFloorsDashboard />;
+
+    case 'ai-assistant':
+      return <AIAssistantDashboard />;
+
+    case 'access-logs':
+      return <AccessLogsPanel />;
+
+    case 'privacy-settings':
+      return <PrivacySettingsDashboard />;
+
+    case 'user-management':
+      return <UserManagementDashboard />;
 
     default:
       return (

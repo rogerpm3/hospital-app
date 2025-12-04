@@ -11,6 +11,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/lib/auth-context';
 import { CalendarIcon, Clock, User, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -23,6 +24,7 @@ interface BedReservationDialogProps {
 
 export default function BedReservationDialog({ open, onClose, bedId }: BedReservationDialogProps) {
   const { beds, rooms, patients, updateBedStatus } = useHospital();
+  const { user } = useAuth();
   const { toast } = useToast();
 
   const [reservationDate, setReservationDate] = useState<Date>();
@@ -84,19 +86,34 @@ export default function BedReservationDialog({ open, onClose, bedId }: BedReserv
       const expirationDate = new Date(reservationDateTime);
       expirationDate.setHours(expirationDate.getHours() + parseInt(duration));
 
-      // Actualizar estado de la cama
-      const updatedBed = {
-        ...bed,
+      // Preparar información del paciente
+      const patientInfo = reservationType === 'existing' 
+        ? patients.find(p => p.id === patientId)
+        : { firstName: patientName.split(' ')[0], lastName: patientName.split(' ').slice(1).join(' '), dni: patientDni };
+
+      // Crear objeto de reserva
+      const reservationData = {
         status: 'Reserved' as const,
         reservationExpires: expirationDate,
+        reservedFor: {
+          patientId: reservationType === 'existing' ? patientId : `temp-${Date.now()}`,
+          patientName: reservationType === 'existing' 
+            ? `${patientInfo?.firstName} ${patientInfo?.lastName}`
+            : patientName,
+          patientDni: reservationType === 'existing' ? patientInfo?.dni : patientDni,
+          reason: reason,
+          reservationType: reservationType
+        },
         notes: `Reservada para: ${reservationType === 'existing' 
-          ? patients.find(p => p.id === patientId)?.firstName + ' ' + patients.find(p => p.id === patientId)?.lastName
+          ? `${patientInfo?.firstName} ${patientInfo?.lastName}`
           : patientName
-        }${reason ? ` - Motivo: ${reason}` : ''}${notes ? ` - Notas: ${notes}` : ''}`
+        }${reason ? ` - Motivo: ${reason}` : ''}${notes ? ` - Notas: ${notes}` : ''}`,
+        reservationDate: reservationDateTime,
+        reservedBy: user?.firstName + ' ' + user?.lastName || 'Usuario'
       };
 
-      // Aquí iría la actualización real en el contexto
-      updateBedStatus(bedId, 'Reserved');
+      // Actualizar estado de la cama con todos los datos
+      updateBedStatus(bedId, 'Reserved', reservationData);
 
       toast({
         title: "Reserva creada exitosamente",

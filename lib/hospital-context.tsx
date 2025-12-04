@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { useAuth } from './auth-context';
 import { 
   mockPatients, 
@@ -20,7 +20,13 @@ import {
   mockDischargeChecklists,
   mockSystemNotifications,
   mockChatMessages,
-  mockServices
+  mockServices,
+  mockHospitalFloors,
+  mockAIAssistant,
+  mockFutureAppointments,
+  mockFollowUpAlerts,
+  mockPrivacySettings,
+  mockAppointmentSummaries
 } from './mock-data';
 import type { 
   Patient, 
@@ -40,7 +46,13 @@ import type {
   MedicalEvolution,
   DischargeChecklist,
   SystemNotification,
-  ChatMessage
+  ChatMessage,
+  HospitalFloor,
+  AIAssistant,
+  FutureAppointment,
+  FollowUpAlert,
+  PrivacySettings,
+  AppointmentSummary
 } from './types';
 
 interface HospitalContextType {
@@ -63,6 +75,13 @@ interface HospitalContextType {
   dischargeChecklists: DischargeChecklist[];
   systemNotifications: SystemNotification[];
   chatMessages: ChatMessage[];
+  // Nuevos estados para funcionalidades avanzadas
+  hospitalFloors: HospitalFloor[];
+  aiAssistants: AIAssistant[];
+  futureAppointments: FutureAppointment[];
+  followUpAlerts: FollowUpAlert[];
+  privacySettings: PrivacySettings[];
+  appointmentSummaries: AppointmentSummary[];
 
   // Funciones para pacientes
   addPatient: (patient: Omit<Patient, 'id'>) => void;
@@ -93,6 +112,12 @@ interface HospitalContextType {
   // Funciones para plan de alta
   addDischargePlan: (plan: Omit<DischargeChecklist, 'id'>) => void;
   updateDischargePlan: (planId: string, updates: Partial<DischargeChecklist>) => void;
+
+  // Funciones para mensajes
+  addChatMessage: (message: Omit<ChatMessage, 'id'>) => void;
+
+  // Funciones para evoluciones médicas
+  addMedicalEvolution: (evolution: Omit<MedicalEvolution, 'id'>) => void;
 }
 
 const HospitalContext = createContext<HospitalContextType | undefined>(undefined);
@@ -115,10 +140,61 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
   const [clinicalScales] = useState<ClinicalScale[]>(mockClinicalScales);
   const [fluidBalance] = useState<FluidBalance[]>(mockFluidBalance);
   const [woundAssessments] = useState<WoundAssessment[]>(mockWoundAssessments);
-  const [medicalEvolutions] = useState<MedicalEvolution[]>(mockMedicalEvolutions);
+  const [medicalEvolutions, setMedicalEvolutions] = useState<MedicalEvolution[]>(mockMedicalEvolutions);
   const [dischargeChecklists, setDischargeChecklists] = useState<DischargeChecklist[]>(mockDischargeChecklists);
   const [systemNotifications] = useState<SystemNotification[]>(mockSystemNotifications);
   const [chatMessages] = useState<ChatMessage[]>(mockChatMessages);
+  
+  // Nuevos estados para funcionalidades avanzadas
+  const [hospitalFloors] = useState<HospitalFloor[]>(mockHospitalFloors);
+  const [aiAssistants] = useState<AIAssistant[]>(mockAIAssistant);
+  const [futureAppointments, setFutureAppointments] = useState<FutureAppointment[]>(mockFutureAppointments);
+  const [followUpAlerts, setFollowUpAlerts] = useState<FollowUpAlert[]>(mockFollowUpAlerts);
+  const [privacySettings] = useState<PrivacySettings[]>(mockPrivacySettings);
+  const [appointmentSummaries] = useState<AppointmentSummary[]>(mockAppointmentSummaries);
+
+  // Efectos para persistir datos en localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('hospital-patients', JSON.stringify(patients));
+    }
+  }, [patients]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('hospital-beds', JSON.stringify(beds));
+    }
+  }, [beds]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('hospital-appointments', JSON.stringify(appointments));
+    }
+  }, [appointments]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('hospital-medical-orders', JSON.stringify(medicalOrders));
+    }
+  }, [medicalOrders]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('hospital-nursing-notes', JSON.stringify(nursingNotes));
+    }
+  }, [nursingNotes]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('hospital-vital-signs', JSON.stringify(vitalSigns));
+    }
+  }, [vitalSigns]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('hospital-admissions', JSON.stringify(admissions));
+    }
+  }, [admissions]);
 
   // Funciones para pacientes
   const addPatient = useCallback((patientData: Omit<Patient, 'id'>) => {
@@ -210,16 +286,21 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
   }, [addAuditLog]);
 
   // Funciones para camas
-  const updateBedStatus = useCallback((bedId: string, status: Bed['status']) => {
+  const updateBedStatus = useCallback((bedId: string, status: Bed['status'], additionalData?: any) => {
     setBeds(prev => prev.map(bed => 
-      bed.id === bedId ? { ...bed, status } : bed
+      bed.id === bedId ? { 
+        ...bed, 
+        status,
+        ...additionalData,
+        lastUpdated: new Date().toISOString()
+      } : bed
     ));
     
     addAuditLog({
       action: 'UPDATE',
       resource: 'bed',
       resourceId: bedId,
-      details: { newStatus: status }
+      details: { newStatus: status, ...additionalData }
     });
   }, [addAuditLog]);
 
@@ -386,6 +467,46 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
     });
   }, [addAuditLog]);
 
+  // Funciones para mensajes
+  const addChatMessage = useCallback((messageData: Omit<ChatMessage, 'id'>) => {
+    const newMessage: ChatMessage = {
+      ...messageData,
+      id: `message-${Date.now()}`
+    };
+    
+    setChatMessages(prev => [...prev, newMessage]);
+    
+    addAuditLog({
+      action: 'CREATE',
+      resource: 'message',
+      resourceId: newMessage.id,
+      details: { 
+        recipient: newMessage.recipientRole,
+        subject: newMessage.subject 
+      }
+    });
+  }, [addAuditLog]);
+
+  // Funciones para evoluciones médicas
+  const addMedicalEvolution = useCallback((evolutionData: Omit<MedicalEvolution, 'id'>) => {
+    const newEvolution: MedicalEvolution = {
+      ...evolutionData,
+      id: `evolution-${Date.now()}`
+    };
+    
+    setMedicalEvolutions(prev => [...prev, newEvolution]);
+    
+    addAuditLog({
+      action: 'CREATE',
+      resource: 'medical_evolution',
+      resourceId: newEvolution.id,
+      details: { 
+        patientId: newEvolution.patientId,
+        doctorName: newEvolution.doctorName
+      }
+    });
+  }, [addAuditLog]);
+
   const value: HospitalContextType = {
     // Estados
     patients,
@@ -406,6 +527,13 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
     dischargeChecklists,
     systemNotifications,
     chatMessages,
+    // Nuevos estados
+    hospitalFloors,
+    aiAssistants,
+    futureAppointments,
+    followUpAlerts,
+    privacySettings,
+    appointmentSummaries,
 
     // Funciones
     addPatient,
@@ -423,7 +551,13 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
     addNursingNote,
     updateNursingNote,
     addDischargePlan,
-    updateDischargePlan
+    updateDischargePlan,
+
+    // Funciones para mensajes
+    addChatMessage,
+
+    // Funciones para evoluciones médicas
+    addMedicalEvolution
   };
 
   return (

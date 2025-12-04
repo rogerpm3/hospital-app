@@ -1,0 +1,32 @@
+# Dependencies - NUNCA SUBIR
+node_modules/
+.pnpm-store/
+
+# Build outputs - NO NECESARIOS
+.next/
+out/
+build/
+dist/
+
+# Environment variables - SECRETOS
+.env
+.env.local
+.env.production.local
+
+# Cache y logs - TEMPORALES
+.turbo/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# IDE - CONFIGURACIÓN PERSONAL
+.vscode/
+.idea/
+*.swp
+
+# OS - SISTEMA OPERATIVO
+.DS_Store
+Thumbs.db
+
+# Vercel
+.vercel

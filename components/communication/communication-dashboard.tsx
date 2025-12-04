@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, MessageSquare, Bell, Users, AlertTriangle } from 'lucide-react';
+import MessagingPanel from './messaging-panel';
 
 export default function CommunicationDashboard() {
   const { chatMessages, systemNotifications } = useHospital();
@@ -83,36 +84,7 @@ export default function CommunicationDashboard() {
         </TabsList>
 
         <TabsContent value="messages" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Mensajes Recientes</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {chatMessages.slice(0, 10).map(message => (
-                  <div key={message.id} className="p-3 border rounded-lg">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="font-medium">{message.senderName}</div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="text-xs">
-                          {message.senderRole}
-                        </Badge>
-                        {!message.isRead && (
-                          <Badge variant="destructive" className="w-2 h-2 p-0 rounded-full" />
-                        )}
-                      </div>
-                    </div>
-                    <div className="text-sm text-muted-foreground mb-1">
-                      {message.message}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {message.timestamp.toLocaleString()}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          <MessagingPanel />
         </TabsContent>
 
         <TabsContent value="notifications" className="space-y-4">

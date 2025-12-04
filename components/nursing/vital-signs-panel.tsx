@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/lib/auth-context';
 import { 
   LineChart, 
   Line, 
@@ -38,6 +39,7 @@ import { VitalSigns } from '@/lib/types';
 
 export default function VitalSignsPanel() {
   const { patients, vitalSigns, addVitalSigns } = useHospital();
+  const { user } = useAuth();
   const { toast } = useToast();
   
   const [selectedPatient, setSelectedPatient] = useState('');
@@ -111,7 +113,7 @@ export default function VitalSignsPanel() {
       const vitalSignsData: Omit<VitalSigns, 'id'> = {
         patientId: selectedPatient,
         timestamp: new Date(),
-        recordedBy: 'Enfermero Actual', // En una implementación real vendría del usuario logueado
+        recordedBy: user?.firstName + " " + user?.lastName || 'Enfermero/a',
         bloodPressure: {
           systolic: parseInt(newVitalSigns.systolic) || 0,
           diastolic: parseInt(newVitalSigns.diastolic) || 0

@@ -20,22 +20,97 @@ export default function LoginForm({ onForgotPassword }: LoginFormProps) {
   
   const [dni, setDni] = useState('');
   const [password, setPassword] = useState('');
+  const [professionalId, setProfessionalId] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [isLocked, setIsLocked] = useState(false);
+  const [lockTimeRemaining, setLockTimeRemaining] = useState(0);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Verificar si la cuenta está bloqueada
+    if (isLocked) {
+      toast({
+        title: "Cuenta Bloqueada",
+        description: `Cuenta bloqueada por seguridad. Espera ${lockTimeRemaining} minutos.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
-      await login(dni, password, rememberMe);
-    } catch (error) {
-      toast({
-        title: "Error de autenticación",
-        description: "DNI o contraseña incorrectos",
-        variant: "destructive",
+      // Validar que todos los campos estén completos
+      if (!dni || !password || !professionalId) {
+        throw new Error('Todos los campos son obligatorios');
+      }
+
+      // Registrar intento de acceso
+      console.log('Intento de acceso:', {
+        dni,
+        professionalId,
+        timestamp: new Date(),
+        ipAddress: 'Simulado: 192.168.1.100'
       });
+
+      await login(dni, password, rememberMe, professionalId);
+      
+      // Si el login es exitoso, reiniciar contador de intentos
+      setFailedAttempts(0);
+      
+      toast({
+        title: "Acceso exitoso",
+        description: "Bienvenido al sistema hospitalario",
+        variant: "default",
+      });
+
+    } catch (error) {
+      const newFailedAttempts = failedAttempts + 1;
+      setFailedAttempts(newFailedAttempts);
+
+      // Registrar intento fallido
+      console.log('Intento de acceso fallido:', {
+        dni,
+        professionalId,
+        attemptNumber: newFailedAttempts,
+        timestamp: new Date(),
+        ipAddress: 'Simulado: 192.168.1.100',
+        error: error instanceof Error ? error.message : 'Error desconocido'
+      });
+
+      if (newFailedAttempts >= 3) {
+        setIsLocked(true);
+        setLockTimeRemaining(15); // 15 minutos de bloqueo
+        
+        // Simular countdown
+        const countdown = setInterval(() => {
+          setLockTimeRemaining(prev => {
+            if (prev <= 1) {
+              setIsLocked(false);
+              setFailedAttempts(0);
+              clearInterval(countdown);
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 60000); // Cada minuto
+
+        toast({
+          title: "Cuenta Bloqueada por Seguridad",
+          description: "Demasiados intentos fallidos. La cuenta se desbloqueará en 15 minutos.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error de autenticación",
+          description: `Credenciales incorrectas. Intentos restantes: ${3 - newFailedAttempts}`,
+          variant: "destructive",
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -43,15 +118,16 @@ export default function LoginForm({ onForgotPassword }: LoginFormProps) {
 
   // Usuarios de demostración
   const demoUsers = [
-    { dni: '12345678A', password: 'admin123', role: 'Administrador' },
-    { dni: '23456789B', password: 'doctor123', role: 'Médico' },
-    { dni: '45678901D', password: 'nurse123', role: 'Enfermero/a' },
-    { dni: '56789012E', password: 'clean123', role: 'Limpieza' }
+    { dni: '12345678A', password: 'admin123', professionalId: 'ADM001', role: 'Administrador' },
+    { dni: '23456789B', password: 'doctor123', professionalId: 'MED001', role: 'Médico' },
+    { dni: '45678901D', password: 'nurse123', professionalId: 'ENF001', role: 'Enfermero/a' },
+    { dni: '56789012E', password: 'clean123', professionalId: 'LIM001', role: 'Limpieza' }
   ];
 
   const handleDemoLogin = (demoUser: typeof demoUsers[0]) => {
     setDni(demoUser.dni);
     setPassword(demoUser.password);
+    setProfessionalId(demoUser.professionalId);
   };
 
   return (
@@ -75,6 +151,32 @@ export default function LoginForm({ onForgotPassword }: LoginFormProps) {
         </CardHeader>
 
         <CardContent className="space-y-4">
+          {/* Alertas de seguridad */}
+          {isLocked && (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-center space-x-2 text-red-800">
+                <Shield className="h-4 w-4" />
+                <span className="font-medium">Cuenta Bloqueada por Seguridad</span>
+              </div>
+              <p className="text-sm text-red-700 mt-1">
+                Se detectaron múltiples intentos de acceso fallidos. 
+                La cuenta se desbloqueará automáticamente en {lockTimeRemaining} minutos.
+              </p>
+            </div>
+          )}
+          
+          {failedAttempts > 0 && !isLocked && (
+            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <div className="flex items-center space-x-2 text-yellow-800">
+                <AlertCircle className="h-4 w-4" />
+                <span className="font-medium">Advertencia de Seguridad</span>
+              </div>
+              <p className="text-sm text-yellow-700 mt-1">
+                Intentos fallidos: {failedAttempts}/3. La cuenta se bloqueará temporalmente después del tercer intento.
+              </p>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Campo DNI */}
             <div className="space-y-2">
@@ -87,6 +189,23 @@ export default function LoginForm({ onForgotPassword }: LoginFormProps) {
                   placeholder="12345678A"
                   value={dni}
                   onChange={(e) => setDni(e.target.value)}
+                  className="pl-10"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Campo ID Profesional */}
+            <div className="space-y-2">
+              <Label htmlFor="professionalId">ID Profesional</Label>
+              <div className="relative">
+                <Stethoscope className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="professionalId"
+                  type="text"
+                  placeholder="ADM001, MED001, ENF001..."
+                  value={professionalId}
+                  onChange={(e) => setProfessionalId(e.target.value)}
                   className="pl-10"
                   required
                 />
@@ -183,7 +302,10 @@ export default function LoginForm({ onForgotPassword }: LoginFormProps) {
                     <div>
                       <div className="font-medium">{user.role}</div>
                       <div className="text-xs text-muted-foreground">
-                        {user.dni} • {user.password}
+                        DNI: {user.dni}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        ID: {user.professionalId} • Pass: {user.password}
                       </div>
                     </div>
                     <div className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
@@ -201,12 +323,14 @@ export default function LoginForm({ onForgotPassword }: LoginFormProps) {
               <Shield className="h-5 w-5 text-blue-600 mt-0.5" />
               <div className="text-sm">
                 <h4 className="font-medium text-blue-900 mb-1">
-                  Sistema Seguro
+                  Sistema de Seguridad Avanzado
                 </h4>
-                <p className="text-blue-800">
-                  Todas las comunicaciones están cifradas y protegidas. 
-                  Tus datos están seguros con nosotros.
-                </p>
+                <ul className="text-blue-800 space-y-1">
+                  <li>• Autenticación con ID profesional obligatorio</li>
+                  <li>• Bloqueo automático tras 3 intentos fallidos</li>
+                  <li>• Registro completo de accesos</li>
+                  <li>• Comunicaciones cifradas end-to-end</li>
+                </ul>
               </div>
             </div>
           </div>
