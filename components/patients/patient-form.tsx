@@ -173,27 +173,22 @@ export default function PatientForm({ patientId, onClose }: PatientFormProps) {
         </div>
 
         <div className="space-y-2">
-          <Label>Fecha de Nacimiento *</Label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className="w-full justify-start text-left font-normal"
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {formData.dateOfBirth ? format(formData.dateOfBirth, 'dd/MM/yyyy', { locale: es }) : 'Seleccionar fecha'}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0">
-              <Calendar
-                mode="single"
-                selected={formData.dateOfBirth}
-                onSelect={(date) => setFormData(prev => ({ ...prev, dateOfBirth: date }))}
-                disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
+          <Label htmlFor="dateOfBirth">Fecha de Nacimiento *</Label>
+          <Input
+            id="dateOfBirth"
+            type="date"
+            value={formData.dateOfBirth ? format(formData.dateOfBirth, 'yyyy-MM-dd') : ''}
+            onChange={(e) => {
+              const dateValue = e.target.value;
+              if (dateValue) {
+                setFormData(prev => ({ ...prev, dateOfBirth: new Date(dateValue) }));
+              }
+            }}
+            max={format(new Date(), 'yyyy-MM-dd')}
+            min="1900-01-01"
+            required
+            className="w-full"
+          />
         </div>
 
         <div className="space-y-2">

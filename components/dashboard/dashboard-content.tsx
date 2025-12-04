@@ -41,6 +41,21 @@ import AnalyticsDashboard from '../analytics/analytics-dashboard';
 // Componentes de comunicación
 import CommunicationDashboard from '../communication/communication-dashboard';
 
+// Componente de plantas hospitalarias
+import HospitalFloorsDashboard from '../hospital-floors/hospital-floors-dashboard';
+
+// Componente de asistente IA
+import AIAssistantDashboard from '../ai-assistant/ai-assistant-dashboard';
+
+// Componente de logs de acceso
+import AccessLogsPanel from '../security/access-logs-panel';
+
+// Componente de configuración de privacidad
+import PrivacySettingsDashboard from '../privacy/privacy-settings-dashboard';
+
+// Componente de gestión de usuarios
+import UserManagementDashboard from '../user-management/user-management-dashboard';
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -54,7 +69,9 @@ import {
   Clock,
   UserCheck,
   Building2,
-  Stethoscope
+  Stethoscope,
+  Bot,
+  MessageSquare
 } from 'lucide-react';
 
 interface DashboardContentProps {
@@ -155,6 +172,13 @@ export default function DashboardContent({ activeSection, setActiveSection }: Da
                 </CardHeader>
                 <CardContent className="space-y-2">
                   <Button 
+                    className="w-full justify-start bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white"
+                    onClick={() => setActiveSection('ai-assistant')}
+                  >
+                    <Bot className="mr-2 h-4 w-4" />
+                    Asistente IA
+                  </Button>
+                  <Button 
                     variant="outline" 
                     className="w-full justify-start"
                     onClick={() => setActiveSection('bed-management')}
@@ -177,6 +201,14 @@ export default function DashboardContent({ activeSection, setActiveSection }: Da
                   >
                     <UserCheck className="mr-2 h-4 w-4" />
                     Gestión de Personal
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start"
+                    onClick={() => setActiveSection('communication')}
+                  >
+                    <MessageSquare className="mr-2 h-4 w-4" />
+                    Comunicación
                   </Button>
                 </CardContent>
               </Card>
@@ -501,6 +533,190 @@ export default function DashboardContent({ activeSection, setActiveSection }: Da
 
     case 'cleaning':
       return <CleaningDashboard />;
+
+    case 'hospital-floors':
+      return <HospitalFloorsDashboard />;
+
+    case 'ai-assistant':
+      return <AIAssistantDashboard />;
+
+    case 'access-logs':
+      return <AccessLogsPanel />;
+
+    case 'privacy-settings':
+      return <PrivacySettingsDashboard />;
+
+    case 'user-management':
+      return <UserManagementDashboard />;
+
+    // Vistas para pacientes
+    case 'my-schedule':
+    case 'records':
+      return (
+        <div className="p-6 space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">Mi Portal de Paciente</h1>
+              <p className="text-muted-foreground">Gestiona tu información y citas médicas</p>
+            </div>
+          </div>
+          <div className="grid gap-6 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5" />
+                  Mis Próximas Citas
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <p className="font-medium">Consulta General</p>
+                    <p className="text-sm text-muted-foreground">Dr. García - 15 Dic 2024, 10:00</p>
+                  </div>
+                  <div className="p-3 bg-gray-50 rounded-lg border">
+                    <p className="font-medium">Revisión Cardiología</p>
+                    <p className="text-sm text-muted-foreground">Dra. Rodríguez - 20 Dic 2024, 15:30</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>Información Personal</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2 text-sm">
+                  <p><strong>Nombre:</strong> {user.firstName} {user.lastName}</p>
+                  <p><strong>DNI:</strong> {user.dni}</p>
+                  <p><strong>Teléfono:</strong> {user.phone}</p>
+                  <p><strong>Email:</strong> {user.email}</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      );
+
+    // Vistas para familiares
+    case 'patient-status':
+      return (
+        <div className="p-6 space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">Estado del Paciente</h1>
+              <p className="text-muted-foreground">Información de tu familiar hospitalizado</p>
+            </div>
+          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Información del Paciente</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                    <p className="text-sm text-green-600 font-medium">Estado Actual</p>
+                    <p className="text-xl font-bold text-green-700">Estable</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Ubicación</p>
+                    <p className="font-medium">Planta 3 - Habitación 302, Cama A</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Médico Responsable</p>
+                    <p className="font-medium">Dr. Ana García</p>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Motivo de Ingreso</p>
+                    <p className="font-medium">Observación post-operatoria</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Fecha de Ingreso</p>
+                    <p className="font-medium">10 Dic 2024</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Alta Estimada</p>
+                    <p className="font-medium">14 Dic 2024</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      );
+
+    case 'visiting-hours':
+      return (
+        <div className="p-6 space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">Horarios de Visita</h1>
+              <p className="text-muted-foreground">Información sobre horarios y normas de visita</p>
+            </div>
+          </div>
+          <div className="grid gap-6 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>Horarios Permitidos</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex justify-between p-3 bg-blue-50 rounded-lg">
+                    <span className="font-medium">Mañana</span>
+                    <span>10:00 - 13:00</span>
+                  </div>
+                  <div className="flex justify-between p-3 bg-blue-50 rounded-lg">
+                    <span className="font-medium">Tarde</span>
+                    <span>17:00 - 20:00</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-4">
+                    * Horarios especiales para UCI: Consultar con personal de enfermería
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>Normas de Visita</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-2 text-sm">
+                  <li className="flex items-start gap-2">
+                    <span className="text-green-500">✓</span>
+                    Máximo 2 visitantes por paciente
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-green-500">✓</span>
+                    Usar gel hidroalcohólico al entrar
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-green-500">✓</span>
+                    Mantener silencio en pasillos
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-red-500">✗</span>
+                    No traer alimentos sin autorización
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-red-500">✗</span>
+                    No está permitido pernoctar
+                  </li>
+                </ul>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      );
+
+    // Registro de pacientes para admisiones
+    case 'patient-registration':
+      return <AdmissionsDashboard />;
+
+    case 'bed-overview':
+      return <BedManagementDashboard />;
 
     default:
       return (

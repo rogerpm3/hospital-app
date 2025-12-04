@@ -9,10 +9,12 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AppointmentDetailsDialog from './appointment-details-dialog';
-import { Search, Filter, Eye, Edit, Calendar } from 'lucide-react';
+import { Search, Filter, Eye, Edit, Calendar, XCircle, Trash2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 export default function AppointmentList() {
-  const { appointments } = useHospital();
+  const { appointments, cancelAppointment, deleteAppointment } = useHospital();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedAppointment, setSelectedAppointment] = useState<string | null>(null);
@@ -117,13 +119,50 @@ export default function AppointmentList() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setSelectedAppointment(appointment.id)}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setSelectedAppointment(appointment.id)}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      {appointment.status !== 'Cancelled' && appointment.status !== 'Completed' && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-orange-500 hover:text-orange-600"
+                          onClick={() => {
+                            const reason = prompt('Motivo de cancelación:');
+                            if (reason) {
+                              cancelAppointment(appointment.id, reason);
+                              toast({
+                                title: "Cita cancelada",
+                                description: "La cita ha sido cancelada correctamente",
+                              });
+                            }
+                          }}
+                        >
+                          <XCircle className="h-4 w-4" />
+                        </Button>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive hover:text-destructive"
+                        onClick={() => {
+                          if (confirm(`¿Estás seguro de eliminar esta cita de ${appointment.patientName}?`)) {
+                            deleteAppointment(appointment.id);
+                            toast({
+                              title: "Cita eliminada",
+                              description: "La cita ha sido eliminada correctamente",
+                            });
+                          }
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}

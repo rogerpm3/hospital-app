@@ -2,7 +2,9 @@ import {
   User, Patient, Room, Bed, Admission, MedicalRecord, VitalSigns, 
   Medication, Service, Appointment, AuditLog, ChatMessage, MedicalOrder,
   NursingNote, ClinicalScale, FluidBalance, WoundAssessment, MedicalEvolution,
-  DischargeChecklist, SystemNotification
+  DischargeChecklist, SystemNotification, HospitalFloor, HospitalUnit,
+  AIAssistant, FutureAppointment, FollowUpAlert, PrivacySettings,
+  AppointmentSummary
 } from './types';
 
 // Usuarios mock
@@ -16,6 +18,7 @@ export const mockUsers: User[] = [
     phone: '+34 600 000 001',
     role: 'admin',
     department: 'Administración',
+    professionalId: 'ADM001',
     isActive: true,
     lastLogin: new Date('2024-01-15T08:30:00Z'),
     profilePicture: '/placeholder-user.jpg',
@@ -24,7 +27,10 @@ export const mockUsers: User[] = [
       language: 'es',
       notifications: true
     },
-    twoFactorEnabled: true
+    twoFactorEnabled: true,
+    anonymousId: 'ADMIN-001',
+    failedLoginAttempts: 0,
+    isLocked: false
   },
   {
     id: '2',
@@ -37,8 +43,12 @@ export const mockUsers: User[] = [
     department: 'Cardiología',
     specialization: 'Cardiología Intervencionista',
     licenseNumber: 'COL12345',
+    professionalId: 'MED001',
     isActive: true,
     lastLogin: new Date('2024-01-15T09:15:00Z'),
+    anonymousId: 'DOC-001',
+    failedLoginAttempts: 0,
+    isLocked: false,
     emergencyContact: {
       name: 'Pedro García',
       phone: '+34 600 100 001',
@@ -135,6 +145,109 @@ export const mockUsers: User[] = [
     role: 'social_work',
     department: 'Trabajo Social',
     isActive: true
+  },
+  // Usuarios de Admisiones adicionales
+  {
+    id: '11',
+    dni: 'ADM001001',
+    firstName: 'Patricia',
+    lastName: 'Gómez Serrano',
+    email: 'patricia.gomez@hospital.com',
+    phone: '+34 600 000 011',
+    role: 'admission',
+    department: 'Admisiones',
+    professionalId: 'ADM-001',
+    isActive: true,
+    anonymousId: 'ADM-011',
+    failedLoginAttempts: 0,
+    isLocked: false
+  },
+  {
+    id: '12',
+    dni: 'ADM001002',
+    firstName: 'Miguel',
+    lastName: 'Torres Vega',
+    email: 'miguel.torres@hospital.com',
+    phone: '+34 600 000 012',
+    role: 'admission',
+    department: 'Admisiones',
+    professionalId: 'ADM-002',
+    isActive: true,
+    anonymousId: 'ADM-012',
+    failedLoginAttempts: 0,
+    isLocked: false
+  },
+  // Usuarios Pacientes
+  {
+    id: '13',
+    dni: 'PAC001001',
+    firstName: 'Antonio',
+    lastName: 'Pérez Martín',
+    email: 'antonio.perez@email.com',
+    phone: '+34 600 000 013',
+    role: 'patient',
+    professionalId: 'PAC-001',
+    isActive: true,
+    anonymousId: 'PAC-013',
+    failedLoginAttempts: 0,
+    isLocked: false
+  },
+  {
+    id: '14',
+    dni: 'PAC001002',
+    firstName: 'Rosa',
+    lastName: 'Hernández López',
+    email: 'rosa.hernandez@email.com',
+    phone: '+34 600 000 014',
+    role: 'patient',
+    professionalId: 'PAC-002',
+    isActive: true,
+    anonymousId: 'PAC-014',
+    failedLoginAttempts: 0,
+    isLocked: false
+  },
+  {
+    id: '15',
+    dni: 'PAC001003',
+    firstName: 'José',
+    lastName: 'Sánchez Ruiz',
+    email: 'jose.sanchez@email.com',
+    phone: '+34 600 000 015',
+    role: 'patient',
+    professionalId: 'PAC-003',
+    isActive: true,
+    anonymousId: 'PAC-015',
+    failedLoginAttempts: 0,
+    isLocked: false
+  },
+  // Usuarios Familiares
+  {
+    id: '16',
+    dni: 'FAM001001',
+    firstName: 'Laura',
+    lastName: 'Pérez García',
+    email: 'laura.perez.fam@email.com',
+    phone: '+34 600 000 016',
+    role: 'family',
+    professionalId: 'FAM-001',
+    isActive: true,
+    anonymousId: 'FAM-016',
+    failedLoginAttempts: 0,
+    isLocked: false
+  },
+  {
+    id: '17',
+    dni: 'FAM001002',
+    firstName: 'Carlos',
+    lastName: 'Hernández Ruiz',
+    email: 'carlos.hernandez.fam@email.com',
+    phone: '+34 600 000 017',
+    role: 'family',
+    professionalId: 'FAM-002',
+    isActive: true,
+    anonymousId: 'FAM-017',
+    failedLoginAttempts: 0,
+    isLocked: false
   }
 ];
 
@@ -299,7 +412,12 @@ export const mockPatients: Patient[] = [
     currentCondition: 'Stable',
     riskLevel: 'Medium',
     isolationRequired: false,
-    codeStatus: 'Full Code'
+    codeStatus: 'Full Code',
+    // Nuevos campos
+    assignedUnit: 'unit-emergency-obs',
+    assignedFloor: 1,
+    assignedWard: 'Observación de Urgencias',
+    anonymousId: 'PAT-001'
   },
   {
     id: 'patient-2',
@@ -796,7 +914,10 @@ export const mockDischargeChecklists: DischargeChecklist[] = [
     dischargeInstructions: 'Reposo relativo, control en consulta externa',
     medicationList: [],
     followUpAppointments: [],
-    status: 'In Progress'
+    status: 'In Progress',
+    futureAppointments: [],
+    medicalRecommendations: ['Reposo relativo', 'Control en consulta externa en 7 días'],
+    followUpAlerts: []
   }
 ];
 
@@ -877,6 +998,305 @@ export const mockChatMessages: ChatMessage[] = [
     type: 'channel',
     isRead: true,
     priority: 'Low'
+  }
+];
+
+// Plantas y unidades hospitalarias mock
+export const mockHospitalFloors: HospitalFloor[] = [
+  {
+    id: 'floor-1',
+    number: 1,
+    name: 'Planta 1 — Acceso, Urgencias y Consultas Externas',
+    description: 'Servicios de acceso, emergencias y consultas ambulatorias',
+    totalCapacity: 30,
+    currentOccupancy: 25,
+    units: [
+      {
+        id: 'unit-emergency-obs',
+        name: 'Observación de Urgencias',
+        floor: 1,
+        capacity: 20,
+        specialization: 'Emergency',
+        description: 'Observación y estabilización de pacientes urgentes',
+        isActive: true,
+        rooms: ['room-101', 'room-102', 'room-103'], // Habitaciones existentes
+        staff: ['2', '4', '6'] // Ana García, Luis Martínez, Javier Sánchez
+      },
+      {
+        id: 'unit-emergency-surgery',
+        name: 'Cirugía de Urgencias',
+        floor: 1,
+        capacity: 10,
+        specialization: 'Surgery',
+        description: 'Quirófanos para cirugías de emergencia',
+        isActive: true,
+        rooms: [],
+        staff: ['3'] // María Rodríguez
+      },
+      {
+        id: 'unit-outpatient',
+        name: 'Consultas Externas',
+        floor: 1,
+        capacity: 0,
+        specialization: 'Outpatient',
+        description: 'Consultas ambulatorias especializadas',
+        isActive: true,
+        rooms: [],
+        staff: ['2', '3'] // Doctores
+      }
+    ]
+  },
+  {
+    id: 'floor-2',
+    number: 2,
+    name: 'Planta 2 — Cirugía, Recuperación y Traumatología',
+    description: 'Servicios quirúrgicos y traumatológicos',
+    totalCapacity: 47,
+    currentOccupancy: 30,
+    units: [
+      {
+        id: 'unit-pacu',
+        name: 'PACU - Recuperación Post-Anestésica',
+        floor: 2,
+        capacity: 12,
+        specialization: 'Recovery',
+        description: 'Unidad de cuidados post-anestésicos',
+        isActive: true,
+        rooms: [],
+        staff: ['4', '6'] // Enfermeros
+      },
+      {
+        id: 'unit-surgical',
+        name: 'Hospitalización Quirúrgica',
+        floor: 2,
+        capacity: 20,
+        specialization: 'Surgery',
+        description: 'Hospitalización para pacientes quirúrgicos',
+        isActive: true,
+        rooms: ['room-201'],
+        staff: ['2', '4']
+      },
+      {
+        id: 'unit-trauma',
+        name: 'Traumatología',
+        floor: 2,
+        capacity: 15,
+        specialization: 'Trauma',
+        description: 'Atención especializada en traumatología',
+        isActive: true,
+        rooms: [],
+        staff: ['3', '6']
+      }
+    ]
+  },
+  {
+    id: 'floor-3',
+    number: 3,
+    name: 'Planta 3 — Obstetricia, Materno-Infantil, Atención Domiciliaria',
+    description: 'Servicios especializados en obstetricia y pediatría',
+    totalCapacity: 50,
+    currentOccupancy: 40,
+    units: [
+      {
+        id: 'unit-obstetrics',
+        name: 'Hospitalización Obstétrica',
+        floor: 3,
+        capacity: 30,
+        specialization: 'Obstetrics',
+        description: 'Atención integral a pacientes obstétricas',
+        isActive: true,
+        rooms: [],
+        staff: ['2', '4']
+      },
+      {
+        id: 'unit-maternal',
+        name: 'Hospitalización Materno-Infantil',
+        floor: 3,
+        capacity: 20,
+        specialization: 'Maternity',
+        description: 'Cuidados madre-hijo',
+        isActive: true,
+        rooms: [],
+        staff: ['6']
+      }
+    ]
+  },
+  {
+    id: 'floor-4',
+    number: 4,
+    name: 'Planta 4 — Hospitalización General y Medicina Interna',
+    description: 'Servicios de hospitalización general',
+    totalCapacity: 50,
+    currentOccupancy: 42,
+    units: [
+      {
+        id: 'unit-general',
+        name: 'Hospitalización General',
+        floor: 4,
+        capacity: 30,
+        specialization: 'General',
+        description: 'Hospitalización médica general',
+        isActive: true,
+        rooms: [],
+        staff: ['3', '4']
+      },
+      {
+        id: 'unit-internal',
+        name: 'Medicina Interna',
+        floor: 4,
+        capacity: 20,
+        specialization: 'Internal Medicine',
+        description: 'Especialidades médicas internas',
+        isActive: true,
+        rooms: [],
+        staff: ['3']
+      }
+    ]
+  },
+  {
+    id: 'floor-5',
+    number: 5,
+    name: 'Planta 5 — UCI y Cuidados Intermedios',
+    description: 'Cuidados intensivos y semi-intensivos',
+    totalCapacity: 28,
+    currentOccupancy: 25,
+    isRestricted: true,
+    units: [
+      {
+        id: 'unit-icu',
+        name: 'Unidad de Cuidados Intensivos (UCI)',
+        floor: 5,
+        capacity: 20,
+        specialization: 'ICU',
+        description: 'Cuidados intensivos para pacientes críticos',
+        isActive: true,
+        rooms: [],
+        staff: ['4', '6'] // Personal especializado UCI
+      },
+      {
+        id: 'unit-stepdown',
+        name: 'Unidad de Cuidados Intermedios',
+        floor: 5,
+        capacity: 8,
+        specialization: 'Intermediate Care',
+        description: 'Cuidados semi-intensivos',
+        isActive: true,
+        rooms: [],
+        staff: ['4']
+      }
+    ]
+  }
+];
+
+// Asistente IA mock
+export const mockAIAssistant: AIAssistant[] = [
+  {
+    id: 'ai-assistant-1',
+    name: 'MediBot',
+    avatar: '/robot-icon.png',
+    status: 'online',
+    capabilities: [
+      'Consultas médicas',
+      'Búsqueda de pacientes',
+      'Estadísticas hospitalarias',
+      'Acciones rápidas',
+      'Gestión administrativa',
+      'Interacciones medicamentosas'
+    ]
+  }
+];
+
+// Citas futuras mock (para altas)
+export const mockFutureAppointments: FutureAppointment[] = [
+  {
+    id: 'future-apt-1',
+    patientId: 'patient-1',
+    type: 'Lab Test',
+    description: 'Análisis de sangre de control',
+    scheduledDate: new Date('2024-02-15T09:00:00Z'),
+    provider: 'Dr. Ana García',
+    location: 'Laboratorio - Planta 1',
+    instructions: 'Ayuno de 12 horas',
+    reminderDays: [7, 3, 1]
+  },
+  {
+    id: 'future-apt-2',
+    patientId: 'patient-1',
+    type: 'Follow-up Consultation',
+    description: 'Control cardiológico post-alta',
+    scheduledDate: new Date('2024-03-01T10:30:00Z'),
+    provider: 'Dr. Ana García',
+    location: 'Consulta Cardiología',
+    reminderDays: [14, 7, 1]
+  }
+];
+
+// Alertas de seguimiento mock
+export const mockFollowUpAlerts: FollowUpAlert[] = [
+  {
+    id: 'alert-1',
+    patientId: 'patient-1',
+    alertType: 'appointment',
+    title: 'Cita de control cardiológico',
+    description: 'Recordatorio para cita de seguimiento post-IAM',
+    dueDate: new Date('2024-02-15T09:00:00Z'),
+    priority: 'High',
+    isActive: true
+  }
+];
+
+// Configuraciones de privacidad mock
+export const mockPrivacySettings: PrivacySettings[] = [
+  {
+    id: 'privacy-cleaning-1',
+    userId: '5', // Carmen López (cleaning)
+    role: 'cleaning',
+    canViewFullName: false,
+    canViewMedicalHistory: false,
+    canViewVitalSigns: false,
+    canViewClinicalNotes: false,
+    canViewDiagnosis: false,
+    canViewMedications: false,
+    canViewFinancialInfo: false,
+    maxPatientDataAccess: 'basic'
+  },
+  {
+    id: 'privacy-family-1',
+    userId: 'family-user-1',
+    role: 'family',
+    canViewFullName: true,
+    canViewMedicalHistory: false,
+    canViewVitalSigns: false,
+    canViewClinicalNotes: false,
+    canViewDiagnosis: false,
+    canViewMedications: false,
+    canViewFinancialInfo: false,
+    maxPatientDataAccess: 'basic',
+    allowedPatientIds: ['patient-1']
+  }
+];
+
+// Resúmenes de citas mock
+export const mockAppointmentSummaries: AppointmentSummary[] = [
+  {
+    date: new Date('2024-01-16'),
+    total: 15,
+    confirmed: 10,
+    pending: 3,
+    cancelled: 1,
+    completed: 1,
+    bySpecialty: {
+      'Cardiología': 5,
+      'Medicina Interna': 4,
+      'Radiología': 3,
+      'Urgencias': 3
+    },
+    byStatus: {
+      'Scheduled': 8,
+      'Confirmed': 5,
+      'Cancelled': 1,
+      'Completed': 1
+    }
   }
 ];
 

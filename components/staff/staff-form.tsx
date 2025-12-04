@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/lib/auth-context';
+import { useHospital } from '@/lib/hospital-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,7 +9,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { Save } from 'lucide-react';
-import { mockUsers } from '@/lib/mock-data';
 import type { UserRole } from '@/lib/types';
 
 interface StaffFormProps {
@@ -18,7 +17,7 @@ interface StaffFormProps {
 }
 
 export default function StaffForm({ staffId, onClose }: StaffFormProps) {
-  const { createUser, updateUser } = useAuth();
+  const { staff, addStaff, updateStaff } = useHospital();
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -36,23 +35,23 @@ export default function StaffForm({ staffId, onClose }: StaffFormProps) {
 
   useEffect(() => {
     if (staffId) {
-      const staff = mockUsers.find(u => u.id === staffId);
-      if (staff) {
+      const staffMember = staff.find(u => u.id === staffId);
+      if (staffMember) {
         setFormData({
-          dni: staff.dni,
-          firstName: staff.firstName,
-          lastName: staff.lastName,
-          email: staff.email,
-          phone: staff.phone,
-          role: staff.role,
-          department: staff.department || '',
-          specialization: staff.specialization || '',
-          licenseNumber: staff.licenseNumber || '',
-          isActive: staff.isActive
+          dni: staffMember.dni,
+          firstName: staffMember.firstName,
+          lastName: staffMember.lastName,
+          email: staffMember.email,
+          phone: staffMember.phone,
+          role: staffMember.role,
+          department: staffMember.department || '',
+          specialization: staffMember.specialization || '',
+          licenseNumber: staffMember.licenseNumber || '',
+          isActive: staffMember.isActive
         });
       }
     }
-  }, [staffId]);
+  }, [staffId, staff]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,13 +79,13 @@ export default function StaffForm({ staffId, onClose }: StaffFormProps) {
     };
 
     if (staffId) {
-      updateUser(staffId, userData);
+      updateStaff(staffId, userData);
       toast({
         title: "Personal actualizado",
         description: "Los datos del personal han sido actualizados exitosamente",
       });
     } else {
-      createUser(userData);
+      addStaff(userData);
       toast({
         title: "Personal registrado",
         description: "El nuevo miembro del personal ha sido registrado exitosamente",

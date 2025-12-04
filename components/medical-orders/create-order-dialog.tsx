@@ -36,11 +36,12 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
     endDate: ""
   })
 
-  const filteredPatients = patients.filter(patient =>
-    patient.name.toLowerCase().includes(patientSearch.toLowerCase()) ||
-    patient.id.toLowerCase().includes(patientSearch.toLowerCase()) ||
-    patient.roomNumber?.toString().includes(patientSearch)
-  )
+  const filteredPatients = patients.filter(patient => {
+    const fullName = `${patient.firstName} ${patient.lastName}`.toLowerCase()
+    return fullName.includes(patientSearch.toLowerCase()) ||
+      patient.id.toLowerCase().includes(patientSearch.toLowerCase()) ||
+      patient.roomId?.toString().includes(patientSearch)
+  })
 
   const routes = [
     "Oral",
@@ -85,21 +86,20 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
     }
 
     const newOrder = {
-      id: `order-${Date.now()}`,
       patientId: selectedPatient.id,
-      patientName: selectedPatient.name,
-      roomNumber: selectedPatient.roomNumber || "",
+      type: 'Medication' as const,
+      description: `${formData.medication} - ${formData.dosage}`,
       medication: formData.medication,
       dosage: formData.dosage,
-      route: formData.route,
-      frequency: formData.frequency,
+      route: formData.route || 'Oral',
+      frequency: formData.frequency || 'Cada 8 horas',
       duration: formData.duration,
-      priority: formData.priority,
-      status: "pending",
-      orderBy: user?.name || "Doctor",
-      orderDate: new Date().toISOString(),
-      startDate: formData.startDate,
-      endDate: formData.endDate,
+      priority: formData.priority as 'Normal' | 'Urgent' | 'STAT',
+      status: 'Pending' as const,
+      orderedBy: user?.firstName + " " + user?.lastName || "Doctor",
+      orderedDate: new Date(),
+      startDate: formData.startDate ? new Date(formData.startDate) : new Date(),
+      endDate: formData.endDate ? new Date(formData.endDate) : undefined,
       notes: formData.notes
     }
 
@@ -163,12 +163,12 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
                     >
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="font-medium">{patient.name}</p>
+                          <p className="font-medium">{patient.firstName} {patient.lastName}</p>
                           <p className="text-sm text-muted-foreground">
-                            ID: {patient.id} {patient.roomNumber && `• Habitación: ${patient.roomNumber}`}
+                            ID: {patient.id} {patient.roomId && `• Habitación: ${patient.roomId}`}
                           </p>
                         </div>
-                        <Badge variant="outline">{patient.status}</Badge>
+                        <Badge variant="outline">{patient.currentCondition || 'Activo'}</Badge>
                       </div>
                     </div>
                   ))}
@@ -181,9 +181,9 @@ export function CreateOrderDialog({ trigger }: CreateOrderDialogProps) {
                     <div className="flex items-center gap-3">
                       <User className="w-5 h-5 text-blue-600" />
                       <div>
-                        <p className="font-medium">{selectedPatient.name}</p>
+                        <p className="font-medium">{selectedPatient.firstName} {selectedPatient.lastName}</p>
                         <p className="text-sm text-muted-foreground">
-                          ID: {selectedPatient.id} • Habitación: {selectedPatient.roomNumber}
+                          ID: {selectedPatient.id} {selectedPatient.roomId && `• Habitación: ${selectedPatient.roomId}`}
                         </p>
                       </div>
                     </div>

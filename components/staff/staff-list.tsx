@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
+import { useHospital } from '@/lib/hospital-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -10,11 +11,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import StaffForm from './staff-form';
-import { Search, Plus, Eye, Edit, UserCheck, Users } from 'lucide-react';
-import { mockUsers } from '@/lib/mock-data';
+import { Search, Plus, Eye, Edit, UserCheck, Users, Trash2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 export default function StaffList() {
   const { user } = useAuth();
+  const { staff: allStaff, deleteStaff } = useHospital();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -22,7 +25,7 @@ export default function StaffList() {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [selectedStaffId, setSelectedStaffId] = useState<string | null>(null);
 
-  const staff = mockUsers.filter(u => u.role !== 'patient' && u.role !== 'family');
+  const staff = allStaff.filter(u => u.role !== 'patient' && u.role !== 'family');
 
   const filteredStaff = staff.filter(member => {
     const matchesSearch = searchTerm === '' || 
@@ -242,6 +245,22 @@ export default function StaffList() {
                           }}
                         >
                           <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-destructive hover:text-destructive"
+                          onClick={() => {
+                            if (confirm(`¿Estás seguro de eliminar a ${member.firstName} ${member.lastName}?`)) {
+                              deleteStaff(member.id);
+                              toast({
+                                title: "Personal eliminado",
+                                description: "El miembro del personal ha sido eliminado correctamente",
+                              });
+                            }
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     )}

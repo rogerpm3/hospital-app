@@ -24,6 +24,9 @@ import {
   Settings,
   Sparkles,
   UserPlus,
+  Building,
+  Bot,
+  Lock,
   X
 } from 'lucide-react';
 
@@ -37,8 +40,10 @@ interface SidebarProps {
 // Iconos para cada sección del menú
 const menuIcons = {
   dashboard: LayoutDashboard,
+  'hospital-floors': Building,
   patients: Users,
   staff: UserCheck,
+  'user-management': UserPlus,
   rooms: Building2,
   'bed-management': Bed,
   appointments: Calendar,
@@ -50,16 +55,25 @@ const menuIcons = {
   analytics: BarChart3,
   communication: MessageSquare,
   audit: Shield,
+  'access-logs': Shield,
+  'privacy-settings': Lock,
+  'ai-assistant': Bot,
   settings: Settings,
   cleaning: Sparkles,
-  'patient-registration': UserPlus
+  'patient-registration': UserPlus,
+  'bed-overview': Building2,
+  'my-schedule': Calendar,
+  'patient-status': Users,
+  'visiting-hours': Calendar
 };
 
 // Etiquetas para cada sección
 const menuLabels = {
   dashboard: 'Dashboard',
+  'hospital-floors': 'Plantas Hospitalarias',
   patients: 'Pacientes',
   staff: 'Personal',
+  'user-management': 'Gestión de Usuarios',
   rooms: 'Habitaciones',
   'bed-management': 'Gestión de Camas',
   appointments: 'Citas',
@@ -71,9 +85,16 @@ const menuLabels = {
   analytics: 'Analítica',
   communication: 'Comunicación',
   audit: 'Auditoría',
+  'access-logs': 'Logs de Acceso',
+  'privacy-settings': 'Configuración de Privacidad',
+  'ai-assistant': 'Asistente IA',
   settings: 'Configuración',
   cleaning: 'Limpieza',
-  'patient-registration': 'Registro Pacientes'
+  'patient-registration': 'Registro Pacientes',
+  'bed-overview': 'Vista de Camas',
+  'my-schedule': 'Mi Horario',
+  'patient-status': 'Estado Paciente',
+  'visiting-hours': 'Horas de Visita'
 };
 
 export default function Sidebar({ open, setOpen, activeSection, setActiveSection }: SidebarProps) {
@@ -103,12 +124,12 @@ export default function Sidebar({ open, setOpen, activeSection, setActiveSection
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b">
           <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-lg flex items-center justify-center">
               <Stethoscope className="h-5 w-5 text-white" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">HospitalIMS</h2>
-              <p className="text-xs text-gray-500">Sistema de Gestión</p>
+              <h2 className="text-lg font-semibold text-gray-900">MedInsight</h2>
+              <p className="text-xs text-gray-500">by datamedics</p>
             </div>
           </div>
           <Button

@@ -2,14 +2,22 @@
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { mockUsers, mockAuditLogs } from './mock-data';
+import { sqlStaff } from './sql-data';
 import type { User, UserRole, AuditLog } from './types';
+
+// Combinar usuarios de demostración (mock) con usuarios del SQL
+// Los usuarios SQL tienen prioridad si hay duplicados
+const allUsers: User[] = [
+  ...mockUsers,
+  ...sqlStaff.filter(sqlUser => !mockUsers.some(mockUser => mockUser.dni === sqlUser.dni))
+];
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   showPasswordRecovery: boolean;
   setShowPasswordRecovery: (show: boolean) => void;
-  login: (dni: string, password: string, rememberMe?: boolean) => Promise<void>;
+  login: (dni: string, password: string, rememberMe?: boolean, professionalId?: string) => Promise<void>;
   logout: () => void;
   createUser: (userData: Omit<User, 'id' | 'lastLogin'>) => void;
   updateUser: (userId: string, updates: Partial<User>) => void;
@@ -24,17 +32,58 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Credenciales por defecto para demostración
-const defaultCredentials: Record<string, { password: string; role: UserRole }> = {
-  '12345678A': { password: 'admin123', role: 'admin' },
-  '23456789B': { password: 'doctor123', role: 'doctor' },
-  '34567890C': { password: 'doctor123', role: 'doctor' },
-  '45678901D': { password: 'nurse123', role: 'nurse' },
-  '56789012E': { password: 'clean123', role: 'cleaning' },
-  '67890123F': { password: 'nurse123', role: 'nurse' },
-  '78901234G': { password: 'pharmacy123', role: 'pharmacy' },
-  '89012345H': { password: 'radiology123', role: 'radiology' },
-  '90123456I': { password: 'admission123', role: 'admission' },
-  '01234567J': { password: 'social123', role: 'social_work' }
+// Incluye tanto datos originales como personal del SQL
+const defaultCredentials: Record<string, { password: string; role: UserRole; professionalId: string }> = {
+  // Credenciales originales
+  '12345678A': { password: 'admin123', role: 'admin', professionalId: 'ADM001' },
+  '23456789B': { password: 'doctor123', role: 'doctor', professionalId: 'MED001' },
+  '34567890C': { password: 'doctor123', role: 'doctor', professionalId: 'MED002' },
+  '45678901D': { password: 'nurse123', role: 'nurse', professionalId: 'ENF001' },
+  '56789012E': { password: 'clean123', role: 'cleaning', professionalId: 'LIM001' },
+  '67890123F': { password: 'nurse123', role: 'nurse', professionalId: 'ENF002' },
+  '78901234G': { password: 'pharmacy123', role: 'pharmacy', professionalId: 'FAR001' },
+  '89012345H': { password: 'radiology123', role: 'radiology', professionalId: 'RAD001' },
+  '90123456I': { password: 'admission123', role: 'admission', professionalId: 'ADM002' },
+  '01234567J': { password: 'social123', role: 'social_work', professionalId: 'SOC001' },
+  // Credenciales del personal SQL
+  'DNI-58601_ADM': { password: 'admin123', role: 'admin', professionalId: '58601' },
+  'DNI-27512': { password: 'doctor123', role: 'doctor', professionalId: '27512' },
+  'DNI-43234': { password: 'nurse123', role: 'nurse', professionalId: '43234' },
+  'DNI-19621': { password: 'doctor123', role: 'doctor', professionalId: '19621' },
+  'DNI-12171': { password: 'doctor123', role: 'doctor', professionalId: '12171' },
+  'DNI-41271': { password: 'doctor123', role: 'doctor', professionalId: '41271' },
+  'DNI-12345': { password: 'doctor123', role: 'doctor', professionalId: '12345' },
+  'DNI-12346': { password: 'doctor123', role: 'doctor', professionalId: '12346' },
+  'DNI-67345': { password: 'nurse123', role: 'nurse', professionalId: '67345' },
+  'DNI-56345': { password: 'doctor123', role: 'doctor', professionalId: '56345' },
+  'DNI-18376': { password: 'nurse123', role: 'nurse', professionalId: '18376' },
+  'DNI-33272': { password: 'doctor123', role: 'doctor', professionalId: '33272' },
+  'DNI-97563': { password: 'doctor123', role: 'doctor', professionalId: '97563' },
+  'DNI-44382': { password: 'nurse123', role: 'nurse', professionalId: '44382' },
+  'DNI-25437': { password: 'nurse123', role: 'nurse', professionalId: '25437' },
+  'DNI-61765': { password: 'nurse123', role: 'nurse', professionalId: '61765' },
+  'DNI-43256': { password: 'nurse123', role: 'nurse', professionalId: '43256' },
+  'DNI-22567': { password: 'doctor123', role: 'doctor', professionalId: '22567' },
+  'DNI-18273': { password: 'doctor123', role: 'doctor', professionalId: '18273' },
+  'DNI-6234': { password: 'nurse123', role: 'nurse', professionalId: '6234' },
+  'DNI-35678': { password: 'doctor123', role: 'doctor', professionalId: '35678' },
+  'DNI-8512': { password: 'nurse123', role: 'nurse', professionalId: '8512' },
+  'DNI-45621_ADM': { password: 'admin123', role: 'admin', professionalId: '45621' },
+  'DNI-34562': { password: 'nurse123', role: 'nurse', professionalId: '34562' },
+  'DNI-1111_ADM': { password: 'admin123', role: 'admin', professionalId: '1111' },
+  'DNI-30123': { password: 'nurse123', role: 'nurse', professionalId: '30123' },
+  'DNI-7777': { password: 'nurse123', role: 'nurse', professionalId: '7777' },
+  'DNI-40876': { password: 'nurse123', role: 'nurse', professionalId: '40876' },
+  // Usuarios de Admisiones
+  'ADM001001': { password: 'admision123', role: 'admission', professionalId: 'ADM-001' },
+  'ADM001002': { password: 'admision123', role: 'admission', professionalId: 'ADM-002' },
+  // Usuarios Pacientes
+  'PAC001001': { password: 'paciente123', role: 'patient', professionalId: 'PAC-001' },
+  'PAC001002': { password: 'paciente123', role: 'patient', professionalId: 'PAC-002' },
+  'PAC001003': { password: 'paciente123', role: 'patient', professionalId: 'PAC-003' },
+  // Usuarios Familiares
+  'FAM001001': { password: 'familiar123', role: 'family', professionalId: 'FAM-001' },
+  'FAM001002': { password: 'familiar123', role: 'family', professionalId: 'FAM-002' }
 };
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -51,7 +100,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (savedUser && rememberMe === 'true') {
       try {
         const userData = JSON.parse(savedUser);
-        const foundUser = mockUsers.find(u => u.dni === userData.dni);
+        const foundUser = allUsers.find(u => u.dni === userData.dni);
         if (foundUser) {
           setUser(foundUser);
         }
@@ -65,43 +114,67 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(false);
   }, []);
 
-  const login = useCallback(async (dni: string, password: string, rememberMe = false): Promise<void> => {
+  const login = useCallback(async (dni: string, password: string, rememberMe = false, professionalId?: string): Promise<void> => {
     setLoading(true);
     
     // Simular delay de red
     await new Promise(resolve => setTimeout(resolve, 1000));
     
-    // Buscar usuario en mock data
-    const foundUser = mockUsers.find(u => u.dni === dni);
+    // Buscar usuario en datos combinados (mock + SQL)
+    const foundUser = allUsers.find(u => u.dni === dni);
     const credentials = defaultCredentials[dni];
     
-    if (!foundUser || !credentials || credentials.password !== password) {
+    // Validar credenciales completas
+    if (!foundUser || !credentials || 
+        credentials.password !== password ||
+        (professionalId && credentials.professionalId !== professionalId)) {
       setLoading(false);
-      throw new Error('DNI o contraseña incorrectos');
+      
+      // Registrar intento fallido
+      addAuditLog({
+        action: 'LOGIN_FAILED',
+        resource: 'system',
+        details: {
+          dni,
+          professionalId: professionalId || 'NO_PROVIDED',
+          reason: !foundUser ? 'USER_NOT_FOUND' : 
+                  credentials.password !== password ? 'WRONG_PASSWORD' :
+                  'WRONG_PROFESSIONAL_ID',
+          timestamp: new Date()
+        }
+      });
+      
+      throw new Error('Credenciales incorrectas. Verifica DNI, contraseña e ID profesional.');
     }
     
     // Actualizar último login
     const updatedUser = {
       ...foundUser,
-      lastLogin: new Date()
+      lastLogin: new Date(),
+      professionalId: credentials.professionalId
     };
     
     setUser(updatedUser);
     
     // Guardar en localStorage si remember me está activado
     if (rememberMe) {
-      localStorage.setItem('hospital_user', JSON.stringify({ dni: updatedUser.dni }));
+      localStorage.setItem('hospital_user', JSON.stringify({ 
+        dni: updatedUser.dni,
+        professionalId: credentials.professionalId
+      }));
       localStorage.setItem('hospital_remember', 'true');
     }
     
-    // Registro de auditoría
+    // Registro de auditoría exitoso
     addAuditLog({
       action: 'LOGIN',
       resource: 'system',
-      details: { 
+      details: {
+        professionalId: credentials.professionalId,
+        loginMethod: 'password',
         successful: true,
         rememberMe,
-        loginMethod: 'password'
+        timestamp: new Date()
       }
     });
     

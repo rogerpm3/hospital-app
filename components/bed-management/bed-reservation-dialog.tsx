@@ -197,26 +197,18 @@ export default function BedReservationDialog({ open, onClose, bedId }: BedReserv
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="reservation-date">Fecha de Reserva *</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start text-left font-normal"
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {reservationDate ? format(reservationDate, 'dd/MM/yyyy', { locale: es }) : 'Seleccionar fecha'}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={reservationDate}
-                    onSelect={setReservationDate}
-                    disabled={(date) => date < new Date() || date < new Date("1900-01-01")}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+              <Input
+                id="reservation-date"
+                type="date"
+                value={reservationDate ? format(reservationDate, 'yyyy-MM-dd') : ''}
+                onChange={(e) => {
+                  if (e.target.value) {
+                    setReservationDate(new Date(e.target.value));
+                  }
+                }}
+                min={format(new Date(), 'yyyy-MM-dd')}
+                required
+              />
             </div>
 
             <div className="space-y-2">

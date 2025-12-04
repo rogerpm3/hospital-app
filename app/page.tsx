@@ -10,6 +10,7 @@ import PasswordRecovery from '@/components/password-recovery';
 import DashboardContent from '@/components/dashboard/dashboard-content';
 import Header from '@/components/dashboard/header';
 import Sidebar from '@/components/dashboard/sidebar';
+import CookieConsent from '@/components/cookie-consent';
 import { Loader2 } from 'lucide-react';
 
 // Función para obtener el título de la sección
@@ -57,18 +58,16 @@ function AppContent() {
   }
 
   if (!user) {
-    return (
+    return showPasswordRecovery ? (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
         <div className="flex items-center justify-center min-h-screen p-4">
           <div className="w-full max-w-md">
-            {showPasswordRecovery ? (
-              <PasswordRecovery onBack={() => setShowPasswordRecovery(false)} />
-            ) : (
-              <LoginForm onForgotPassword={() => setShowPasswordRecovery(true)} />
-            )}
+            <PasswordRecovery onBack={() => setShowPasswordRecovery(false)} />
           </div>
         </div>
       </div>
+    ) : (
+      <LoginForm onForgotPassword={() => setShowPasswordRecovery(true)} />
     );
   }
 
@@ -114,6 +113,7 @@ export default function Home() {
         <HospitalProvider>
           <AppContent />
           <Toaster />
+          <CookieConsent />
         </HospitalProvider>
       </AuthProvider>
     </ThemeProvider>

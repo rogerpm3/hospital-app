@@ -8,23 +8,32 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Plus, Search, Filter, Clock, AlertTriangle, CheckCircle, X } from "lucide-react"
+import { Plus, Search, Filter, Clock, AlertTriangle, CheckCircle, X, Trash2 } from "lucide-react"
 import { useHospital } from "@/lib/hospital-context"
+import { useToast } from "@/hooks/use-toast"
 
 export function OrdersList() {
-  const { medicalOrders, updateMedicalOrder } = useHospital()
+  const { medicalOrders, updateMedicalOrder, deleteMedicalOrder } = useHospital()
+  const { toast } = useToast()
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [priorityFilter, setPriorityFilter] = useState("all")
 
   const filteredOrders = medicalOrders.filter(order => {
-    const matchesSearch = 
-      order.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.medication.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.orderBy.toLowerCase().includes(searchTerm.toLowerCase())
+    const patientName = order.patientName || order.description || ''
+    const medication = order.medication || order.description || ''
+    const orderBy = order.orderBy || order.orderedBy || ''
     
-    const matchesStatus = statusFilter === "all" || order.status === statusFilter
-    const matchesPriority = priorityFilter === "all" || order.priority === priorityFilter
+    const matchesSearch = 
+      patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      medication.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      orderBy.toLowerCase().includes(searchTerm.toLowerCase())
+    
+    const orderStatus = order.status?.toLowerCase() || 'pending'
+    const orderPriority = order.priority?.toLowerCase() || 'normal'
+    
+    const matchesStatus = statusFilter === "all" || orderStatus === statusFilter.toLowerCase()
+    const matchesPriority = priorityFilter === "all" || orderPriority === priorityFilter.toLowerCase()
     
     return matchesSearch && matchesStatus && matchesPriority
   })
@@ -169,6 +178,24 @@ export function OrdersList() {
                 </Button>
               </>
             )}
+            
+            <Button 
+              size="sm" 
+              variant="outline"
+              className="text-destructive hover:text-destructive border-destructive/50 hover:border-destructive"
+              onClick={() => {
+                if (confirm(`¿Estás seguro de eliminar esta orden de ${order.patientName}?`)) {
+                  deleteMedicalOrder(order.id)
+                  toast({
+                    title: "Orden eliminada",
+                    description: "La orden médica ha sido eliminada correctamente",
+                  })
+                }
+              }}
+            >
+              <Trash2 className="w-4 h-4 mr-1" />
+              Eliminar
+            </Button>
           </div>
         </div>
       </CardContent>

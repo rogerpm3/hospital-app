@@ -2,16 +2,24 @@
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { useAuth } from './auth-context';
+
+// Importaciones de datos SQL pre-parseados (datos reales de la base de datos)
+import {
+  sqlPatients,
+  sqlStaff,
+  sqlRooms,
+  sqlBeds,
+  sqlMedications,
+  sqlServices,
+  sqlAdmissions,
+  sqlMedicalOrders
+} from './sql-data';
+
+// Importaciones de mock-data para datos que no están en SQL
 import { 
-  mockPatients, 
-  mockRooms, 
-  mockBeds, 
   mockAppointments, 
-  mockAdmissions, 
   mockMedicalRecords, 
-  mockVitalSigns, 
-  mockMedications,
-  mockMedicalOrders,
+  mockVitalSigns,
   mockNursingNotes,
   mockClinicalScales,
   mockFluidBalance,
@@ -20,8 +28,17 @@ import {
   mockDischargeChecklists,
   mockSystemNotifications,
   mockChatMessages,
-  mockServices
+  mockHospitalFloors,
+  mockAIAssistant,
+  mockFutureAppointments,
+  mockFollowUpAlerts,
+  mockPrivacySettings,
+  mockAppointmentSummaries
 } from './mock-data';
+
+// Importar servicio de base de datos para persistencia
+import * as dbService from './database/db-service';
+
 import type { 
   Patient, 
   Room, 
@@ -40,7 +57,14 @@ import type {
   MedicalEvolution,
   DischargeChecklist,
   SystemNotification,
-  ChatMessage
+  ChatMessage,
+  HospitalFloor,
+  AIAssistant,
+  FutureAppointment,
+  FollowUpAlert,
+  PrivacySettings,
+  AppointmentSummary,
+  User
 } from './types';
 
 interface HospitalContextType {
@@ -63,16 +87,33 @@ interface HospitalContextType {
   dischargeChecklists: DischargeChecklist[];
   systemNotifications: SystemNotification[];
   chatMessages: ChatMessage[];
+  hospitalFloors: HospitalFloor[];
+  aiAssistants: AIAssistant[];
+  futureAppointments: FutureAppointment[];
+  followUpAlerts: FollowUpAlert[];
+  privacySettings: PrivacySettings[];
+  appointmentSummaries: AppointmentSummary[];
+  staff: User[];
+  
+  // Estado de carga
+  isDbLoading: boolean;
+  dbError: string | null;
 
   // Funciones para pacientes
   addPatient: (patient: Omit<Patient, 'id'>) => void;
   updatePatient: (patientId: string, updates: Partial<Patient>) => void;
   deletePatient: (patientId: string) => void;
 
+  // Funciones para personal
+  addStaff: (staff: Omit<User, 'id'>) => void;
+  updateStaff: (staffId: string, updates: Partial<User>) => void;
+  deleteStaff: (staffId: string) => void;
+
   // Funciones para citas
   addAppointment: (appointment: Omit<Appointment, 'id'>) => void;
   updateAppointment: (appointmentId: string, updates: Partial<Appointment>) => void;
   cancelAppointment: (appointmentId: string, reason: string) => void;
+  deleteAppointment: (appointmentId: string) => void;
 
   // Funciones para camas
   updateBedStatus: (bedId: string, status: Bed['status']) => void;
@@ -85,6 +126,7 @@ interface HospitalContextType {
   // Funciones para órdenes médicas
   addMedicalOrder: (order: Omit<MedicalOrder, 'id'>) => void;
   updateMedicalOrder: (orderId: string, updates: Partial<MedicalOrder>) => void;
+  deleteMedicalOrder: (orderId: string) => void;
 
   // Funciones para notas de enfermería
   addNursingNote: (note: Omit<NursingNote, 'id'>) => void;
@@ -99,6 +141,9 @@ interface HospitalContextType {
 
   // Funciones para evoluciones médicas
   addMedicalEvolution: (evolution: Omit<MedicalEvolution, 'id'>) => void;
+  
+  // Función para recargar datos
+  refreshFromDatabase: () => Promise<void>;
 }
 
 const HospitalContext = createContext<HospitalContextType | undefined>(undefined);
@@ -106,17 +151,26 @@ const HospitalContext = createContext<HospitalContextType | undefined>(undefined
 export function HospitalProvider({ children }: { children: React.ReactNode }) {
   const { addAuditLog } = useAuth();
   
-  // Estados principales
-  const [patients, setPatients] = useState<Patient[]>(mockPatients);
-  const [rooms, setRooms] = useState<Room[]>(mockRooms);
-  const [beds, setBeds] = useState<Bed[]>(mockBeds);
+  // Estado de carga - siempre falso ya que los datos están pre-cargados
+  const [isDbLoading] = useState(false);
+  const [dbError] = useState<string | null>(null);
+  
+  // ============================================
+  // ESTADOS PRINCIPALES - Datos SQL predeterminados
+  // ============================================
+  const [patients, setPatients] = useState<Patient[]>(sqlPatients);
+  const [rooms, setRooms] = useState<Room[]>(sqlRooms);
+  const [beds, setBeds] = useState<Bed[]>(sqlBeds);
+  const [medications, setMedications] = useState<Medication[]>(sqlMedications);
+  const [services, setServices] = useState<Service[]>(sqlServices);
+  const [admissions, setAdmissions] = useState<Admission[]>(sqlAdmissions);
+  const [medicalOrders, setMedicalOrders] = useState<MedicalOrder[]>(sqlMedicalOrders);
+  const [staff, setStaff] = useState<User[]>(sqlStaff as User[]);
+  
+  // Estados con datos mock (no disponibles en SQL)
   const [appointments, setAppointments] = useState<Appointment[]>(mockAppointments);
-  const [admissions, setAdmissions] = useState<Admission[]>(mockAdmissions);
   const [medicalRecords, setMedicalRecords] = useState<MedicalRecord[]>(mockMedicalRecords);
   const [vitalSigns, setVitalSigns] = useState<VitalSigns[]>(mockVitalSigns);
-  const [medications, setMedications] = useState<Medication[]>(mockMedications);
-  const [services] = useState<Service[]>(mockServices);
-  const [medicalOrders, setMedicalOrders] = useState<MedicalOrder[]>(mockMedicalOrders);
   const [nursingNotes, setNursingNotes] = useState<NursingNote[]>(mockNursingNotes);
   const [clinicalScales] = useState<ClinicalScale[]>(mockClinicalScales);
   const [fluidBalance] = useState<FluidBalance[]>(mockFluidBalance);
@@ -124,59 +178,108 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
   const [medicalEvolutions, setMedicalEvolutions] = useState<MedicalEvolution[]>(mockMedicalEvolutions);
   const [dischargeChecklists, setDischargeChecklists] = useState<DischargeChecklist[]>(mockDischargeChecklists);
   const [systemNotifications] = useState<SystemNotification[]>(mockSystemNotifications);
-  const [chatMessages] = useState<ChatMessage[]>(mockChatMessages);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>(mockChatMessages);
+  
+  // Estados para funcionalidades avanzadas
+  const [hospitalFloors] = useState<HospitalFloor[]>(mockHospitalFloors);
+  const [aiAssistants] = useState<AIAssistant[]>(mockAIAssistant);
+  const [futureAppointments, setFutureAppointments] = useState<FutureAppointment[]>(mockFutureAppointments);
+  const [followUpAlerts, setFollowUpAlerts] = useState<FollowUpAlert[]>(mockFollowUpAlerts);
+  const [privacySettings] = useState<PrivacySettings[]>(mockPrivacySettings);
+  const [appointmentSummaries] = useState<AppointmentSummary[]>(mockAppointmentSummaries);
 
-  // Efectos para persistir datos en localStorage
+  // Inicializar servicio de base de datos al cargar
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('hospital-patients', JSON.stringify(patients));
-    }
-  }, [patients]);
+    console.log('🏥 Hospital Context inicializado con datos SQL:');
+    console.log(`  - Pacientes: ${patients.length}`);
+    console.log(`  - Personal: ${staff.length}`);
+    console.log(`  - Habitaciones: ${rooms.length}`);
+    console.log(`  - Camas: ${beds.length}`);
+    console.log(`  - Medicamentos: ${medications.length}`);
+    console.log(`  - Servicios: ${services.length}`);
+    console.log(`  - Admisiones: ${admissions.length}`);
+    console.log(`  - Órdenes médicas: ${medicalOrders.length}`);
+    
+    // Inicializar el servicio de base de datos para permitir persistencia
+    dbService.initializeDatabase().then(() => {
+      console.log('✅ Servicio de base de datos inicializado');
+    }).catch(error => {
+      console.warn('⚠️ No se pudo inicializar el servicio de base de datos:', error);
+    });
+  }, []);
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('hospital-beds', JSON.stringify(beds));
+  // Función para recargar datos desde la base de datos SQL
+  const refreshFromDatabase = useCallback(async () => {
+    try {
+      // Reiniciar la base de datos y recargar
+      await dbService.resetDatabase();
+      
+      // Obtener datos frescos
+      const freshPatients = dbService.getPatients();
+      const freshStaff = dbService.getStaff();
+      const { rooms: freshRooms, beds: freshBeds } = dbService.getRoomsAndBeds();
+      const freshMedications = dbService.getMedications();
+      const freshServices = dbService.getServices();
+      const freshAdmissions = dbService.getAdmissions();
+      const freshOrders = dbService.getMedicalOrders();
+      
+      // Si hay datos del servicio, usarlos; si no, usar los datos estáticos
+      if (freshPatients.length > 0) setPatients(freshPatients);
+      else setPatients(sqlPatients);
+      
+      if (freshStaff.length > 0) setStaff(freshStaff);
+      else setStaff(sqlStaff as User[]);
+      
+      if (freshRooms.length > 0) setRooms(freshRooms);
+      else setRooms(sqlRooms);
+      
+      if (freshBeds.length > 0) setBeds(freshBeds);
+      else setBeds(sqlBeds);
+      
+      if (freshMedications.length > 0) setMedications(freshMedications);
+      else setMedications(sqlMedications);
+      
+      if (freshServices.length > 0) setServices(freshServices);
+      else setServices(sqlServices);
+      
+      if (freshAdmissions.length > 0) setAdmissions(freshAdmissions);
+      else setAdmissions(sqlAdmissions);
+      
+      if (freshOrders.length > 0) setMedicalOrders(freshOrders);
+      else setMedicalOrders(sqlMedicalOrders);
+      
+      console.log('✅ Datos recargados desde la base de datos SQL');
+    } catch (error) {
+      console.error('❌ Error recargando datos:', error);
+      // En caso de error, usar datos estáticos
+      setPatients(sqlPatients);
+      setStaff(sqlStaff as User[]);
+      setRooms(sqlRooms);
+      setBeds(sqlBeds);
+      setMedications(sqlMedications);
+      setServices(sqlServices);
+      setAdmissions(sqlAdmissions);
+      setMedicalOrders(sqlMedicalOrders);
     }
-  }, [beds]);
+  }, []);
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('hospital-appointments', JSON.stringify(appointments));
-    }
-  }, [appointments]);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('hospital-medical-orders', JSON.stringify(medicalOrders));
-    }
-  }, [medicalOrders]);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('hospital-nursing-notes', JSON.stringify(nursingNotes));
-    }
-  }, [nursingNotes]);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('hospital-vital-signs', JSON.stringify(vitalSigns));
-    }
-  }, [vitalSigns]);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('hospital-admissions', JSON.stringify(admissions));
-    }
-  }, [admissions]);
-
-  // Funciones para pacientes
-  const addPatient = useCallback((patientData: Omit<Patient, 'id'>) => {
+  // Funciones para pacientes - CON PERSISTENCIA SQL
+  const addPatient = useCallback(async (patientData: Omit<Patient, 'id'>) => {
     const newPatient: Patient = {
       ...patientData,
       id: `patient-${Date.now()}`
-    };
+    } as Patient;
     
+    // Actualizar estado local inmediatamente
     setPatients(prev => [...prev, newPatient]);
+    
+    // Persistir en archivos SQL
+    try {
+      await dbService.addPatient(patientData);
+      console.log('✅ Paciente guardado en SQL');
+    } catch (error) {
+      console.error('❌ Error guardando paciente en SQL:', error);
+    }
     
     addAuditLog({
       action: 'CREATE',
@@ -186,10 +289,19 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
     });
   }, [addAuditLog]);
 
-  const updatePatient = useCallback((patientId: string, updates: Partial<Patient>) => {
+  const updatePatient = useCallback(async (patientId: string, updates: Partial<Patient>) => {
+    // Actualizar estado local inmediatamente
     setPatients(prev => prev.map(patient => 
       patient.id === patientId ? { ...patient, ...updates } : patient
     ));
+    
+    // Persistir en archivos SQL
+    try {
+      await dbService.updatePatient(patientId, updates);
+      console.log('✅ Paciente actualizado en SQL');
+    } catch (error) {
+      console.error('❌ Error actualizando paciente en SQL:', error);
+    }
     
     addAuditLog({
       action: 'UPDATE',
@@ -199,13 +311,84 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
     });
   }, [addAuditLog]);
 
-  const deletePatient = useCallback((patientId: string) => {
+  const deletePatient = useCallback(async (patientId: string) => {
+    // Actualizar estado local inmediatamente
     setPatients(prev => prev.filter(patient => patient.id !== patientId));
+    
+    // Persistir en archivos SQL
+    try {
+      await dbService.deletePatient(patientId);
+      console.log('✅ Paciente eliminado de SQL');
+    } catch (error) {
+      console.error('❌ Error eliminando paciente de SQL:', error);
+    }
     
     addAuditLog({
       action: 'DELETE',
       resource: 'patient',
       resourceId: patientId
+    });
+  }, [addAuditLog]);
+
+  // Funciones para personal - CON PERSISTENCIA SQL
+  const addStaff = useCallback(async (staffData: Omit<User, 'id'>) => {
+    const newStaff: User = {
+      ...staffData,
+      id: `staff-${Date.now()}`
+    } as User;
+    
+    // Actualizar estado local inmediatamente
+    setStaff(prev => [...prev, newStaff]);
+    
+    // Persistir en archivos SQL
+    try {
+      await dbService.addStaff(staffData);
+      console.log('✅ Personal guardado en SQL');
+    } catch (error) {
+      console.error('❌ Error guardando personal en SQL:', error);
+    }
+    
+    addAuditLog({
+      action: 'CREATE',
+      resource: 'staff',
+      resourceId: newStaff.id,
+      details: { staffName: `${newStaff.firstName} ${newStaff.lastName}` }
+    });
+  }, [addAuditLog]);
+
+  const updateStaff = useCallback(async (staffId: string, updates: Partial<User>) => {
+    // Actualizar estado local inmediatamente
+    setStaff(prev => prev.map(member => 
+      member.id === staffId ? { ...member, ...updates } : member
+    ));
+    
+    // Persistir en archivos SQL
+    try {
+      await dbService.updateStaff(staffId, updates);
+      console.log('✅ Personal actualizado en SQL');
+    } catch (error) {
+      console.error('❌ Error actualizando personal en SQL:', error);
+    }
+    
+    addAuditLog({
+      action: 'UPDATE',
+      resource: 'staff',
+      resourceId: staffId,
+      details: updates
+    });
+  }, [addAuditLog]);
+
+  const deleteStaff = useCallback(async (staffId: string) => {
+    // Actualizar estado local inmediatamente
+    setStaff(prev => prev.filter(member => member.id !== staffId));
+    
+    // Persistir en archivos SQL (nota: no hay función específica en db-service, se maneja localmente)
+    console.log('✅ Personal eliminado localmente');
+    
+    addAuditLog({
+      action: 'DELETE',
+      resource: 'staff',
+      resourceId: staffId
     });
   }, [addAuditLog]);
 
@@ -258,26 +441,41 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
     });
   }, [addAuditLog]);
 
-  // Funciones para camas
-  const updateBedStatus = useCallback((bedId: string, status: Bed['status'], additionalData?: any) => {
+  const deleteAppointment = useCallback((appointmentId: string) => {
+    setAppointments(prev => prev.filter(appointment => appointment.id !== appointmentId));
+    
+    addAuditLog({
+      action: 'DELETE',
+      resource: 'appointment',
+      resourceId: appointmentId
+    });
+  }, [addAuditLog]);
+
+  // Funciones para camas - CON PERSISTENCIA SQL
+  const updateBedStatus = useCallback(async (bedId: string, status: Bed['status']) => {
+    // Actualizar estado local inmediatamente
     setBeds(prev => prev.map(bed => 
-      bed.id === bedId ? { 
-        ...bed, 
-        status,
-        ...additionalData,
-        lastUpdated: new Date().toISOString()
-      } : bed
+      bed.id === bedId ? { ...bed, status } : bed
     ));
+    
+    // Persistir en archivos SQL
+    try {
+      await dbService.updateBedStatus(bedId, status);
+      console.log('✅ Estado de cama actualizado en SQL');
+    } catch (error) {
+      console.error('❌ Error actualizando cama en SQL:', error);
+    }
     
     addAuditLog({
       action: 'UPDATE',
       resource: 'bed',
       resourceId: bedId,
-      details: { newStatus: status, ...additionalData }
+      details: { newStatus: status }
     });
   }, [addAuditLog]);
 
-  const updateBedCleaning = useCallback((bedId: string, cleaningStatus: Bed['cleaningStatus'], cleanedBy?: string) => {
+  const updateBedCleaning = useCallback(async (bedId: string, cleaningStatus: Bed['cleaningStatus'], cleanedBy?: string) => {
+    // Actualizar estado local inmediatamente
     setBeds(prev => prev.map(bed => 
       bed.id === bedId 
         ? { 
@@ -289,6 +487,14 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
         : bed
     ));
     
+    // Persistir en archivos SQL
+    try {
+      await dbService.updateBedStatus(bedId, cleaningStatus === 'Cleaning Required' ? 'Cleaning Required' : 'Available');
+      console.log('✅ Limpieza de cama actualizada en SQL');
+    } catch (error) {
+      console.error('❌ Error actualizando limpieza de cama en SQL:', error);
+    }
+    
     addAuditLog({
       action: 'UPDATE',
       resource: 'bed-cleaning',
@@ -297,7 +503,8 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
     });
   }, [addAuditLog]);
 
-  const reserveBed = useCallback((bedId: string, expirationDate: Date, notes?: string) => {
+  const reserveBed = useCallback(async (bedId: string, expirationDate: Date, notes?: string) => {
+    // Actualizar estado local inmediatamente
     setBeds(prev => prev.map(bed => 
       bed.id === bedId 
         ? { 
@@ -309,6 +516,14 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
         : bed
     ));
     
+    // Persistir en archivos SQL
+    try {
+      await dbService.updateBedStatus(bedId, 'Reserved');
+      console.log('✅ Reserva de cama guardada en SQL');
+    } catch (error) {
+      console.error('❌ Error reservando cama en SQL:', error);
+    }
+    
     addAuditLog({
       action: 'RESERVE',
       resource: 'bed',
@@ -317,14 +532,23 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
     });
   }, [addAuditLog]);
 
-  // Funciones para signos vitales
-  const addVitalSigns = useCallback((vitalSignsData: Omit<VitalSigns, 'id'>) => {
+  // Funciones para signos vitales - CON PERSISTENCIA SQL
+  const addVitalSigns = useCallback(async (vitalSignsData: Omit<VitalSigns, 'id'>) => {
     const newVitalSigns: VitalSigns = {
       ...vitalSignsData,
       id: `vs-${Date.now()}`
     };
     
+    // Actualizar estado local inmediatamente
     setVitalSigns(prev => [...prev, newVitalSigns]);
+    
+    // Persistir en archivos SQL
+    try {
+      await dbService.addVitalSignsRecord(vitalSignsData);
+      console.log('✅ Signos vitales guardados en SQL');
+    } catch (error) {
+      console.error('❌ Error guardando signos vitales en SQL:', error);
+    }
     
     addAuditLog({
       action: 'CREATE',
@@ -338,14 +562,23 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
     });
   }, [addAuditLog]);
 
-  // Funciones para órdenes médicas
-  const addMedicalOrder = useCallback((orderData: Omit<MedicalOrder, 'id'>) => {
+  // Funciones para órdenes médicas - CON PERSISTENCIA SQL
+  const addMedicalOrder = useCallback(async (orderData: Omit<MedicalOrder, 'id'>) => {
     const newOrder: MedicalOrder = {
       ...orderData,
       id: `order-${Date.now()}`
     };
     
+    // Actualizar estado local inmediatamente
     setMedicalOrders(prev => [...prev, newOrder]);
+    
+    // Persistir en archivos SQL
+    try {
+      await dbService.addMedicalOrder(orderData);
+      console.log('✅ Orden médica guardada en SQL');
+    } catch (error) {
+      console.error('❌ Error guardando orden médica en SQL:', error);
+    }
     
     addAuditLog({
       action: 'CREATE',
@@ -360,10 +593,14 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
     });
   }, [addAuditLog]);
 
-  const updateMedicalOrder = useCallback((orderId: string, updates: Partial<MedicalOrder>) => {
+  const updateMedicalOrder = useCallback(async (orderId: string, updates: Partial<MedicalOrder>) => {
+    // Actualizar estado local inmediatamente
     setMedicalOrders(prev => prev.map(order => 
       order.id === orderId ? { ...order, ...updates } : order
     ));
+    
+    // Para órdenes médicas, los cambios de estado son importantes
+    console.log('📝 Orden médica actualizada localmente');
     
     addAuditLog({
       action: 'UPDATE',
@@ -373,14 +610,38 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
     });
   }, [addAuditLog]);
 
-  // Funciones para notas de enfermería
-  const addNursingNote = useCallback((noteData: Omit<NursingNote, 'id'>) => {
+  const deleteMedicalOrder = useCallback((orderId: string) => {
+    setMedicalOrders(prev => prev.filter(order => order.id !== orderId));
+    
+    addAuditLog({
+      action: 'DELETE',
+      resource: 'medical-order',
+      resourceId: orderId
+    });
+  }, [addAuditLog]);
+
+  // Funciones para notas de enfermería - CON PERSISTENCIA SQL
+  const addNursingNote = useCallback(async (noteData: Omit<NursingNote, 'id'>) => {
     const newNote: NursingNote = {
       ...noteData,
       id: `nn-${Date.now()}`
     };
     
+    // Actualizar estado local inmediatamente
     setNursingNotes(prev => [...prev, newNote]);
+    
+    // Persistir en archivos SQL
+    try {
+      await dbService.addNursingDocument(
+        noteData.patientId,
+        noteData.nurseId,
+        noteData.category,
+        noteData.content
+      );
+      console.log('✅ Nota de enfermería guardada en SQL');
+    } catch (error) {
+      console.error('❌ Error guardando nota de enfermería en SQL:', error);
+    }
     
     addAuditLog({
       action: 'CREATE',
@@ -394,10 +655,13 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
     });
   }, [addAuditLog]);
 
-  const updateNursingNote = useCallback((noteId: string, updates: Partial<NursingNote>) => {
+  const updateNursingNote = useCallback(async (noteId: string, updates: Partial<NursingNote>) => {
+    // Actualizar estado local inmediatamente
     setNursingNotes(prev => prev.map(note => 
       note.id === noteId ? { ...note, ...updates } : note
     ));
+    
+    console.log('📝 Nota de enfermería actualizada localmente');
     
     addAuditLog({
       action: 'UPDATE',
@@ -453,10 +717,7 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
       action: 'CREATE',
       resource: 'message',
       resourceId: newMessage.id,
-      details: { 
-        recipient: newMessage.recipientRole,
-        subject: newMessage.subject 
-      }
+      details: { type: newMessage.type }
     });
   }, [addAuditLog]);
 
@@ -475,7 +736,7 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
       resourceId: newEvolution.id,
       details: { 
         patientId: newEvolution.patientId,
-        doctorName: newEvolution.doctorName
+        physicianName: newEvolution.physicianName
       }
     });
   }, [addAuditLog]);
@@ -500,30 +761,43 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
     dischargeChecklists,
     systemNotifications,
     chatMessages,
+    hospitalFloors,
+    aiAssistants,
+    futureAppointments,
+    followUpAlerts,
+    privacySettings,
+    appointmentSummaries,
+    staff,
+    
+    // Estado de carga
+    isDbLoading,
+    dbError,
 
     // Funciones
     addPatient,
     updatePatient,
     deletePatient,
+    addStaff,
+    updateStaff,
+    deleteStaff,
     addAppointment,
     updateAppointment,
     cancelAppointment,
+    deleteAppointment,
     updateBedStatus,
     updateBedCleaning,
     reserveBed,
     addVitalSigns,
     addMedicalOrder,
     updateMedicalOrder,
+    deleteMedicalOrder,
     addNursingNote,
     updateNursingNote,
     addDischargePlan,
     updateDischargePlan,
-
-    // Funciones para mensajes
     addChatMessage,
-
-    // Funciones para evoluciones médicas
-    addMedicalEvolution
+    addMedicalEvolution,
+    refreshFromDatabase
   };
 
   return (

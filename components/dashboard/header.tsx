@@ -149,16 +149,16 @@ export default function Header({ onToggleSidebar, title }: HeaderProps) {
         {/* Perfil de usuario */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="flex items-center gap-2 px-3">
-              <Avatar className="h-8 w-8">
+            <Button variant="ghost" className="flex items-center gap-2 px-3 hover:bg-gray-100">
+              <Avatar className="h-8 w-8 border-2 border-blue-100">
                 <AvatarImage src={user.profilePicture} />
-                <AvatarFallback>
+                <AvatarFallback className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-semibold">
                   {user.firstName[0]}{user.lastName[0]}
                 </AvatarFallback>
               </Avatar>
               <div className="text-left hidden md:block">
-                <p className="text-sm font-medium">{user.firstName} {user.lastName}</p>
-                <Badge variant="outline" className="text-xs">
+                <p className="text-sm font-medium text-gray-900">{user.firstName} {user.lastName}</p>
+                <Badge variant="outline" className="text-xs text-gray-600 border-gray-300">
                   {getRoleLabel(user.role)}
                 </Badge>
               </div>

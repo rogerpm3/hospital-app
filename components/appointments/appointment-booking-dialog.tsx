@@ -28,9 +28,11 @@ export default function AppointmentBookingDialog({ open, onClose }: AppointmentB
   const [startTime, setStartTime] = useState('');
   const [patientId, setPatientId] = useState('');
   const [serviceId, setServiceId] = useState('');
+  const [customService, setCustomService] = useState('');
   const [physicianName, setPhysicianName] = useState('');
   const [location, setLocation] = useState('');
   const [priority, setPriority] = useState<'Low' | 'Medium' | 'High' | 'Urgent'>('Medium');
+  const [duration, setDuration] = useState(30);
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -39,7 +41,9 @@ export default function AppointmentBookingDialog({ open, onClose }: AppointmentB
     setIsSubmitting(true);
 
     try {
-      if (!appointmentDate || !startTime || !patientId || !serviceId || !physicianName) {
+      const isCustomService = serviceId === 'custom';
+      
+      if (!appointmentDate || !startTime || !patientId || !physicianName) {
         toast({
           title: "Error de validación",
           description: "Por favor completa todos los campos requeridos",
@@ -48,41 +52,60 @@ export default function AppointmentBookingDialog({ open, onClose }: AppointmentB
         return;
       }
 
+      if (!isCustomService && !serviceId) {
+        toast({
+          title: "Error de validación",
+          description: "Por favor selecciona un servicio",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (isCustomService && !customService) {
+        toast({
+          title: "Error de validación",
+          description: "Por favor especifica el nombre del servicio",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const patient = patients.find(p => p.id === patientId);
-      const service = services.find(s => s.id === serviceId);
+      const service = !isCustomService ? services.find(s => s.id === serviceId) : null;
       
-      if (!patient || !service) {
+      if (!patient) {
         toast({
           title: "Error",
-          description: "Paciente o servicio no encontrado",
+          description: "Paciente no encontrado",
           variant: "destructive",
         });
         return;
       }
 
       const [hours, minutes] = startTime.split(':').map(Number);
+      const appointmentDuration = service?.duration || duration;
       const endTime = new Date(appointmentDate);
-      endTime.setHours(hours + Math.floor(service.duration / 60), minutes + (service.duration % 60));
+      endTime.setHours(hours + Math.floor(appointmentDuration / 60), minutes + (appointmentDuration % 60));
 
       const newAppointment = {
         patientId: patient.id,
         patientName: `${patient.firstName} ${patient.lastName}`,
-        physicianId: 'physician-1', // En implementación real, sería seleccionable
+        physicianId: 'physician-1',
         physicianName,
-        serviceId: service.id,
-        serviceName: service.name,
+        serviceId: isCustomService ? 'custom' : (service?.id || ''),
+        serviceName: isCustomService ? customService : (service?.name || ''),
         date: appointmentDate,
         startTime,
         endTime: format(endTime, 'HH:mm'),
-        duration: service.duration,
+        duration: appointmentDuration,
         status: 'Scheduled' as const,
         type: 'Consultation' as const,
-        location: location || `Consulta - ${service.department}`,
+        location: location || (service ? `Consulta - ${service.department}` : 'Consulta'),
         notes,
         priority,
         createdBy: 'current-user',
         createdAt: new Date(),
-        estimatedCost: service.cost
+        estimatedCost: service?.cost || 0
       };
 
       addAppointment(newAppointment);
@@ -97,9 +120,11 @@ export default function AppointmentBookingDialog({ open, onClose }: AppointmentB
       setStartTime('');
       setPatientId('');
       setServiceId('');
+      setCustomService('');
       setPhysicianName('');
       setLocation('');
       setPriority('Medium');
+      setDuration(30);
       setNotes('');
       onClose();
 
@@ -141,7 +166,13 @@ export default function AppointmentBookingDialog({ open, onClose }: AppointmentB
 
             <div className="space-y-2">
               <Label htmlFor="service">Servicio *</Label>
-              <Select value={serviceId} onValueChange={setServiceId}>
+              <Select value={serviceId} onValueChange={(value) => {
+                setServiceId(value);
+                if (value !== 'custom') {
+                  const service = services.find(s => s.id === value);
+                  if (service) setDuration(service.duration);
+                }
+              }}>
                 <SelectTrigger>
                   <SelectValue placeholder="Seleccionar servicio" />
                 </SelectTrigger>
@@ -151,34 +182,40 @@ export default function AppointmentBookingDialog({ open, onClose }: AppointmentB
                       {service.name} - {service.duration} min
                     </SelectItem>
                   ))}
+                  <SelectItem value="custom">Otro (especificar)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
+          {serviceId === 'custom' && (
             <div className="space-y-2">
-              <Label>Fecha de la Cita *</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start text-left font-normal"
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {appointmentDate ? format(appointmentDate, 'dd/MM/yyyy', { locale: es }) : 'Seleccionar fecha'}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={appointmentDate}
-                    onSelect={setAppointmentDate}
-                    disabled={(date) => date < new Date()}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+              <Label htmlFor="customService">Nombre del Servicio Personalizado *</Label>
+              <Input
+                id="customService"
+                value={customService}
+                onChange={(e) => setCustomService(e.target.value)}
+                placeholder="Escribir nombre del servicio"
+                required
+              />
+            </div>
+          )}
+
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="space-y-2">
+              <Label htmlFor="appointment-date">Fecha de la Cita *</Label>
+              <Input
+                id="appointment-date"
+                type="date"
+                value={appointmentDate ? format(appointmentDate, 'yyyy-MM-dd') : ''}
+                onChange={(e) => {
+                  if (e.target.value) {
+                    setAppointmentDate(new Date(e.target.value));
+                  }
+                }}
+                min={format(new Date(), 'yyyy-MM-dd')}
+                required
+              />
             </div>
 
             <div className="space-y-2">
@@ -190,6 +227,23 @@ export default function AppointmentBookingDialog({ open, onClose }: AppointmentB
                 onChange={(e) => setStartTime(e.target.value)}
                 required
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="duration">Duración *</Label>
+              <Select value={duration.toString()} onValueChange={(v) => setDuration(parseInt(v))}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="15">15 min</SelectItem>
+                  <SelectItem value="30">30 min</SelectItem>
+                  <SelectItem value="45">45 min</SelectItem>
+                  <SelectItem value="60">1 hora</SelectItem>
+                  <SelectItem value="90">1h 30min</SelectItem>
+                  <SelectItem value="120">2 horas</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 

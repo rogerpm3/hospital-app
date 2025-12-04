@@ -11,10 +11,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import PatientForm from './patient-form';
 import PatientDetails from './patient-details';
-import { Search, Filter, Plus, Eye, Edit, Users } from 'lucide-react';
+import { Search, Filter, Plus, Eye, Edit, Users, Trash2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 export default function PatientList() {
-  const { patients } = useHospital();
+  const { patients, deletePatient } = useHospital();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedPatient, setSelectedPatient] = useState<string | null>(null);
@@ -207,6 +209,22 @@ export default function PatientList() {
                           }}
                         >
                           <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-destructive hover:text-destructive"
+                          onClick={() => {
+                            if (confirm(`¿Estás seguro de eliminar al paciente ${patient.firstName} ${patient.lastName}?`)) {
+                              deletePatient(patient.id);
+                              toast({
+                                title: "Paciente eliminado",
+                                description: "El paciente ha sido eliminado correctamente",
+                              });
+                            }
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </TableCell>
