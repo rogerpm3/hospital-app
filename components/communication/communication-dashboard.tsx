@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useHospital } from '@/lib/hospital-context';
+import { useAuth } from '@/lib/auth-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -10,10 +11,14 @@ import { Plus, MessageSquare, Bell, Users, AlertTriangle } from 'lucide-react';
 import MessagingPanel from './messaging-panel';
 
 export default function CommunicationDashboard() {
-  const { chatMessages, systemNotifications } = useHospital();
+  const { getFilteredChatMessages, systemNotifications } = useHospital();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('messages');
 
-  const unreadMessages = chatMessages.filter(msg => !msg.isRead).length;
+  // Obtener mensajes filtrados por el rol del usuario
+  const chatMessages = getFilteredChatMessages();
+
+  const unreadMessages = chatMessages.filter(msg => !msg.isRead && msg.senderId !== user?.id).length;
   const unreadNotifications = systemNotifications.filter(notif => !notif.isRead).length;
   const criticalNotifications = systemNotifications.filter(notif => 
     notif.priority === 'Critical' && !notif.isRead

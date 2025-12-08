@@ -18,12 +18,15 @@ import { es } from 'date-fns/locale';
 
 interface BedReservationDialogProps {
   open: boolean;
-  onClose: () => void;
-  bedId: string;
+  onOpenChange?: (open: boolean) => void;
+  onClose?: () => void;
+  bedId?: string;
+  bed?: any;
+  room?: any;
 }
 
-export default function BedReservationDialog({ open, onClose, bedId }: BedReservationDialogProps) {
-  const { beds, rooms, patients, updateBedStatus } = useHospital();
+export default function BedReservationDialog({ open, onOpenChange, onClose, bedId, bed: propBed, room: propRoom }: BedReservationDialogProps) {
+  const { beds, rooms, patients, reserveBed } = useHospital();
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -38,9 +41,16 @@ export default function BedReservationDialog({ open, onClose, bedId }: BedReserv
   const [reservationType, setReservationType] = useState<'existing' | 'new'>('existing');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Obtener información de la cama
-  const bed = beds.find(b => b.id === bedId);
-  const room = bed ? rooms.find(r => r.id === bed.roomId) : null;
+  // Manejar cierre del diálogo
+  const handleClose = () => {
+    if (onOpenChange) onOpenChange(false);
+    if (onClose) onClose();
+  };
+
+  // Obtener información de la cama - usar props o buscar por bedId
+  const bed = propBed || beds.find(b => b.id === bedId);
+  const room = propRoom || (bed ? rooms.find(r => r.id === bed.roomId) : null);
+  const effectiveBedId = bed?.id || bedId;
 
   // Obtener pacientes disponibles (no hospitalizados actualmente)
   const availablePatients = patients.filter(p => !p.roomId);
@@ -91,29 +101,14 @@ export default function BedReservationDialog({ open, onClose, bedId }: BedReserv
         ? patients.find(p => p.id === patientId)
         : { firstName: patientName.split(' ')[0], lastName: patientName.split(' ').slice(1).join(' '), dni: patientDni };
 
-      // Crear objeto de reserva
-      const reservationData = {
-        status: 'Reserved' as const,
-        reservationExpires: expirationDate,
-        reservedFor: {
-          patientId: reservationType === 'existing' ? patientId : `temp-${Date.now()}`,
-          patientName: reservationType === 'existing' 
-            ? `${patientInfo?.firstName} ${patientInfo?.lastName}`
-            : patientName,
-          patientDni: reservationType === 'existing' ? patientInfo?.dni : patientDni,
-          reason: reason,
-          reservationType: reservationType
-        },
-        notes: `Reservada para: ${reservationType === 'existing' 
-          ? `${patientInfo?.firstName} ${patientInfo?.lastName}`
-          : patientName
-        }${reason ? ` - Motivo: ${reason}` : ''}${notes ? ` - Notas: ${notes}` : ''}`,
-        reservationDate: reservationDateTime,
-        reservedBy: user?.firstName + ' ' + user?.lastName || 'Usuario'
-      };
+      // Crear notas de reserva con toda la información relevante
+      const reservationNotes = `Reservada para: ${reservationType === 'existing' 
+        ? `${patientInfo?.firstName} ${patientInfo?.lastName}`
+        : patientName
+      } (DNI: ${reservationType === 'existing' ? patientInfo?.dni : patientDni})${reason ? ` | Motivo: ${reason}` : ''}${notes ? ` | Notas: ${notes}` : ''} | Reservado por: ${user?.firstName + ' ' + user?.lastName || 'Usuario'}`;
 
-      // Actualizar estado de la cama con todos los datos
-      updateBedStatus(bedId, 'Reserved', reservationData);
+      // Reservar la cama usando la función correcta
+      reserveBed(effectiveBedId, expirationDate, reservationNotes);
 
       toast({
         title: "Reserva creada exitosamente",
@@ -130,7 +125,7 @@ export default function BedReservationDialog({ open, onClose, bedId }: BedReserv
       setReason('');
       setNotes('');
       setReservationType('existing');
-      onClose();
+      handleClose();
 
     } catch (error) {
       toast({
@@ -154,13 +149,13 @@ export default function BedReservationDialog({ open, onClose, bedId }: BedReserv
     setReason('');
     setNotes('');
     setReservationType('existing');
-    onClose();
+    handleClose();
   };
 
   if (!bed || !room) return null;
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={(open) => { if (!open) handleClose(); }}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">

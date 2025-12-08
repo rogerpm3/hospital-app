@@ -508,3 +508,107 @@ INSERT INTO IntruccinalPaciente VALUES (NULL, 'INS439_2', 'ALT439');
 INSERT INTO IntruccinalPaciente VALUES (NULL, 'INS727_1', 'ALT727');
 
 
+-- ============================================
+-- TABLA: AsignacionProfesionalPaciente
+-- Control de acceso: qué profesionales pueden ver qué pacientes
+-- ============================================
+CREATE TABLE AsignacionProfesionalPaciente (
+  `id_asignacion` VARCHAR(255) PRIMARY KEY,
+  `id_profesional` VARCHAR(255) NOT NULL,
+  `id_paciente` VARCHAR(255) NOT NULL,
+  `tipo_asignacion` ENUM('responsable', 'equipo', 'consulta', 'temporal') DEFAULT 'equipo',
+  `fecha_inicio` VARCHAR(255),
+  `fecha_fin` VARCHAR(255),
+  `departamento` VARCHAR(255),
+  `activo` BOOLEAN DEFAULT TRUE,
+  `notas` TEXT
+);
+
+-- Asignaciones de médicos a pacientes (datos basados en movimientos y órdenes)
+-- Dr. Josep Blanch Alsina (27512) - Ginecología - Paciente Isabel Flores
+INSERT INTO AsignacionProfesionalPaciente VALUES ('ASG001', '27512', 'IFV_0001', 'responsable', '2014-01-02', NULL, 'Ginecología y Obstetricia', TRUE, 'Médico responsable del embarazo');
+
+-- Dr. Eugenio Magriñá (19621) - Obstetricia - Pacientes gemelos y madre
+INSERT INTO AsignacionProfesionalPaciente VALUES ('ASG002', '19621', 'IFV_0001', 'equipo', '2014-07-03', '2014-07-07', 'Obstetricia', TRUE, 'Atención al parto');
+INSERT INTO AsignacionProfesionalPaciente VALUES ('ASG003', '19621', 'PIF_0010', 'responsable', '2014-07-03', NULL, 'Pediatría', TRUE, 'Neonatología');
+INSERT INTO AsignacionProfesionalPaciente VALUES ('ASG004', '19621', 'MIF_0011', 'responsable', '2014-07-03', NULL, 'Pediatría', TRUE, 'Neonatología');
+
+-- Dr. Laura Martinez (12345) - Urgencias - Paciente Javier Martinez
+INSERT INTO AsignacionProfesionalPaciente VALUES ('ASG005', '12345', 'JML_0001', 'responsable', '2022-09-10', '2022-09-14', 'Urgencias', TRUE, 'Accidente de tráfico');
+
+-- Dr. Orestes García (56345) - Cirugía - Paciente Samuel Vallbé
+INSERT INTO AsignacionProfesionalPaciente VALUES ('ASG006', '56345', 'SVP_0001', 'responsable', '2015-09-14', '2015-09-16', 'Cirugía General', TRUE, 'Apendicectomía');
+
+-- Dr. Clara Dolz (33272) - Anestesiología - Paciente Samuel (cirugía)
+INSERT INTO AsignacionProfesionalPaciente VALUES ('ASG007', '33272', 'SVP_0001', 'equipo', '2015-09-14', '2015-09-14', 'Anestesiología', TRUE, 'Anestesia para cirugía');
+
+-- Dr. Román Sampedro (35678) - Medicina Interna - Paciente Juan Agudells
+INSERT INTO AsignacionProfesionalPaciente VALUES ('ASG008', '35678', 'JAV_0001', 'responsable', '2014-10-14', '2014-10-17', 'Medicina Interna', TRUE, 'Neumonía');
+
+-- Dr. Miguel Serrano (30123) / Laura Mora (7777) - Paciente María Rodríguez
+INSERT INTO AsignacionProfesionalPaciente VALUES ('ASG009', '30123', 'MRS_0001', 'responsable', '2022-05-10', '2022-05-20', 'UCI', TRUE, 'Neumonía grave UCI');
+INSERT INTO AsignacionProfesionalPaciente VALUES ('ASG010', '7777', 'MRS_0001', 'responsable', '2022-05-20', '2022-06-02', 'Hospitalización General', TRUE, 'Seguimiento post-UCI');
+
+-- Dr. José Frontela (12171) - Pediatría - Recién nacidos
+INSERT INTO AsignacionProfesionalPaciente VALUES ('ASG011', '12171', 'PIF_0010', 'equipo', '2014-07-03', NULL, 'Pediatría', TRUE, 'Screening neonatal');
+INSERT INTO AsignacionProfesionalPaciente VALUES ('ASG012', '12171', 'MIF_0011', 'equipo', '2014-07-03', NULL, 'Pediatría', TRUE, 'Screening neonatal');
+
+-- Enfermera Montserrat Valls (43234) - Obstetricia
+INSERT INTO AsignacionProfesionalPaciente VALUES ('ASG013', '43234', 'IFV_0001', 'equipo', '2014-01-02', '2014-07-07', 'Obstetricia', TRUE, 'Cuidados prenatales y parto');
+INSERT INTO AsignacionProfesionalPaciente VALUES ('ASG014', '43234', 'PIF_0010', 'equipo', '2014-07-03', '2014-07-07', 'Obstetricia', TRUE, 'Cuidados neonatales');
+INSERT INTO AsignacionProfesionalPaciente VALUES ('ASG015', '43234', 'MIF_0011', 'equipo', '2014-07-03', '2014-07-07', 'Obstetricia', TRUE, 'Cuidados neonatales');
+
+
+-- ============================================
+-- TABLA: PermisoAreaClinica
+-- Define permisos específicos por área clínica
+-- ============================================
+CREATE TABLE PermisoAreaClinica (
+  `id_permiso` VARCHAR(255) PRIMARY KEY,
+  `rol` VARCHAR(50) NOT NULL,
+  `area_clinica` VARCHAR(100) NOT NULL,
+  `puede_ver` BOOLEAN DEFAULT FALSE,
+  `puede_editar` BOOLEAN DEFAULT FALSE,
+  `puede_crear` BOOLEAN DEFAULT FALSE,
+  `puede_eliminar` BOOLEAN DEFAULT FALSE,
+  `acceso_datos_sensibles` BOOLEAN DEFAULT FALSE,
+  `descripcion` TEXT
+);
+
+-- Permisos de Admin (acceso total)
+INSERT INTO PermisoAreaClinica VALUES ('PERM001', 'admin', 'todos', TRUE, TRUE, TRUE, TRUE, TRUE, 'Acceso administrativo total');
+
+-- Permisos de Doctor (solo sus pacientes asignados)
+INSERT INTO PermisoAreaClinica VALUES ('PERM002', 'doctor', 'pacientes_asignados', TRUE, TRUE, TRUE, FALSE, TRUE, 'Acceso completo a pacientes asignados');
+INSERT INTO PermisoAreaClinica VALUES ('PERM003', 'doctor', 'ordenes_medicas', TRUE, TRUE, TRUE, FALSE, TRUE, 'Gestión de órdenes médicas propias');
+INSERT INTO PermisoAreaClinica VALUES ('PERM004', 'doctor', 'evolucion_clinica', TRUE, TRUE, TRUE, FALSE, TRUE, 'Evoluciones de pacientes asignados');
+INSERT INTO PermisoAreaClinica VALUES ('PERM005', 'doctor', 'altas', TRUE, TRUE, TRUE, FALSE, TRUE, 'Gestión de altas');
+
+-- Permisos de Enfermera (pacientes de su unidad)
+INSERT INTO PermisoAreaClinica VALUES ('PERM006', 'nurse', 'pacientes_unidad', TRUE, TRUE, FALSE, FALSE, FALSE, 'Ver pacientes de su unidad');
+INSERT INTO PermisoAreaClinica VALUES ('PERM007', 'nurse', 'signos_vitales', TRUE, TRUE, TRUE, FALSE, FALSE, 'Registro de signos vitales');
+INSERT INTO PermisoAreaClinica VALUES ('PERM008', 'nurse', 'notas_enfermeria', TRUE, TRUE, TRUE, FALSE, FALSE, 'Notas de enfermería');
+INSERT INTO PermisoAreaClinica VALUES ('PERM009', 'nurse', 'administracion_medicamentos', TRUE, TRUE, TRUE, FALSE, FALSE, 'Administración de medicamentos');
+
+-- Permisos de Limpieza (solo estado de camas)
+INSERT INTO PermisoAreaClinica VALUES ('PERM010', 'cleaning', 'camas', TRUE, TRUE, FALSE, FALSE, FALSE, 'Estado de limpieza de camas');
+INSERT INTO PermisoAreaClinica VALUES ('PERM011', 'cleaning', 'pacientes', FALSE, FALSE, FALSE, FALSE, FALSE, 'Sin acceso a datos de pacientes');
+
+-- Permisos de Admisiones (registro inicial)
+INSERT INTO PermisoAreaClinica VALUES ('PERM012', 'admission', 'registro_pacientes', TRUE, TRUE, TRUE, FALSE, FALSE, 'Registro y admisión');
+INSERT INTO PermisoAreaClinica VALUES ('PERM013', 'admission', 'camas', TRUE, TRUE, FALSE, FALSE, FALSE, 'Asignación de camas');
+INSERT INTO PermisoAreaClinica VALUES ('PERM014', 'admission', 'datos_clinicos', FALSE, FALSE, FALSE, FALSE, FALSE, 'Sin acceso a datos clínicos');
+
+-- Permisos de Farmacia
+INSERT INTO PermisoAreaClinica VALUES ('PERM015', 'pharmacy', 'medicamentos', TRUE, TRUE, TRUE, FALSE, FALSE, 'Gestión de medicamentos');
+INSERT INTO PermisoAreaClinica VALUES ('PERM016', 'pharmacy', 'ordenes_medicacion', TRUE, FALSE, FALSE, FALSE, FALSE, 'Ver órdenes de medicación');
+
+-- Permisos de Paciente (solo sus propios datos)
+INSERT INTO PermisoAreaClinica VALUES ('PERM017', 'patient', 'datos_propios', TRUE, FALSE, FALSE, FALSE, FALSE, 'Ver sus propios datos');
+INSERT INTO PermisoAreaClinica VALUES ('PERM018', 'patient', 'citas', TRUE, FALSE, TRUE, FALSE, FALSE, 'Ver y solicitar citas');
+
+-- Permisos de Familia (datos limitados del familiar)
+INSERT INTO PermisoAreaClinica VALUES ('PERM019', 'family', 'estado_paciente', TRUE, FALSE, FALSE, FALSE, FALSE, 'Estado general del paciente');
+INSERT INTO PermisoAreaClinica VALUES ('PERM020', 'family', 'ubicacion', TRUE, FALSE, FALSE, FALSE, FALSE, 'Ubicación en hospital');
+
+

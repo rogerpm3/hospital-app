@@ -26,7 +26,10 @@ import {
 export default function BedManagementDashboard() {
   const { user } = useAuth();
   const { rooms, beds, patients } = useHospital();
-  const [activeTab, setActiveTab] = useState('map');
+  
+  // Enfermería no tiene acceso al mapa, empezar con lista
+  const defaultTab = user?.role === 'nurse' || user?.role === 'auxiliary' ? 'list' : 'map';
+  const [activeTab, setActiveTab] = useState(defaultTab);
 
   // Cálculos de estadísticas
   const totalBeds = beds.length;
@@ -195,11 +198,14 @@ export default function BedManagementDashboard() {
 
       {/* Pestañas principales */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="map" className="flex items-center gap-2">
-            <Grid3x3 className="h-4 w-4" />
-            Vista Mapa
-          </TabsTrigger>
+        <TabsList className={`grid w-full ${user?.role === 'nurse' || user?.role === 'auxiliary' ? 'grid-cols-2' : user?.role === 'cleaning' ? 'grid-cols-4' : 'grid-cols-3'}`}>
+          {/* Mapa de camas - oculto para enfermería y auxiliar */}
+          {user?.role !== 'nurse' && user?.role !== 'auxiliary' && (
+            <TabsTrigger value="map" className="flex items-center gap-2">
+              <Grid3x3 className="h-4 w-4" />
+              Vista Mapa
+            </TabsTrigger>
+          )}
           <TabsTrigger value="list" className="flex items-center gap-2">
             <List className="h-4 w-4" />
             Lista Detallada
@@ -216,9 +222,12 @@ export default function BedManagementDashboard() {
           )}
         </TabsList>
 
-        <TabsContent value="map" className="space-y-4">
-          <BedMapView />
-        </TabsContent>
+        {/* Vista Mapa - solo para roles con permiso */}
+        {user?.role !== 'nurse' && user?.role !== 'auxiliary' && (
+          <TabsContent value="map" className="space-y-4">
+            <BedMapView />
+          </TabsContent>
+        )}
 
         <TabsContent value="list" className="space-y-4">
           <BedListView />

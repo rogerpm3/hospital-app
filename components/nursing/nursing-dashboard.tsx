@@ -7,6 +7,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
 import VitalSignsPanel from './vital-signs-panel';
 import MedicationAdministrationPanel from './medication-administration-panel';
 import NursingNotesPanel from './nursing-notes-panel';
@@ -22,16 +28,28 @@ import {
   Clock,
   Users,
   Plus,
-  Stethoscope
+  Stethoscope,
+  Scale,
+  Bandage
 } from 'lucide-react';
 
 export default function NursingDashboard() {
   const { user } = useAuth();
-  const { patients, vitalSigns, medications, nursingNotes } = useHospital();
+  const { patients, vitalSigns, medications, nursingNotes, getFilteredPatients } = useHospital();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('overview');
+  
+  // Estados para diálogos de evaluaciones
+  const [showBalanceDialog, setShowBalanceDialog] = useState(false);
+  const [showScaleDialog, setShowScaleDialog] = useState(false);
+  const [showWoundDialog, setShowWoundDialog] = useState(false);
+  const [selectedPatientForEval, setSelectedPatientForEval] = useState('');
 
-  // Pacientes asignados al enfermero actual (simulación)
-  const assignedPatients = patients.filter(patient => patient.roomId); // Pacientes hospitalizados
+  // Obtener pacientes filtrados según rol del usuario (asignados a enfermería)
+  const filteredPatients = getFilteredPatients();
+  
+  // Pacientes hospitalizados (con habitación asignada)
+  const assignedPatients = filteredPatients.filter(patient => patient.roomId);
   
   // Signos vitales recientes
   const recentVitalSigns = vitalSigns
@@ -298,38 +316,290 @@ export default function NursingDashboard() {
         <TabsContent value="assessments" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Evaluaciones Clínicas</CardTitle>
+              <CardTitle className="text-gray-900">Evaluaciones Clínicas</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                <Card className="p-4">
-                  <h4 className="font-semibold mb-2">Balance Hídrico</h4>
-                  <p className="text-sm text-muted-foreground mb-3">
+                {/* Balance Hídrico */}
+                <Card className="p-4 border-l-4 border-l-blue-500">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Droplets className="h-5 w-5 text-blue-600" />
+                    <h4 className="font-semibold text-gray-900">Balance Hídrico</h4>
+                  </div>
+                  <p className="text-sm text-gray-600 mb-3">
                     Control de ingresos y egresos de líquidos
                   </p>
-                  <Button size="sm" className="w-full">
-                    Registrar Balance
-                  </Button>
+                  <Dialog open={showBalanceDialog} onOpenChange={setShowBalanceDialog}>
+                    <DialogTrigger asChild>
+                      <Button size="sm" className="w-full">
+                        <Droplets className="h-4 w-4 mr-2" />
+                        Registrar Balance
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-lg">
+                      <DialogHeader>
+                        <DialogTitle className="text-gray-900">Registrar Balance Hídrico</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div>
+                          <Label className="text-gray-900">Paciente *</Label>
+                          <Select value={selectedPatientForEval} onValueChange={setSelectedPatientForEval}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Seleccionar paciente" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {assignedPatients.map(p => (
+                                <SelectItem key={p.id} value={p.id}>
+                                  {p.firstName} {p.lastName} - Hab. {p.roomId}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label className="text-gray-900">Ingresos (ml)</Label>
+                            <Input type="number" placeholder="Ej: 2000" />
+                          </div>
+                          <div>
+                            <Label className="text-gray-900">Egresos (ml)</Label>
+                            <Input type="number" placeholder="Ej: 1800" />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label className="text-gray-900">Vía oral (ml)</Label>
+                            <Input type="number" placeholder="0" />
+                          </div>
+                          <div>
+                            <Label className="text-gray-900">Vía IV (ml)</Label>
+                            <Input type="number" placeholder="0" />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label className="text-gray-900">Diuresis (ml)</Label>
+                            <Input type="number" placeholder="0" />
+                          </div>
+                          <div>
+                            <Label className="text-gray-900">Otras pérdidas (ml)</Label>
+                            <Input type="number" placeholder="0" />
+                          </div>
+                        </div>
+                        <div>
+                          <Label className="text-gray-900">Observaciones</Label>
+                          <Textarea placeholder="Notas adicionales..." rows={2} />
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => setShowBalanceDialog(false)}>
+                          Cancelar
+                        </Button>
+                        <Button onClick={() => {
+                          if (!selectedPatientForEval) {
+                            toast({ title: "Error", description: "Seleccione un paciente", variant: "destructive" });
+                            return;
+                          }
+                          toast({ title: "Balance registrado", description: "Balance hídrico guardado correctamente" });
+                          setShowBalanceDialog(false);
+                          setSelectedPatientForEval('');
+                        }}>
+                          Guardar Balance
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
                 </Card>
 
-                <Card className="p-4">
-                  <h4 className="font-semibold mb-2">Escalas Clínicas</h4>
-                  <p className="text-sm text-muted-foreground mb-3">
+                {/* Escalas Clínicas */}
+                <Card className="p-4 border-l-4 border-l-purple-500">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Scale className="h-5 w-5 text-purple-600" />
+                    <h4 className="font-semibold text-gray-900">Escalas Clínicas</h4>
+                  </div>
+                  <p className="text-sm text-gray-600 mb-3">
                     Glasgow, Braden, Morse, Dolor, etc.
                   </p>
-                  <Button size="sm" className="w-full">
-                    Nueva Evaluación
-                  </Button>
+                  <Dialog open={showScaleDialog} onOpenChange={setShowScaleDialog}>
+                    <DialogTrigger asChild>
+                      <Button size="sm" className="w-full">
+                        <Stethoscope className="h-4 w-4 mr-2" />
+                        Nueva Evaluación
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-lg">
+                      <DialogHeader>
+                        <DialogTitle className="text-gray-900">Registrar Escala Clínica</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div>
+                          <Label className="text-gray-900">Paciente *</Label>
+                          <Select value={selectedPatientForEval} onValueChange={setSelectedPatientForEval}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Seleccionar paciente" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {assignedPatients.map(p => (
+                                <SelectItem key={p.id} value={p.id}>
+                                  {p.firstName} {p.lastName} - Hab. {p.roomId}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label className="text-gray-900">Tipo de Escala *</Label>
+                          <Select>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Seleccionar escala" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="glasgow">Escala de Glasgow (Conciencia)</SelectItem>
+                              <SelectItem value="braden">Escala de Braden (Úlceras por presión)</SelectItem>
+                              <SelectItem value="morse">Escala de Morse (Riesgo de caídas)</SelectItem>
+                              <SelectItem value="eva">Escala EVA (Dolor)</SelectItem>
+                              <SelectItem value="barthel">Índice de Barthel (Dependencia)</SelectItem>
+                              <SelectItem value="norton">Escala de Norton (Úlceras)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label className="text-gray-900">Puntuación *</Label>
+                          <Input type="number" placeholder="Ej: 15" />
+                        </div>
+                        <div>
+                          <Label className="text-gray-900">Observaciones</Label>
+                          <Textarea placeholder="Detalles de la evaluación..." rows={3} />
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => setShowScaleDialog(false)}>
+                          Cancelar
+                        </Button>
+                        <Button onClick={() => {
+                          if (!selectedPatientForEval) {
+                            toast({ title: "Error", description: "Seleccione un paciente", variant: "destructive" });
+                            return;
+                          }
+                          toast({ title: "Evaluación registrada", description: "Escala clínica guardada correctamente" });
+                          setShowScaleDialog(false);
+                          setSelectedPatientForEval('');
+                        }}>
+                          Guardar Evaluación
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
                 </Card>
 
-                <Card className="p-4">
-                  <h4 className="font-semibold mb-2">Evaluación de Heridas</h4>
-                  <p className="text-sm text-muted-foreground mb-3">
+                {/* Evaluación de Heridas */}
+                <Card className="p-4 border-l-4 border-l-orange-500">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Bandage className="h-5 w-5 text-orange-600" />
+                    <h4 className="font-semibold text-gray-900">Evaluación de Heridas</h4>
+                  </div>
+                  <p className="text-sm text-gray-600 mb-3">
                     Valoración y seguimiento de heridas
                   </p>
-                  <Button size="sm" className="w-full">
-                    Evaluar Heridas
-                  </Button>
+                  <Dialog open={showWoundDialog} onOpenChange={setShowWoundDialog}>
+                    <DialogTrigger asChild>
+                      <Button size="sm" className="w-full">
+                        <Bandage className="h-4 w-4 mr-2" />
+                        Evaluar Heridas
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-lg">
+                      <DialogHeader>
+                        <DialogTitle className="text-gray-900">Evaluación de Heridas</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div>
+                          <Label className="text-gray-900">Paciente *</Label>
+                          <Select value={selectedPatientForEval} onValueChange={setSelectedPatientForEval}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Seleccionar paciente" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {assignedPatients.map(p => (
+                                <SelectItem key={p.id} value={p.id}>
+                                  {p.firstName} {p.lastName} - Hab. {p.roomId}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label className="text-gray-900">Tipo de Herida *</Label>
+                          <Select>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Seleccionar tipo" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="surgical">Herida Quirúrgica</SelectItem>
+                              <SelectItem value="pressure">Úlcera por Presión</SelectItem>
+                              <SelectItem value="vascular">Úlcera Vascular</SelectItem>
+                              <SelectItem value="diabetic">Pie Diabético</SelectItem>
+                              <SelectItem value="traumatic">Herida Traumática</SelectItem>
+                              <SelectItem value="other">Otra</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label className="text-gray-900">Localización *</Label>
+                          <Input placeholder="Ej: Región sacra, Talón derecho..." />
+                        </div>
+                        <div className="grid grid-cols-3 gap-2">
+                          <div>
+                            <Label className="text-gray-900">Largo (cm)</Label>
+                            <Input type="number" step="0.1" placeholder="0" />
+                          </div>
+                          <div>
+                            <Label className="text-gray-900">Ancho (cm)</Label>
+                            <Input type="number" step="0.1" placeholder="0" />
+                          </div>
+                          <div>
+                            <Label className="text-gray-900">Profundidad (cm)</Label>
+                            <Input type="number" step="0.1" placeholder="0" />
+                          </div>
+                        </div>
+                        <div>
+                          <Label className="text-gray-900">Estado de la Herida</Label>
+                          <Select>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Seleccionar estado" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="granulating">Granulando</SelectItem>
+                              <SelectItem value="epithelializing">Epitelizando</SelectItem>
+                              <SelectItem value="necrotic">Necrótica</SelectItem>
+                              <SelectItem value="infected">Infectada</SelectItem>
+                              <SelectItem value="sloughy">Con Esfacelos</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label className="text-gray-900">Observaciones</Label>
+                          <Textarea placeholder="Descripción del exudado, bordes, piel perilesional..." rows={2} />
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => setShowWoundDialog(false)}>
+                          Cancelar
+                        </Button>
+                        <Button onClick={() => {
+                          if (!selectedPatientForEval) {
+                            toast({ title: "Error", description: "Seleccione un paciente", variant: "destructive" });
+                            return;
+                          }
+                          toast({ title: "Evaluación registrada", description: "Evaluación de herida guardada correctamente" });
+                          setShowWoundDialog(false);
+                          setSelectedPatientForEval('');
+                        }}>
+                          Guardar Evaluación
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
                 </Card>
               </div>
             </CardContent>

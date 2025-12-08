@@ -25,53 +25,58 @@ export default function FloorStatistics({ selectedFloor, selectedUnit }: FloorSt
   const { hospitalFloors, beds, patients, rooms } = useHospital();
 
   const floor = hospitalFloors.find(f => f.id === selectedFloor);
-  if (!floor) return <div>Planta no encontrada</div>;
+  if (!floor) return <div className="text-gray-900">Planta no encontrada</div>;
 
   const units = selectedUnit === 'all' ? floor.units : floor.units.filter(u => u.id === selectedUnit);
 
-  // Estadísticas de camas por estado
-  const bedStats = beds.reduce((acc, bed) => {
+  // Obtener todas las habitaciones de esta planta
+  const floorRooms = rooms.filter(r => r.floor === floor.number);
+  const floorRoomIds = floorRooms.map(r => r.id);
+  
+  // Obtener todas las camas de esta planta
+  const floorBeds = beds.filter(bed => {
     const room = rooms.find(r => r.id === bed.roomId);
-    if (!room) return acc;
+    return room && room.floor === floor.number;
+  });
 
-    const unitRoomIds = units.flatMap(u => u.rooms);
-    if (!unitRoomIds.includes(room.id)) return acc;
-
+  // Estadísticas de camas por estado - basado en todas las camas del piso
+  const bedStats = floorBeds.reduce((acc, bed) => {
     acc[bed.status] = (acc[bed.status] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
 
   // Estadísticas de limpieza
-  const cleaningStats = beds.reduce((acc, bed) => {
-    const room = rooms.find(r => r.id === bed.roomId);
-    if (!room) return acc;
-
-    const unitRoomIds = units.flatMap(u => u.rooms);
-    if (!unitRoomIds.includes(room.id)) return acc;
-
+  const cleaningStats = floorBeds.reduce((acc, bed) => {
     acc[bed.cleaningStatus] = (acc[bed.cleaningStatus] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
 
-  // Estadísticas por unidad
+  // Estadísticas por unidad - basado en datos reales
   const unitStats = units.map(unit => {
+    // Buscar camas que pertenezcan a habitaciones asignadas a esta unidad o al piso
+    const unitRoomIds = unit.rooms.length > 0 ? unit.rooms : floorRoomIds;
     const unitBeds = beds.filter(bed => {
       const room = rooms.find(r => r.id === bed.roomId);
-      return room && unit.rooms.includes(room.id);
+      return room && unitRoomIds.includes(room.id);
     });
 
     const occupiedBeds = unitBeds.filter(bed => bed.status === 'Occupied').length;
     const availableBeds = unitBeds.filter(bed => bed.status === 'Available').length;
     const cleaningRequiredBeds = unitBeds.filter(bed => bed.status === 'Cleaning Required').length;
+    const totalUnitBeds = unitBeds.length;
+    
+    // Usar el número real de camas o la capacidad declarada
+    const effectiveCapacity = totalUnitBeds > 0 ? totalUnitBeds : unit.capacity;
 
     return {
       name: unit.name.split(' ')[0], // Nombre corto
       fullName: unit.name,
-      capacity: unit.capacity,
+      capacity: effectiveCapacity,
       occupied: occupiedBeds,
       available: availableBeds,
       cleaning: cleaningRequiredBeds,
-      occupancy: unit.capacity > 0 ? Math.round((occupiedBeds / unit.capacity) * 100) : 0
+      totalBeds: totalUnitBeds,
+      occupancy: effectiveCapacity > 0 ? Math.round((occupiedBeds / effectiveCapacity) * 100) : 0
     };
   });
 
@@ -91,7 +96,7 @@ export default function FloorStatistics({ selectedFloor, selectedUnit }: FloorSt
     { name: 'En Proceso', value: cleaningStats['In Progress'] || 0, color: '#f59e0b' }
   ];
 
-  const totalBeds = Object.values(bedStats).reduce((sum, count) => sum + count, 0);
+  const totalBeds = floorBeds.length;
   const occupancyRate = totalBeds > 0 ? Math.round(((bedStats['Occupied'] || 0) / totalBeds) * 100) : 0;
   const availabilityRate = totalBeds > 0 ? Math.round(((bedStats['Available'] || 0) / totalBeds) * 100) : 0;
 
@@ -226,9 +231,9 @@ export default function FloorStatistics({ selectedFloor, selectedUnit }: FloorSt
               <div key={unit.name} className="space-y-2">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="font-medium">{unit.fullName}</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Capacidad: {unit.capacity} camas
+                    <h4 className="font-medium text-gray-900">{unit.fullName}</h4>
+                    <p className="text-sm text-gray-600">
+                      {unit.totalBeds > 0 ? `${unit.totalBeds} camas asignadas` : `Capacidad: ${unit.capacity} camas`}
                     </p>
                   </div>
                   <div className="flex items-center space-x-2">

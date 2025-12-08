@@ -23,15 +23,21 @@ import {
   Clock,
   AlertTriangle,
   CheckCircle,
+  CheckCheck,
   User,
   Stethoscope,
-  Shield
+  Shield,
+  Mail,
+  MailOpen
 } from "lucide-react"
 
 export default function MessagingPanel() {
-  const { chatMessages, addChatMessage } = useHospital()
+  const { getFilteredChatMessages, addChatMessage, markMessageAsRead, markAllMessagesAsRead } = useHospital()
   const { user } = useAuth()
   const { toast } = useToast()
+  
+  // Obtener mensajes filtrados por el rol del usuario
+  const chatMessages = getFilteredChatMessages()
   
   const [activeTab, setActiveTab] = useState("all")
   const [showNewMessageDialog, setShowNewMessageDialog] = useState(false)
@@ -100,15 +106,24 @@ export default function MessagingPanel() {
       return
     }
 
+    // Determinar el tipo de mensaje según el destinatario
+    const messageType: 'direct' | 'channel' | 'broadcast' | 'emergency' = 
+      !messageData.recipientRole || messageData.recipientRole === 'all' 
+        ? 'broadcast' 
+        : messageData.priority === 'urgent' 
+          ? 'emergency' 
+          : 'direct';
+
     const newMessage = {
       senderId: user?.id || "current-user",
       senderName: user?.firstName + " " + user?.lastName || "Usuario",
       senderRole: user?.role || "doctor",
       recipientId: messageData.recipient || "broadcast",
-      recipientRole: messageData.recipientRole || "all",
+      recipientRole: messageData.recipientRole as any || "all",
       message: messageData.message,
       subject: messageData.subject,
       timestamp: new Date(),
+      type: messageType,
       isRead: false,
       priority: messageData.priority,
       category: messageData.category
@@ -143,6 +158,22 @@ export default function MessagingPanel() {
     return roleObj?.icon || <User className="w-4 h-4" />
   }
 
+  const handleMarkAsRead = (messageId: string) => {
+    markMessageAsRead(messageId)
+    toast({
+      title: "Mensaje marcado como leído",
+      description: "El mensaje ha sido marcado como leído.",
+    })
+  }
+
+  const handleMarkAllAsRead = () => {
+    markAllMessagesAsRead()
+    toast({
+      title: "Todos los mensajes marcados como leídos",
+      description: "Todos tus mensajes han sido marcados como leídos.",
+    })
+  }
+
   const MessageCard = ({ message }: { message: any }) => (
     <Card className={`mb-4 hover:shadow-md transition-shadow ${!message.isRead ? 'border-l-4 border-l-blue-500' : ''}`}>
       <CardContent className="p-4">
@@ -150,10 +181,15 @@ export default function MessagingPanel() {
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
               {getRoleIcon(message.senderRole)}
-              <h3 className="font-semibold">{message.senderName}</h3>
+              <h3 className="font-semibold text-gray-900">{message.senderName}</h3>
               <Badge variant="outline" className="text-xs">
                 {availableRoles.find(r => r.value === message.senderRole)?.label || message.senderRole}
               </Badge>
+              {message.recipientRole && message.recipientRole !== 'all' && (
+                <Badge variant="secondary" className="text-xs">
+                  Para: {availableRoles.find(r => r.value === message.recipientRole)?.label || message.recipientRole}
+                </Badge>
+              )}
               {message.priority && (
                 <Badge className={getPriorityColor(message.priority)}>
                   {priorities.find(p => p.value === message.priority)?.label}
@@ -167,20 +203,41 @@ export default function MessagingPanel() {
             </div>
             
             {message.subject && (
-              <h4 className="font-medium text-lg mb-2">{message.subject}</h4>
+              <h4 className="font-medium text-lg mb-2 text-gray-800">{message.subject}</h4>
             )}
             
-            <p className="text-sm text-muted-foreground mb-3">{message.message}</p>
+            <p className="text-sm text-gray-600 mb-3">{message.message}</p>
             
-            <div className="flex items-center gap-4 text-xs text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <Clock className="w-3 h-3" />
-                {message.timestamp.toLocaleString()}
-              </div>
-              {message.category && (
-                <div>
-                  Categoría: {message.category}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4 text-xs text-gray-500">
+                <div className="flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  {message.timestamp.toLocaleString()}
                 </div>
+                {message.category && (
+                  <div>
+                    Categoría: {message.category}
+                  </div>
+                )}
+              </div>
+              
+              {/* Botón para marcar como leído */}
+              {!message.isRead && message.senderId !== user?.id && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                  onClick={() => handleMarkAsRead(message.id)}
+                >
+                  <MailOpen className="w-4 h-4 mr-1" />
+                  Marcar como leído
+                </Button>
+              )}
+              {message.isRead && message.senderId !== user?.id && (
+                <span className="text-xs text-green-600 flex items-center gap-1">
+                  <CheckCheck className="w-4 h-4" />
+                  Leído
+                </span>
               )}
             </div>
           </div>
@@ -234,17 +291,28 @@ export default function MessagingPanel() {
       <Card>
         <CardHeader>
           <div className="flex justify-between items-center">
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-gray-900">
               <MessageSquare className="w-5 h-5" />
               Sistema de Mensajería
             </CardTitle>
-            <Dialog open={showNewMessageDialog} onOpenChange={setShowNewMessageDialog}>
-              <DialogTrigger asChild>
-                <Button className="flex items-center gap-2">
-                  <Plus className="w-4 h-4" />
-                  Nuevo Mensaje
+            <div className="flex items-center gap-2">
+              {unreadMessages.length > 0 && (
+                <Button 
+                  variant="outline" 
+                  className="flex items-center gap-2"
+                  onClick={handleMarkAllAsRead}
+                >
+                  <CheckCheck className="w-4 h-4" />
+                  Marcar todos como leídos
                 </Button>
-              </DialogTrigger>
+              )}
+              <Dialog open={showNewMessageDialog} onOpenChange={setShowNewMessageDialog}>
+                <DialogTrigger asChild>
+                  <Button className="flex items-center gap-2">
+                    <Plus className="w-4 h-4" />
+                    Nuevo Mensaje
+                  </Button>
+                </DialogTrigger>
               <DialogContent className="max-w-2xl">
                 <DialogHeader>
                   <DialogTitle>Enviar Nuevo Mensaje</DialogTitle>
@@ -350,6 +418,7 @@ export default function MessagingPanel() {
                 </form>
               </DialogContent>
             </Dialog>
+          </div>
           </div>
         </CardHeader>
         

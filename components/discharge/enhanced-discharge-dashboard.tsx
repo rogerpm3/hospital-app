@@ -335,16 +335,16 @@ export default function EnhancedDischargeDashboard() {
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-medium">Paciente</label>
+              <label className="text-sm font-medium text-gray-900">Paciente *</label>
               <select 
-                className="w-full mt-1 p-2 border rounded-md"
+                className="w-full mt-1 p-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:ring-2 focus:ring-blue-500"
                 value={selectedPatient}
                 onChange={(e) => setSelectedPatient(e.target.value)}
               >
                 <option value="">Seleccionar paciente</option>
                 {hospitalizedPatients.map(patient => (
                   <option key={patient.id} value={patient.id}>
-                    {patient.firstName} {patient.lastName} - {patient.roomId}
+                    {patient.firstName} {patient.lastName} - Habitación {patient.roomId}
                   </option>
                 ))}
               </select>

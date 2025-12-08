@@ -12,7 +12,11 @@ import {
   sqlMedications,
   sqlServices,
   sqlAdmissions,
-  sqlMedicalOrders
+  sqlMedicalOrders,
+  sqlAsignacionesProfesionalPaciente,
+  sqlPermisosAreaClinica,
+  getPacientesAsignadosPorProfesional,
+  profesionalTieneAccesoAPaciente
 } from './sql-data';
 
 // Importaciones de mock-data para datos que no están en SQL
@@ -64,8 +68,12 @@ import type {
   FollowUpAlert,
   PrivacySettings,
   AppointmentSummary,
-  User
+  User,
+  AsignacionProfesionalPaciente,
+  PermisoAreaClinica,
+  DataVisibilityFilter
 } from './types';
+import { roleDataVisibility } from './types';
 
 interface HospitalContextType {
   // Estados
@@ -95,9 +103,20 @@ interface HospitalContextType {
   appointmentSummaries: AppointmentSummary[];
   staff: User[];
   
+  // Sistema de control de acceso
+  asignacionesProfesionalPaciente: AsignacionProfesionalPaciente[];
+  permisosAreaClinica: PermisoAreaClinica[];
+  
   // Estado de carga
   isDbLoading: boolean;
   dbError: string | null;
+  
+  // Funciones de control de acceso
+  getFilteredPatients: () => Patient[];
+  canAccessPatient: (patientId: string) => boolean;
+  getPatientVisibilityFilter: () => DataVisibilityFilter | null;
+  getMyAssignedPatients: () => Patient[];
+  getAssignmentType: (patientId: string) => string | null;
 
   // Funciones para pacientes
   addPatient: (patient: Omit<Patient, 'id'>) => void;
@@ -138,6 +157,9 @@ interface HospitalContextType {
 
   // Funciones para mensajes
   addChatMessage: (message: Omit<ChatMessage, 'id'>) => void;
+  markMessageAsRead: (messageId: string) => void;
+  markAllMessagesAsRead: () => void;
+  getFilteredChatMessages: () => ChatMessage[];
 
   // Funciones para evoluciones médicas
   addMedicalEvolution: (evolution: Omit<MedicalEvolution, 'id'>) => void;
@@ -149,11 +171,15 @@ interface HospitalContextType {
 const HospitalContext = createContext<HospitalContextType | undefined>(undefined);
 
 export function HospitalProvider({ children }: { children: React.ReactNode }) {
-  const { addAuditLog } = useAuth();
+  const { addAuditLog, user, hasPermission } = useAuth();
   
   // Estado de carga - siempre falso ya que los datos están pre-cargados
   const [isDbLoading] = useState(false);
   const [dbError] = useState<string | null>(null);
+  
+  // Estados para control de acceso
+  const [asignacionesProfesionalPaciente] = useState<AsignacionProfesionalPaciente[]>(sqlAsignacionesProfesionalPaciente);
+  const [permisosAreaClinica] = useState<PermisoAreaClinica[]>(sqlPermisosAreaClinica);
   
   // ============================================
   // ESTADOS PRINCIPALES - Datos SQL predeterminados
@@ -721,6 +747,76 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
     });
   }, [addAuditLog]);
 
+  // Marcar mensaje como leído
+  const markMessageAsRead = useCallback((messageId: string) => {
+    setChatMessages(prev => prev.map(msg => 
+      msg.id === messageId ? { ...msg, isRead: true } : msg
+    ));
+    
+    addAuditLog({
+      action: 'UPDATE',
+      resource: 'message',
+      resourceId: messageId,
+      details: { action: 'marked_as_read' }
+    });
+  }, [addAuditLog]);
+
+  // Marcar todos los mensajes como leídos
+  const markAllMessagesAsRead = useCallback(() => {
+    if (!user) return;
+    
+    setChatMessages(prev => prev.map(msg => {
+      // Solo marcar como leído si el mensaje es para el usuario actual
+      const isRecipient = 
+        !msg.recipientRole || 
+        msg.recipientRole === 'all' || 
+        msg.recipientRole === user.role;
+      
+      if (isRecipient && !msg.isRead) {
+        return { ...msg, isRead: true };
+      }
+      return msg;
+    }));
+    
+    addAuditLog({
+      action: 'UPDATE',
+      resource: 'message',
+      resourceId: 'all',
+      details: { action: 'marked_all_as_read' }
+    });
+  }, [user, addAuditLog]);
+
+  // Obtener mensajes filtrados por destinatario
+  const getFilteredChatMessages = useCallback((): ChatMessage[] => {
+    if (!user) return [];
+    
+    // Admin ve todos los mensajes
+    if (user.role === 'admin') {
+      return chatMessages;
+    }
+    
+    // Filtrar mensajes donde:
+    // 1. El usuario es el remitente (mensajes enviados)
+    // 2. recipientRole es 'all' o undefined (broadcast)
+    // 3. recipientRole coincide con el rol del usuario
+    // 4. recipientId coincide con el ID del usuario
+    return chatMessages.filter(msg => {
+      // Mensajes enviados por el usuario
+      if (msg.senderId === user.id) return true;
+      
+      // Mensajes broadcast (para todos)
+      if (!msg.recipientRole || msg.recipientRole === 'all') return true;
+      
+      // Mensajes dirigidos al rol del usuario
+      if (msg.recipientRole === user.role) return true;
+      
+      // Mensajes dirigidos específicamente al usuario
+      if (msg.recipientId === user.id) return true;
+      
+      return false;
+    });
+  }, [user, chatMessages]);
+
   // Funciones para evoluciones médicas
   const addMedicalEvolution = useCallback((evolutionData: Omit<MedicalEvolution, 'id'>) => {
     const newEvolution: MedicalEvolution = {
@@ -740,6 +836,81 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
       }
     });
   }, [addAuditLog]);
+
+  // ============================================
+  // FUNCIONES DE CONTROL DE ACCESO Y FILTRADO
+  // ============================================
+
+  /**
+   * Verifica si el usuario actual puede acceder a un paciente específico
+   */
+  const canAccessPatient = useCallback((patientId: string): boolean => {
+    if (!user) return false;
+    
+    // Admin tiene acceso a todos los pacientes
+    if (user.role === 'admin') return true;
+    
+    // Verificar asignación profesional-paciente
+    const professionalId = user.professionalId || user.id;
+    return profesionalTieneAccesoAPaciente(professionalId, patientId);
+  }, [user]);
+
+  /**
+   * Obtiene los pacientes filtrados según el rol y asignaciones del usuario actual
+   */
+  const getFilteredPatients = useCallback((): Patient[] => {
+    if (!user) return [];
+    
+    // Admin y roles con acceso total ven todos los pacientes
+    if (user.role === 'admin') {
+      return patients;
+    }
+    
+    // Para personal de limpieza, admisiones: mostrar datos básicos de todos
+    if (user.role === 'cleaning' || user.role === 'admission') {
+      return patients;
+    }
+    
+    // Para médicos, enfermeras y otros roles clínicos: solo pacientes asignados
+    const professionalId = user.professionalId || user.id;
+    const pacientesAsignadosIds = getPacientesAsignadosPorProfesional(professionalId);
+    
+    return patients.filter(patient => pacientesAsignadosIds.includes(patient.id));
+  }, [user, patients]);
+
+  /**
+   * Obtiene el filtro de visibilidad de datos según el rol del usuario
+   */
+  const getPatientVisibilityFilter = useCallback((): DataVisibilityFilter | null => {
+    if (!user) return null;
+    return roleDataVisibility[user.role];
+  }, [user]);
+
+  /**
+   * Obtiene los pacientes asignados al profesional actual
+   */
+  const getMyAssignedPatients = useCallback((): Patient[] => {
+    if (!user) return [];
+    
+    const professionalId = user.professionalId || user.id;
+    const pacientesAsignadosIds = getPacientesAsignadosPorProfesional(professionalId);
+    
+    return patients.filter(patient => pacientesAsignadosIds.includes(patient.id));
+  }, [user, patients]);
+
+  /**
+   * Obtiene el tipo de asignación para un paciente específico
+   */
+  const getAssignmentType = useCallback((patientId: string): string | null => {
+    if (!user) return null;
+    
+    const professionalId = user.professionalId || user.id;
+    const asignacion = asignacionesProfesionalPaciente.find(
+      a => a.profesionalId === professionalId && a.pacienteId === patientId && a.activo
+    );
+    
+    return asignacion?.tipoAsignacion || null;
+  }, [user, asignacionesProfesionalPaciente]);
 
   const value: HospitalContextType = {
     // Estados
@@ -769,9 +940,20 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
     appointmentSummaries,
     staff,
     
+    // Sistema de control de acceso
+    asignacionesProfesionalPaciente,
+    permisosAreaClinica,
+    
     // Estado de carga
     isDbLoading,
     dbError,
+    
+    // Funciones de control de acceso
+    getFilteredPatients,
+    canAccessPatient,
+    getPatientVisibilityFilter,
+    getMyAssignedPatients,
+    getAssignmentType,
 
     // Funciones
     addPatient,
@@ -796,6 +978,9 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
     addDischargePlan,
     updateDischargePlan,
     addChatMessage,
+    markMessageAsRead,
+    markAllMessagesAsRead,
+    getFilteredChatMessages,
     addMedicalEvolution,
     refreshFromDatabase
   };

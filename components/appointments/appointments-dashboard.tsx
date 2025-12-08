@@ -205,7 +205,7 @@ export default function AppointmentsDashboard() {
             </h2>
             <input 
               type="date" 
-              className="px-3 py-2 border rounded-md"
+              className="px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:ring-2 focus:ring-blue-500"
               value={selectedDate.toISOString().split('T')[0]}
               onChange={(e) => setSelectedDate(new Date(e.target.value))}
             />
@@ -313,7 +313,7 @@ export default function AppointmentsDashboard() {
             <h2 className="text-xl font-semibold">Citas de la Semana</h2>
             <div className="flex items-center space-x-2">
               <select 
-                className="px-3 py-2 border rounded-md"
+                className="px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white"
                 value={selectedSpecialty}
                 onChange={(e) => setSelectedSpecialty(e.target.value)}
               >
@@ -401,46 +401,55 @@ export default function AppointmentsDashboard() {
         {/* Calendario Mensual */}
         <TabsContent value="monthly-calendar" className="space-y-4">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold">
+            <h2 className="text-xl font-semibold text-gray-900">
               Calendario - {selectedDate.toLocaleDateString('es-ES', { 
                 year: 'numeric', 
                 month: 'long' 
               })}
             </h2>
             <div className="flex items-center space-x-2">
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => {
+              <select 
+                className="px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white"
+                value={selectedDate.getMonth()}
+                onChange={(e) => {
                   const newDate = new Date(selectedDate);
-                  newDate.setMonth(selectedDate.getMonth() - 1);
+                  newDate.setMonth(parseInt(e.target.value));
                   setSelectedDate(newDate);
                 }}
               >
-                ← Anterior
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => {
+                <option value="0">Enero</option>
+                <option value="1">Febrero</option>
+                <option value="2">Marzo</option>
+                <option value="3">Abril</option>
+                <option value="4">Mayo</option>
+                <option value="5">Junio</option>
+                <option value="6">Julio</option>
+                <option value="7">Agosto</option>
+                <option value="8">Septiembre</option>
+                <option value="9">Octubre</option>
+                <option value="10">Noviembre</option>
+                <option value="11">Diciembre</option>
+              </select>
+              <select
+                className="px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white"
+                value={selectedDate.getFullYear()}
+                onChange={(e) => {
                   const newDate = new Date(selectedDate);
-                  newDate.setMonth(selectedDate.getMonth() + 1);
+                  newDate.setFullYear(parseInt(e.target.value));
                   setSelectedDate(newDate);
                 }}
               >
-                Siguiente →
-              </Button>
+                {Array.from({length: 5}, (_, i) => new Date().getFullYear() - 2 + i).map(year => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
             </div>
           </div>
 
           {/* Calendar Grid */}
           <Card>
             <CardContent className="p-6">
-              <AppointmentCalendar 
-                appointments={userAppointments} 
-                selectedMonth={selectedDate}
-                onDateSelect={setSelectedDate}
-              />
+              <AppointmentCalendar />
             </CardContent>
           </Card>
 

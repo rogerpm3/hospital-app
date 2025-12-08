@@ -171,6 +171,12 @@ export default function Sidebar({ open, setOpen, activeSection, setActiveSection
               {user.department && (
                 <p className="text-xs text-gray-400 truncate">{user.department}</p>
               )}
+              {user.professionalId && (
+                <p className="text-xs text-blue-500 truncate flex items-center gap-1">
+                  <Shield className="h-3 w-3" />
+                  ID: {user.professionalId}
+                </p>
+              )}
             </div>
           </div>
         </div>

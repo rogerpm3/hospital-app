@@ -1,6 +1,7 @@
 'use client';
 
 import { useAuth } from '@/lib/auth-context';
+import { useHospital } from '@/lib/hospital-context';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { 
@@ -12,8 +13,7 @@ import {
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import { Bell, Menu, Settings, LogOut, User, Sun, Moon } from 'lucide-react';
-import { useTheme } from 'next-themes';
+import { Bell, Menu, Settings, LogOut, User, Shield, MessageSquare, CheckCheck } from 'lucide-react';
 
 interface HeaderProps {
   onToggleSidebar: () => void;
@@ -22,9 +22,27 @@ interface HeaderProps {
 
 export default function Header({ onToggleSidebar, title }: HeaderProps) {
   const { user, logout } = useAuth();
-  const { theme, setTheme } = useTheme();
+  const { getFilteredChatMessages, markMessageAsRead, markAllMessagesAsRead, systemNotifications } = useHospital();
 
   if (!user) return null;
+
+  // Obtener mensajes filtrados para el usuario actual
+  const chatMessages = getFilteredChatMessages();
+  const unreadMessages = chatMessages.filter(msg => !msg.isRead && msg.senderId !== user.id);
+  const unreadCount = unreadMessages.length;
+  
+  // Obtener las 3 últimas notificaciones
+  const recentUnread = unreadMessages
+    .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+    .slice(0, 3);
+
+  const handleMarkAsRead = (messageId: string) => {
+    markMessageAsRead(messageId);
+  };
+
+  const handleMarkAllAsRead = () => {
+    markAllMessagesAsRead();
+  };
 
   const getRoleLabel = (role: string) => {
     const labels: Record<string, string> = {
@@ -44,14 +62,14 @@ export default function Header({ onToggleSidebar, title }: HeaderProps) {
   };
 
   return (
-    <header className="flex h-16 items-center justify-between border-b bg-white px-6 shadow-sm">
+    <header className="flex h-16 items-center justify-between border-b border-gray-200 bg-white px-6 shadow-sm">
       {/* Lado izquierdo - Menú y título */}
       <div className="flex items-center gap-4">
         <Button
           variant="ghost"
           size="icon"
           onClick={onToggleSidebar}
-          className="lg:hidden"
+          className="lg:hidden text-gray-700 hover:bg-gray-100"
         >
           <Menu className="h-5 w-5" />
         </Button>
@@ -71,77 +89,96 @@ export default function Header({ onToggleSidebar, title }: HeaderProps) {
 
       {/* Lado derecho - Notificaciones y perfil */}
       <div className="flex items-center gap-3">
-        {/* Notificaciones */}
+        {/* Notificaciones y Mensajes */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="relative">
+            <Button variant="ghost" size="icon" className="relative text-gray-700 hover:bg-gray-100">
               <Bell className="h-5 w-5" />
-              <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-xs text-white flex items-center justify-center">
-                3
-              </span>
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-xs text-white flex items-center justify-center font-medium">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-80">
-            <DropdownMenuLabel>Notificaciones</DropdownMenuLabel>
-            <DropdownMenuSeparator />
+          <DropdownMenuContent align="end" className="w-96 bg-white border border-gray-200">
+            <div className="flex items-center justify-between px-3 py-2">
+              <DropdownMenuLabel className="text-gray-900 font-semibold p-0">Mensajes</DropdownMenuLabel>
+              {unreadCount > 0 && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-xs text-blue-600 hover:text-blue-700 h-auto py-1 px-2"
+                  onClick={handleMarkAllAsRead}
+                >
+                  <CheckCheck className="w-3 h-3 mr-1" />
+                  Marcar todos como leídos
+                </Button>
+              )}
+            </div>
+            <DropdownMenuSeparator className="bg-gray-200" />
             
-            <div className="space-y-2 p-2">
-              <div className="p-2 hover:bg-gray-50 rounded-md cursor-pointer">
-                <div className="flex items-start gap-2">
-                  <div className="w-2 h-2 bg-red-500 rounded-full mt-2"></div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">Código Azul - Habitación 102</p>
-                    <p className="text-xs text-gray-500">Hace 5 minutos</p>
-                  </div>
+            <div className="max-h-80 overflow-y-auto">
+              {recentUnread.length === 0 ? (
+                <div className="p-6 text-center">
+                  <MessageSquare className="h-10 w-10 mx-auto mb-2 text-gray-300" />
+                  <p className="text-sm text-gray-500">No tienes mensajes sin leer</p>
                 </div>
-              </div>
-              
-              <div className="p-2 hover:bg-gray-50 rounded-md cursor-pointer">
-                <div className="flex items-start gap-2">
-                  <div className="w-2 h-2 bg-orange-500 rounded-full mt-2"></div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">UCI al 95% de ocupación</p>
-                    <p className="text-xs text-gray-500">Hace 15 minutos</p>
-                  </div>
+              ) : (
+                <div className="space-y-1 p-2">
+                  {recentUnread.map((message) => (
+                    <div 
+                      key={message.id} 
+                      className="p-3 hover:bg-gray-50 rounded-md cursor-pointer transition-colors border-l-2 border-l-blue-500"
+                      onClick={() => handleMarkAsRead(message.id)}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className={`w-2.5 h-2.5 rounded-full mt-1.5 flex-shrink-0 ${
+                          message.priority === 'Urgent' || message.priority === 'urgent' ? 'bg-red-500' :
+                          message.priority === 'High' || message.priority === 'high' ? 'bg-orange-500' :
+                          'bg-blue-500'
+                        }`}></div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <p className="text-sm font-medium text-gray-900 truncate">{message.senderName}</p>
+                            <Badge variant="outline" className="text-xs py-0">
+                              {getRoleLabel(message.senderRole)}
+                            </Badge>
+                          </div>
+                          {message.subject && (
+                            <p className="text-sm text-gray-800 font-medium truncate">{message.subject}</p>
+                          )}
+                          <p className="text-xs text-gray-600 truncate">{message.message}</p>
+                          <p className="text-xs text-gray-400 mt-1">
+                            {message.timestamp.toLocaleString('es-ES', {
+                              day: 'numeric',
+                              month: 'short',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              </div>
-              
-              <div className="p-2 hover:bg-gray-50 rounded-md cursor-pointer">
-                <div className="flex items-start gap-2">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">Nueva cita programada</p>
-                    <p className="text-xs text-gray-500">Hace 30 minutos</p>
-                  </div>
-                </div>
-              </div>
+              )}
             </div>
             
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="justify-center">
-              Ver todas las notificaciones
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        {/* Tema */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon">
-              <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-              <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-              <span className="sr-only">Cambiar tema</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => setTheme("light")}>
-              Claro
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setTheme("dark")}>
-              Oscuro
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setTheme("system")}>
-              Sistema
+            {unreadCount > 3 && (
+              <>
+                <DropdownMenuSeparator className="bg-gray-200" />
+                <div className="p-2 text-center">
+                  <p className="text-xs text-gray-500">
+                    Y {unreadCount - 3} mensaje{unreadCount - 3 > 1 ? 's' : ''} más sin leer
+                  </p>
+                </div>
+              </>
+            )}
+            
+            <DropdownMenuSeparator className="bg-gray-200" />
+            <DropdownMenuItem className="justify-center text-blue-600 font-medium cursor-pointer">
+              Ver todos los mensajes
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -149,64 +186,73 @@ export default function Header({ onToggleSidebar, title }: HeaderProps) {
         {/* Perfil de usuario */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="flex items-center gap-2 px-3 hover:bg-gray-100">
-              <Avatar className="h-8 w-8 border-2 border-blue-100">
+            <Button variant="ghost" className="flex items-center gap-3 px-3 hover:bg-gray-100 h-auto py-2">
+              <Avatar className="h-9 w-9 border-2 border-blue-200">
                 <AvatarImage src={user.profilePicture} />
-                <AvatarFallback className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-semibold">
+                <AvatarFallback className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-semibold text-sm">
                   {user.firstName[0]}{user.lastName[0]}
                 </AvatarFallback>
               </Avatar>
               <div className="text-left hidden md:block">
-                <p className="text-sm font-medium text-gray-900">{user.firstName} {user.lastName}</p>
-                <Badge variant="outline" className="text-xs text-gray-600 border-gray-300">
-                  {getRoleLabel(user.role)}
-                </Badge>
+                <p className="text-sm font-semibold text-gray-900">{user.firstName} {user.lastName}</p>
+                <div className="flex items-center gap-1.5">
+                  <Badge variant="outline" className="text-xs font-medium text-gray-600 border-gray-300 bg-gray-50 px-2 py-0">
+                    {getRoleLabel(user.role)}
+                  </Badge>
+                  {user.professionalId && (
+                    <span className="text-xs text-blue-600 flex items-center gap-0.5">
+                      <Shield className="h-3 w-3" />
+                      {user.professionalId}
+                    </span>
+                  )}
+                </div>
               </div>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>Mi Cuenta</DropdownMenuLabel>
-            <DropdownMenuSeparator />
+          <DropdownMenuContent align="end" className="w-64 bg-white border border-gray-200">
+            <DropdownMenuLabel className="text-gray-900 font-semibold">Mi Cuenta</DropdownMenuLabel>
+            <DropdownMenuSeparator className="bg-gray-200" />
             
-            <DropdownMenuItem className="flex items-center gap-2">
-              <User className="h-4 w-4" />
-              Perfil
+            <DropdownMenuItem className="flex items-center gap-2 text-gray-700 cursor-pointer">
+              <User className="h-4 w-4 text-gray-500" />
+              <span>Perfil</span>
             </DropdownMenuItem>
             
-            <DropdownMenuItem className="flex items-center gap-2">
-              <Settings className="h-4 w-4" />
-              Configuración
+            <DropdownMenuItem className="flex items-center gap-2 text-gray-700 cursor-pointer">
+              <Settings className="h-4 w-4 text-gray-500" />
+              <span>Configuración</span>
             </DropdownMenuItem>
             
-            <DropdownMenuSeparator />
+            <DropdownMenuSeparator className="bg-gray-200" />
             
-            <div className="p-2">
-              <div className="text-xs text-gray-500 mb-1">Estado de conexión</div>
+            <div className="px-3 py-2">
+              <div className="text-xs font-medium text-gray-500 mb-1.5">Estado de conexión</div>
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <span className="text-xs">En línea</span>
+                <span className="text-xs text-gray-700">En línea</span>
               </div>
             </div>
             
-            <div className="p-2">
-              <div className="text-xs text-gray-500 mb-1">Información</div>
-              <div className="text-xs space-y-1">
-                <div>DNI: {user.dni}</div>
-                {user.department && <div>Departamento: {user.department}</div>}
+            <div className="px-3 py-2 bg-gray-50 rounded mx-2 mb-2">
+              <div className="text-xs font-medium text-gray-500 mb-1.5">Información</div>
+              <div className="text-xs space-y-1 text-gray-700">
+                <div><span className="text-gray-500">DNI:</span> {user.dni}</div>
+                {user.department && <div><span className="text-gray-500">Departamento:</span> {user.department}</div>}
+                {user.professionalId && <div><span className="text-gray-500">ID Profesional:</span> {user.professionalId}</div>}
                 {user.lastLogin && (
-                  <div>Último acceso: {user.lastLogin.toLocaleString()}</div>
+                  <div><span className="text-gray-500">Último acceso:</span> {user.lastLogin.toLocaleString()}</div>
                 )}
               </div>
             </div>
             
-            <DropdownMenuSeparator />
+            <DropdownMenuSeparator className="bg-gray-200" />
             
             <DropdownMenuItem 
-              className="flex items-center gap-2 text-red-600 focus:text-red-600"
+              className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 cursor-pointer mx-2 mb-1 rounded"
               onClick={logout}
             >
               <LogOut className="h-4 w-4" />
-              Cerrar Sesión
+              <span className="font-medium">Cerrar Sesión</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

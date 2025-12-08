@@ -2,9 +2,13 @@
  * Datos SQL Pre-parseados
  * Generado automáticamente desde los archivos SQL
  * Fecha: 2025-12-04T15:22:02.249Z
+ * 
+ * SISTEMA DE CONTROL DE ACCESO:
+ * - Las asignaciones profesional-paciente definen qué médicos pueden ver qué pacientes
+ * - Cada profesional solo puede acceder a sus pacientes asignados (excepto admin)
  */
 
-import type { Patient, User, Room, Bed, Medication, Service, Admission, MedicalOrder } from './types';
+import type { Patient, User, Room, Bed, Medication, Service, Admission, MedicalOrder, AsignacionProfesionalPaciente, PermisoAreaClinica } from './types';
 
 // ============================================
 // PACIENTES (7 registros)
@@ -1913,3 +1917,121 @@ export const sqlMedicalOrders: MedicalOrder[] = [
     requiresConsent: false
   }
 ];
+
+// ============================================
+// ASIGNACIONES PROFESIONAL-PACIENTE
+// Control de acceso: qué profesionales pueden ver qué pacientes
+// ============================================
+export const sqlAsignacionesProfesionalPaciente: AsignacionProfesionalPaciente[] = [
+  // Dr. Josep Blanch Alsina (27512) - Ginecología - Paciente Isabel Flores
+  { id: 'ASG001', profesionalId: '27512', pacienteId: 'IFV_0001', tipoAsignacion: 'responsable', fechaInicio: new Date('2014-01-02'), departamento: 'Ginecología y Obstetricia', activo: true, notas: 'Médico responsable del embarazo' },
+  
+  // Dr. Eugenio Magriñá (19621) - Obstetricia - Pacientes gemelos y madre
+  { id: 'ASG002', profesionalId: '19621', pacienteId: 'IFV_0001', tipoAsignacion: 'equipo', fechaInicio: new Date('2014-07-03'), fechaFin: new Date('2014-07-07'), departamento: 'Obstetricia', activo: true, notas: 'Atención al parto' },
+  { id: 'ASG003', profesionalId: '19621', pacienteId: 'PIF_0010', tipoAsignacion: 'responsable', fechaInicio: new Date('2014-07-03'), departamento: 'Pediatría', activo: true, notas: 'Neonatología' },
+  { id: 'ASG004', profesionalId: '19621', pacienteId: 'MIF_0011', tipoAsignacion: 'responsable', fechaInicio: new Date('2014-07-03'), departamento: 'Pediatría', activo: true, notas: 'Neonatología' },
+  
+  // Dr. Laura Martinez (12345) - Urgencias - Paciente Javier Martinez
+  { id: 'ASG005', profesionalId: '12345', pacienteId: 'JML_0001', tipoAsignacion: 'responsable', fechaInicio: new Date('2022-09-10'), fechaFin: new Date('2022-09-14'), departamento: 'Urgencias', activo: true, notas: 'Accidente de tráfico' },
+  
+  // Dr. Orestes García (56345) - Cirugía - Paciente Samuel Vallbé
+  { id: 'ASG006', profesionalId: '56345', pacienteId: 'SVP_0001', tipoAsignacion: 'responsable', fechaInicio: new Date('2015-09-14'), fechaFin: new Date('2015-09-16'), departamento: 'Cirugía General', activo: true, notas: 'Apendicectomía' },
+  
+  // Dr. Clara Dolz (33272) - Anestesiología - Paciente Samuel (cirugía)
+  { id: 'ASG007', profesionalId: '33272', pacienteId: 'SVP_0001', tipoAsignacion: 'equipo', fechaInicio: new Date('2015-09-14'), fechaFin: new Date('2015-09-14'), departamento: 'Anestesiología', activo: true, notas: 'Anestesia para cirugía' },
+  
+  // Dr. Román Sampedro (35678) - Medicina Interna - Paciente Juan Agudells
+  { id: 'ASG008', profesionalId: '35678', pacienteId: 'JAV_0001', tipoAsignacion: 'responsable', fechaInicio: new Date('2014-10-14'), fechaFin: new Date('2014-10-17'), departamento: 'Medicina Interna', activo: true, notas: 'Neumonía' },
+  
+  // Dr. Miguel Serrano (30123) / Laura Mora (7777) - Paciente María Rodríguez
+  { id: 'ASG009', profesionalId: '30123', pacienteId: 'MRS_0001', tipoAsignacion: 'responsable', fechaInicio: new Date('2022-05-10'), fechaFin: new Date('2022-05-20'), departamento: 'UCI', activo: true, notas: 'Neumonía grave UCI' },
+  { id: 'ASG010', profesionalId: '7777', pacienteId: 'MRS_0001', tipoAsignacion: 'responsable', fechaInicio: new Date('2022-05-20'), fechaFin: new Date('2022-06-02'), departamento: 'Hospitalización General', activo: true, notas: 'Seguimiento post-UCI' },
+  
+  // Dr. José Frontela (12171) - Pediatría - Recién nacidos
+  { id: 'ASG011', profesionalId: '12171', pacienteId: 'PIF_0010', tipoAsignacion: 'equipo', fechaInicio: new Date('2014-07-03'), departamento: 'Pediatría', activo: true, notas: 'Screening neonatal' },
+  { id: 'ASG012', profesionalId: '12171', pacienteId: 'MIF_0011', tipoAsignacion: 'equipo', fechaInicio: new Date('2014-07-03'), departamento: 'Pediatría', activo: true, notas: 'Screening neonatal' },
+  
+  // Enfermera Montserrat Valls (43234) - Obstetricia
+  { id: 'ASG013', profesionalId: '43234', pacienteId: 'IFV_0001', tipoAsignacion: 'equipo', fechaInicio: new Date('2014-01-02'), fechaFin: new Date('2014-07-07'), departamento: 'Obstetricia', activo: true, notas: 'Cuidados prenatales y parto' },
+  { id: 'ASG014', profesionalId: '43234', pacienteId: 'PIF_0010', tipoAsignacion: 'equipo', fechaInicio: new Date('2014-07-03'), fechaFin: new Date('2014-07-07'), departamento: 'Obstetricia', activo: true, notas: 'Cuidados neonatales' },
+  { id: 'ASG015', profesionalId: '43234', pacienteId: 'MIF_0011', tipoAsignacion: 'equipo', fechaInicio: new Date('2014-07-03'), fechaFin: new Date('2014-07-07'), departamento: 'Obstetricia', activo: true, notas: 'Cuidados neonatales' },
+  
+  // Enfermera Lucía Cabañes (18376) - Urgencias
+  { id: 'ASG016', profesionalId: '18376', pacienteId: 'SVP_0001', tipoAsignacion: 'equipo', fechaInicio: new Date('2015-09-14'), departamento: 'Urgencias', activo: true },
+  { id: 'ASG017', profesionalId: '18376', pacienteId: 'JML_0001', tipoAsignacion: 'equipo', fechaInicio: new Date('2022-09-10'), departamento: 'Urgencias', activo: true },
+  
+  // Enfermeras de Hospitalización
+  { id: 'ASG018', profesionalId: '25437', pacienteId: 'SVP_0001', tipoAsignacion: 'equipo', fechaInicio: new Date('2015-09-14'), departamento: 'Hospitalización', activo: true },
+  { id: 'ASG019', profesionalId: '61765', pacienteId: 'SVP_0001', tipoAsignacion: 'equipo', fechaInicio: new Date('2015-09-15'), departamento: 'Hospitalización', activo: true },
+  
+  // Enfermera Nuria Bòria (6234) y Isabel Centelles (8512) - Medicina Interna
+  { id: 'ASG020', profesionalId: '6234', pacienteId: 'JAV_0001', tipoAsignacion: 'equipo', fechaInicio: new Date('2014-10-14'), departamento: 'Hospitalización', activo: true },
+  { id: 'ASG021', profesionalId: '8512', pacienteId: 'JAV_0001', tipoAsignacion: 'equipo', fechaInicio: new Date('2014-10-15'), departamento: 'Hospitalización', activo: true },
+  
+  // Enfermero Miguel Serrano (30123) si actúa como enfermero - María Rodríguez UCI
+  { id: 'ASG022', profesionalId: '30123', pacienteId: 'MRS_0001', tipoAsignacion: 'equipo', fechaInicio: new Date('2022-05-10'), departamento: 'UCI', activo: true }
+];
+
+// ============================================
+// PERMISOS POR ÁREA CLÍNICA
+// Define qué puede hacer cada rol en cada área
+// ============================================
+export const sqlPermisosAreaClinica: PermisoAreaClinica[] = [
+  // Permisos de Admin (acceso total)
+  { id: 'PERM001', rol: 'admin', areaClinica: 'todos', puedeVer: true, puedeEditar: true, puedeCrear: true, puedeEliminar: true, accesoDatosSensibles: true, descripcion: 'Acceso administrativo total' },
+  
+  // Permisos de Doctor (solo sus pacientes asignados)
+  { id: 'PERM002', rol: 'doctor', areaClinica: 'pacientes_asignados', puedeVer: true, puedeEditar: true, puedeCrear: true, puedeEliminar: false, accesoDatosSensibles: true, descripcion: 'Acceso completo a pacientes asignados' },
+  { id: 'PERM003', rol: 'doctor', areaClinica: 'ordenes_medicas', puedeVer: true, puedeEditar: true, puedeCrear: true, puedeEliminar: false, accesoDatosSensibles: true, descripcion: 'Gestión de órdenes médicas propias' },
+  { id: 'PERM004', rol: 'doctor', areaClinica: 'evolucion_clinica', puedeVer: true, puedeEditar: true, puedeCrear: true, puedeEliminar: false, accesoDatosSensibles: true, descripcion: 'Evoluciones de pacientes asignados' },
+  { id: 'PERM005', rol: 'doctor', areaClinica: 'altas', puedeVer: true, puedeEditar: true, puedeCrear: true, puedeEliminar: false, accesoDatosSensibles: true, descripcion: 'Gestión de altas' },
+  
+  // Permisos de Enfermera (pacientes de su unidad)
+  { id: 'PERM006', rol: 'nurse', areaClinica: 'pacientes_unidad', puedeVer: true, puedeEditar: true, puedeCrear: false, puedeEliminar: false, accesoDatosSensibles: false, descripcion: 'Ver pacientes de su unidad' },
+  { id: 'PERM007', rol: 'nurse', areaClinica: 'signos_vitales', puedeVer: true, puedeEditar: true, puedeCrear: true, puedeEliminar: false, accesoDatosSensibles: false, descripcion: 'Registro de signos vitales' },
+  { id: 'PERM008', rol: 'nurse', areaClinica: 'notas_enfermeria', puedeVer: true, puedeEditar: true, puedeCrear: true, puedeEliminar: false, accesoDatosSensibles: false, descripcion: 'Notas de enfermería' },
+  { id: 'PERM009', rol: 'nurse', areaClinica: 'administracion_medicamentos', puedeVer: true, puedeEditar: true, puedeCrear: true, puedeEliminar: false, accesoDatosSensibles: false, descripcion: 'Administración de medicamentos' },
+  
+  // Permisos de Limpieza (solo estado de camas)
+  { id: 'PERM010', rol: 'cleaning', areaClinica: 'camas', puedeVer: true, puedeEditar: true, puedeCrear: false, puedeEliminar: false, accesoDatosSensibles: false, descripcion: 'Estado de limpieza de camas' },
+  { id: 'PERM011', rol: 'cleaning', areaClinica: 'pacientes', puedeVer: false, puedeEditar: false, puedeCrear: false, puedeEliminar: false, accesoDatosSensibles: false, descripcion: 'Sin acceso a datos de pacientes' },
+  
+  // Permisos de Admisiones (registro inicial)
+  { id: 'PERM012', rol: 'admission', areaClinica: 'registro_pacientes', puedeVer: true, puedeEditar: true, puedeCrear: true, puedeEliminar: false, accesoDatosSensibles: false, descripcion: 'Registro y admisión' },
+  { id: 'PERM013', rol: 'admission', areaClinica: 'camas', puedeVer: true, puedeEditar: true, puedeCrear: false, puedeEliminar: false, accesoDatosSensibles: false, descripcion: 'Asignación de camas' },
+  { id: 'PERM014', rol: 'admission', areaClinica: 'datos_clinicos', puedeVer: false, puedeEditar: false, puedeCrear: false, puedeEliminar: false, accesoDatosSensibles: false, descripcion: 'Sin acceso a datos clínicos' },
+  
+  // Permisos de Farmacia
+  { id: 'PERM015', rol: 'pharmacy', areaClinica: 'medicamentos', puedeVer: true, puedeEditar: true, puedeCrear: true, puedeEliminar: false, accesoDatosSensibles: false, descripcion: 'Gestión de medicamentos' },
+  { id: 'PERM016', rol: 'pharmacy', areaClinica: 'ordenes_medicacion', puedeVer: true, puedeEditar: false, puedeCrear: false, puedeEliminar: false, accesoDatosSensibles: false, descripcion: 'Ver órdenes de medicación' },
+  
+  // Permisos de Paciente (solo sus propios datos)
+  { id: 'PERM017', rol: 'patient', areaClinica: 'datos_propios', puedeVer: true, puedeEditar: false, puedeCrear: false, puedeEliminar: false, accesoDatosSensibles: false, descripcion: 'Ver sus propios datos' },
+  { id: 'PERM018', rol: 'patient', areaClinica: 'citas', puedeVer: true, puedeEditar: false, puedeCrear: true, puedeEliminar: false, accesoDatosSensibles: false, descripcion: 'Ver y solicitar citas' },
+  
+  // Permisos de Familia (datos limitados del familiar)
+  { id: 'PERM019', rol: 'family', areaClinica: 'estado_paciente', puedeVer: true, puedeEditar: false, puedeCrear: false, puedeEliminar: false, accesoDatosSensibles: false, descripcion: 'Estado general del paciente' },
+  { id: 'PERM020', rol: 'family', areaClinica: 'ubicacion', puedeVer: true, puedeEditar: false, puedeCrear: false, puedeEliminar: false, accesoDatosSensibles: false, descripcion: 'Ubicación en hospital' }
+];
+
+// Helper para obtener pacientes asignados a un profesional
+export function getPacientesAsignadosPorProfesional(profesionalId: string): string[] {
+  return sqlAsignacionesProfesionalPaciente
+    .filter(a => a.profesionalId === profesionalId && a.activo)
+    .map(a => a.pacienteId);
+}
+
+// Helper para verificar si un profesional tiene acceso a un paciente
+export function profesionalTieneAccesoAPaciente(profesionalId: string, pacienteId: string): boolean {
+  return sqlAsignacionesProfesionalPaciente.some(
+    a => a.profesionalId === profesionalId && a.pacienteId === pacienteId && a.activo
+  );
+}
+
+// Helper para obtener el tipo de asignación
+export function getTipoAsignacion(profesionalId: string, pacienteId: string): string | null {
+  const asignacion = sqlAsignacionesProfesionalPaciente.find(
+    a => a.profesionalId === profesionalId && a.pacienteId === pacienteId && a.activo
+  );
+  return asignacion?.tipoAsignacion || null;
+}

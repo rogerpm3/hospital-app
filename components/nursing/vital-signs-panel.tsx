@@ -497,8 +497,9 @@ export default function VitalSignsPanel() {
                       )}
 
                       {vital.notes && (
-                        <div className="mt-3 p-2 bg-gray-50 rounded text-sm">
-                          <span className="font-medium">Observaciones:</span> {vital.notes}
+                        <div className="mt-3 p-2 bg-blue-50 border border-blue-100 rounded text-sm">
+                          <span className="font-medium text-blue-900">Observaciones:</span>{" "}
+                          <span className="text-blue-800">{vital.notes}</span>
                         </div>
                       )}
 

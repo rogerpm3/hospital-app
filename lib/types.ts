@@ -290,13 +290,16 @@ export interface ChatMessage {
   senderName: string;
   senderRole: UserRole;
   recipientId?: string;
+  recipientRole?: UserRole | 'all'; // Rol destinatario: si es 'all' o undefined, va para todos
   channelId?: string;
   message: string;
+  subject?: string; // Asunto del mensaje
   timestamp: Date;
   type: 'direct' | 'channel' | 'broadcast' | 'emergency';
   isRead: boolean;
   attachments?: string[];
-  priority?: 'Low' | 'Medium' | 'High' | 'Urgent';
+  priority?: 'Low' | 'Medium' | 'High' | 'Urgent' | string;
+  category?: string; // Categoría del mensaje
   relatedPatientId?: string;
 }
 
@@ -592,6 +595,198 @@ export interface BreakGlassAccess {
   justified: boolean;
   reviewed: boolean;
 }
+
+// ============================================
+// SISTEMA DE CONTROL DE ACCESO Y ROLES
+// ============================================
+
+// Tipo de asignación profesional-paciente
+export type TipoAsignacion = 'responsable' | 'equipo' | 'consulta' | 'temporal';
+
+// Asignación de profesional a paciente
+export interface AsignacionProfesionalPaciente {
+  id: string;
+  profesionalId: string;
+  pacienteId: string;
+  tipoAsignacion: TipoAsignacion;
+  fechaInicio: Date;
+  fechaFin?: Date;
+  departamento: string;
+  activo: boolean;
+  notas?: string;
+}
+
+// Permisos por área clínica
+export interface PermisoAreaClinica {
+  id: string;
+  rol: UserRole;
+  areaClinica: string;
+  puedeVer: boolean;
+  puedeEditar: boolean;
+  puedeCrear: boolean;
+  puedeEliminar: boolean;
+  accesoDatosSensibles: boolean;
+  descripcion?: string;
+}
+
+// Contexto de acceso del usuario actual
+export interface AccessContext {
+  userId: string;
+  userRole: UserRole;
+  professionalId?: string;
+  departamento?: string;
+  unidadAsignada?: string;
+  pacientesAsignados: string[]; // IDs de pacientes que puede ver
+  permisos: PermisoAreaClinica[];
+  esAdmin: boolean;
+  puedeVerTodosPacientes: boolean;
+}
+
+// Resultado de verificación de acceso
+export interface AccessCheckResult {
+  permitido: boolean;
+  razon?: string;
+  nivelAcceso: 'completo' | 'parcial' | 'solo_lectura' | 'denegado';
+  datosOcultos?: string[]; // Campos que no puede ver
+}
+
+// Filtro de visibilidad de datos
+export interface DataVisibilityFilter {
+  mostrarNombreCompleto: boolean;
+  mostrarDNI: boolean;
+  mostrarHistorialMedico: boolean;
+  mostrarDiagnosticos: boolean;
+  mostrarMedicaciones: boolean;
+  mostrarNotasClinicas: boolean;
+  mostrarDatosFinancieros: boolean;
+  mostrarContactosEmergencia: boolean;
+  usarIdentificadorAnonimo: boolean;
+}
+
+// Configuración de visibilidad por rol
+export const roleDataVisibility: Record<UserRole, DataVisibilityFilter> = {
+  admin: {
+    mostrarNombreCompleto: true,
+    mostrarDNI: true,
+    mostrarHistorialMedico: true,
+    mostrarDiagnosticos: true,
+    mostrarMedicaciones: true,
+    mostrarNotasClinicas: true,
+    mostrarDatosFinancieros: true,
+    mostrarContactosEmergencia: true,
+    usarIdentificadorAnonimo: false
+  },
+  doctor: {
+    mostrarNombreCompleto: true,
+    mostrarDNI: true,
+    mostrarHistorialMedico: true,
+    mostrarDiagnosticos: true,
+    mostrarMedicaciones: true,
+    mostrarNotasClinicas: true,
+    mostrarDatosFinancieros: false,
+    mostrarContactosEmergencia: true,
+    usarIdentificadorAnonimo: false
+  },
+  nurse: {
+    mostrarNombreCompleto: true,
+    mostrarDNI: false,
+    mostrarHistorialMedico: true,
+    mostrarDiagnosticos: true,
+    mostrarMedicaciones: true,
+    mostrarNotasClinicas: true,
+    mostrarDatosFinancieros: false,
+    mostrarContactosEmergencia: true,
+    usarIdentificadorAnonimo: false
+  },
+  auxiliary: {
+    mostrarNombreCompleto: true,
+    mostrarDNI: false,
+    mostrarHistorialMedico: false,
+    mostrarDiagnosticos: false,
+    mostrarMedicaciones: false,
+    mostrarNotasClinicas: false,
+    mostrarDatosFinancieros: false,
+    mostrarContactosEmergencia: true,
+    usarIdentificadorAnonimo: false
+  },
+  cleaning: {
+    mostrarNombreCompleto: false,
+    mostrarDNI: false,
+    mostrarHistorialMedico: false,
+    mostrarDiagnosticos: false,
+    mostrarMedicaciones: false,
+    mostrarNotasClinicas: false,
+    mostrarDatosFinancieros: false,
+    mostrarContactosEmergencia: false,
+    usarIdentificadorAnonimo: true
+  },
+  pharmacy: {
+    mostrarNombreCompleto: true,
+    mostrarDNI: false,
+    mostrarHistorialMedico: false,
+    mostrarDiagnosticos: false,
+    mostrarMedicaciones: true,
+    mostrarNotasClinicas: false,
+    mostrarDatosFinancieros: false,
+    mostrarContactosEmergencia: false,
+    usarIdentificadorAnonimo: false
+  },
+  radiology: {
+    mostrarNombreCompleto: true,
+    mostrarDNI: false,
+    mostrarHistorialMedico: true,
+    mostrarDiagnosticos: true,
+    mostrarMedicaciones: false,
+    mostrarNotasClinicas: false,
+    mostrarDatosFinancieros: false,
+    mostrarContactosEmergencia: false,
+    usarIdentificadorAnonimo: false
+  },
+  admission: {
+    mostrarNombreCompleto: true,
+    mostrarDNI: true,
+    mostrarHistorialMedico: false,
+    mostrarDiagnosticos: false,
+    mostrarMedicaciones: false,
+    mostrarNotasClinicas: false,
+    mostrarDatosFinancieros: true,
+    mostrarContactosEmergencia: true,
+    usarIdentificadorAnonimo: false
+  },
+  social_work: {
+    mostrarNombreCompleto: true,
+    mostrarDNI: true,
+    mostrarHistorialMedico: false,
+    mostrarDiagnosticos: false,
+    mostrarMedicaciones: false,
+    mostrarNotasClinicas: false,
+    mostrarDatosFinancieros: false,
+    mostrarContactosEmergencia: true,
+    usarIdentificadorAnonimo: false
+  },
+  patient: {
+    mostrarNombreCompleto: true,
+    mostrarDNI: true,
+    mostrarHistorialMedico: true,
+    mostrarDiagnosticos: true,
+    mostrarMedicaciones: true,
+    mostrarNotasClinicas: false,
+    mostrarDatosFinancieros: true,
+    mostrarContactosEmergencia: true,
+    usarIdentificadorAnonimo: false
+  },
+  family: {
+    mostrarNombreCompleto: true,
+    mostrarDNI: false,
+    mostrarHistorialMedico: false,
+    mostrarDiagnosticos: false,
+    mostrarMedicaciones: false,
+    mostrarNotasClinicas: false,
+    mostrarDatosFinancieros: false,
+    mostrarContactosEmergencia: false,
+    usarIdentificadorAnonimo: false
+  }
+};
 
 export interface QualityMetric {
   id: string;

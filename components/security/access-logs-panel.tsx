@@ -6,10 +6,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
 import { 
   Shield, AlertTriangle, CheckCircle, XCircle, 
   Search, Filter, Eye, Calendar, Clock, 
-  User, Lock, Activity, TrendingUp
+  User, Lock, Activity, TrendingUp, Ban
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 
@@ -30,8 +33,17 @@ interface AccessLog {
 
 export default function AccessLogsPanel() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTimeRange, setSelectedTimeRange] = useState('today');
+  
+  // Estados para diálogos de acciones
+  const [showInvestigateDialog, setShowInvestigateDialog] = useState(false);
+  const [showBlockDialog, setShowBlockDialog] = useState(false);
+  const [selectedLog, setSelectedLog] = useState<AccessLog | null>(null);
+  const [investigateNotes, setInvestigateNotes] = useState('');
+  const [blockReason, setBlockReason] = useState('');
+  const [blockedIPs, setBlockedIPs] = useState<string[]>([]);
   
   // Datos simulados de logs de acceso
   const accessLogs: AccessLog[] = [
@@ -127,6 +139,50 @@ export default function AccessLogsPanel() {
   const failedLogins = accessLogs.filter(log => log.action === 'LOGIN_FAILED').length;
   const suspiciousAttempts = accessLogs.filter(log => getRiskLevel(log) === 'high').length;
   const uniqueUsers = new Set(accessLogs.filter(log => log.success).map(log => log.userId)).size;
+
+  // Funciones para manejar acciones de seguridad
+  const handleInvestigate = (log: AccessLog) => {
+    setSelectedLog(log);
+    setInvestigateNotes('');
+    setShowInvestigateDialog(true);
+  };
+
+  const handleBlockIP = (log: AccessLog) => {
+    setSelectedLog(log);
+    setBlockReason('');
+    setShowBlockDialog(true);
+  };
+
+  const submitInvestigation = () => {
+    if (!selectedLog) return;
+    
+    toast({
+      title: "Investigación Iniciada",
+      description: `Se ha iniciado la investigación del acceso sospechoso desde IP ${selectedLog.ipAddress}. Se notificará al equipo de seguridad.`,
+    });
+    
+    setShowInvestigateDialog(false);
+    setSelectedLog(null);
+    setInvestigateNotes('');
+  };
+
+  const submitBlockIP = () => {
+    if (!selectedLog) return;
+    
+    setBlockedIPs(prev => [...prev, selectedLog.ipAddress]);
+    
+    toast({
+      title: "IP Bloqueada",
+      description: `La IP ${selectedLog.ipAddress} ha sido bloqueada. No se permitirán más accesos desde esta dirección.`,
+      variant: "destructive",
+    });
+    
+    setShowBlockDialog(false);
+    setSelectedLog(null);
+    setBlockReason('');
+  };
+
+  const isIPBlocked = (ip: string) => blockedIPs.includes(ip);
 
   // Solo mostrar si el usuario es admin
   if (user?.role !== 'admin') {
@@ -332,26 +388,53 @@ export default function AccessLogsPanel() {
                 {accessLogs
                   .filter(log => getRiskLevel(log) === 'high')
                   .map(log => (
-                  <div key={log.id} className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <div key={log.id} className={`p-4 border rounded-lg ${
+                    isIPBlocked(log.ipAddress) 
+                      ? 'bg-gray-100 border-gray-300' 
+                      : 'bg-red-50 border-red-200'
+                  }`}>
                     <div className="flex items-start justify-between">
                       <div>
-                        <h4 className="font-medium text-red-900">
-                          Intento de Acceso Sospechoso
-                        </h4>
-                        <p className="text-sm text-red-700">
+                        <div className="flex items-center gap-2">
+                          <h4 className={`font-medium ${isIPBlocked(log.ipAddress) ? 'text-gray-700' : 'text-red-900'}`}>
+                            Intento de Acceso Sospechoso
+                          </h4>
+                          {isIPBlocked(log.ipAddress) && (
+                            <Badge className="bg-gray-600 text-white">
+                              <Ban className="h-3 w-3 mr-1" />
+                              IP Bloqueada
+                            </Badge>
+                          )}
+                        </div>
+                        <p className={`text-sm ${isIPBlocked(log.ipAddress) ? 'text-gray-600' : 'text-red-700'}`}>
                           IP: {log.ipAddress} • DNI: {log.dni} • ID: {log.professionalId}
                         </p>
-                        <p className="text-xs text-red-600 mt-1">
+                        <p className={`text-xs mt-1 ${isIPBlocked(log.ipAddress) ? 'text-gray-500' : 'text-red-600'}`}>
                           {log.timestamp.toLocaleString()}
                         </p>
                       </div>
                       <div className="flex space-x-2">
-                        <Button size="sm" variant="outline">
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => handleInvestigate(log)}
+                          className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                        >
                           <Eye className="h-4 w-4 mr-2" />
                           Investigar
                         </Button>
-                        <Button size="sm" variant="outline">
-                          Bloquear IP
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => handleBlockIP(log)}
+                          disabled={isIPBlocked(log.ipAddress)}
+                          className={isIPBlocked(log.ipAddress) 
+                            ? 'border-gray-300 text-gray-400' 
+                            : 'border-red-300 text-red-700 hover:bg-red-50'
+                          }
+                        >
+                          <Ban className="h-4 w-4 mr-2" />
+                          {isIPBlocked(log.ipAddress) ? 'Bloqueada' : 'Bloquear IP'}
                         </Button>
                       </div>
                     </div>
@@ -404,6 +487,135 @@ export default function AccessLogsPanel() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Diálogo de Investigación */}
+      <Dialog open={showInvestigateDialog} onOpenChange={setShowInvestigateDialog}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-gray-900">
+              <Eye className="h-5 w-5 text-blue-600" />
+              Investigar Acceso Sospechoso
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedLog && (
+            <div className="space-y-4">
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <h4 className="font-medium text-gray-900 mb-2">Detalles del Acceso</h4>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <span className="text-gray-500">IP:</span>{' '}
+                    <span className="font-mono text-gray-900">{selectedLog.ipAddress}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">DNI:</span>{' '}
+                    <span className="text-gray-900">{selectedLog.dni}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">ID Profesional:</span>{' '}
+                    <span className="text-gray-900">{selectedLog.professionalId}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Fecha:</span>{' '}
+                    <span className="text-gray-900">{selectedLog.timestamp.toLocaleString()}</span>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-gray-500">Navegador:</span>{' '}
+                    <span className="text-gray-900">{selectedLog.userAgent}</span>
+                  </div>
+                  {selectedLog.failedReason && (
+                    <div className="col-span-2">
+                      <span className="text-gray-500">Motivo del Fallo:</span>{' '}
+                      <span className="text-red-600 font-medium">{selectedLog.failedReason}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-900">Notas de Investigación</label>
+                <Textarea
+                  placeholder="Describe las acciones tomadas y hallazgos..."
+                  value={investigateNotes}
+                  onChange={(e) => setInvestigateNotes(e.target.value)}
+                  rows={4}
+                />
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowInvestigateDialog(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={submitInvestigation} className="bg-blue-600 hover:bg-blue-700">
+              <CheckCircle className="h-4 w-4 mr-2" />
+              Iniciar Investigación
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Diálogo de Bloqueo de IP */}
+      <Dialog open={showBlockDialog} onOpenChange={setShowBlockDialog}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-gray-900">
+              <Ban className="h-5 w-5 text-red-600" />
+              Bloquear Dirección IP
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedLog && (
+            <div className="space-y-4">
+              <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertTriangle className="h-5 w-5 text-red-600" />
+                  <h4 className="font-medium text-red-900">Advertencia</h4>
+                </div>
+                <p className="text-sm text-red-700">
+                  Esta acción bloqueará todos los intentos de acceso desde la IP <strong>{selectedLog.ipAddress}</strong>. 
+                  Los usuarios legítimos desde esta IP no podrán acceder al sistema.
+                </p>
+              </div>
+
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <h4 className="font-medium text-gray-900 mb-2">Información del Acceso</h4>
+                <div className="text-sm space-y-1">
+                  <div><span className="text-gray-500">IP:</span> <span className="font-mono text-gray-900">{selectedLog.ipAddress}</span></div>
+                  <div><span className="text-gray-500">Intentos desde esta IP:</span> <span className="text-red-600 font-medium">1</span></div>
+                  <div><span className="text-gray-500">Último intento:</span> <span className="text-gray-900">{selectedLog.timestamp.toLocaleString()}</span></div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-900">Motivo del Bloqueo *</label>
+                <Textarea
+                  placeholder="Describe el motivo del bloqueo..."
+                  value={blockReason}
+                  onChange={(e) => setBlockReason(e.target.value)}
+                  rows={3}
+                  required
+                />
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowBlockDialog(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              onClick={submitBlockIP} 
+              disabled={!blockReason.trim()}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              <Ban className="h-4 w-4 mr-2" />
+              Confirmar Bloqueo
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

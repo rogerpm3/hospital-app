@@ -8,12 +8,13 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Plus, Search, Filter, Clock, AlertTriangle, CheckCircle, X, Trash2 } from "lucide-react"
+import { Plus, Search, Filter, Clock, AlertTriangle, CheckCircle, X, Trash2, Pill } from "lucide-react"
 import { useHospital } from "@/lib/hospital-context"
 import { useToast } from "@/hooks/use-toast"
+import { CreateOrderDialog } from "./create-order-dialog"
 
 export function OrdersList() {
-  const { medicalOrders, updateMedicalOrder, deleteMedicalOrder } = useHospital()
+  const { medicalOrders, patients, updateMedicalOrder, deleteMedicalOrder } = useHospital()
   const { toast } = useToast()
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
@@ -85,6 +86,15 @@ export function OrdersList() {
 
   const handleStatusChange = (orderId: string, newStatus: string) => {
     updateMedicalOrder(orderId, { status: newStatus })
+    toast({
+      title: "Estado actualizado",
+      description: `La orden médica ha sido actualizada a: ${
+        newStatus === 'Completed' ? 'Completada' :
+        newStatus === 'In Progress' ? 'En Proceso' :
+        newStatus === 'Cancelled' ? 'Cancelada' :
+        newStatus === 'Pending' ? 'Pendiente' : newStatus
+      }`,
+    })
   }
 
   const ordersByStatus = {
@@ -94,124 +104,162 @@ export function OrdersList() {
     cancelled: filteredOrders.filter(order => order.status === "cancelled")
   }
 
-  const OrderCard = ({ order }: { order: any }) => (
-    <Card className="mb-4 hover:shadow-md transition-shadow">
-      <CardHeader className="pb-3">
-        <div className="flex justify-between items-start">
-          <div>
-            <CardTitle className="text-lg font-semibold">{order.patientName}</CardTitle>
-            <p className="text-sm text-muted-foreground">Habitación {order.roomNumber}</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Badge className={getPriorityColor(order.priority)}>
-              {order.priority.toUpperCase()}
-            </Badge>
-            <Badge className={getStatusBadgeColor(order.status)}>
-              {getStatusIcon(order.status)}
-              <span className="ml-1 capitalize">{order.status.replace('_', ' ')}</span>
-            </Badge>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-3">
-          <div>
-            <p className="font-medium text-lg">{order.medication}</p>
-            <p className="text-sm text-muted-foreground">
-              {order.dosage} - {order.route} - {order.frequency}
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-4 text-sm">
+  const OrderCard = ({ order }: { order: any }) => {
+    // Obtener paciente si existe
+    const patient = patients.find(p => p.id === order.patientId)
+    const patientName = order.patientName || (patient ? `${patient.firstName} ${patient.lastName}` : 'Paciente desconocido')
+    const roomNumber = order.roomNumber || patient?.roomId || 'N/A'
+    const orderStatus = order.status?.toLowerCase() || 'pending'
+    const orderPriority = order.priority?.toLowerCase() || 'normal'
+    const orderedBy = order.orderBy || order.orderedBy || order.physicianName || 'No especificado'
+    const orderDate = order.orderDate ? new Date(order.orderDate) : (order.orderedDate ? new Date(order.orderedDate) : new Date())
+    
+    return (
+      <Card className="mb-4 hover:shadow-md transition-shadow border-l-4 border-l-blue-500">
+        <CardHeader className="pb-3">
+          <div className="flex justify-between items-start">
             <div>
-              <p className="text-muted-foreground">Prescrito por:</p>
-              <p className="font-medium">{order.orderBy}</p>
+              <CardTitle className="text-lg font-semibold text-gray-900">{patientName}</CardTitle>
+              <p className="text-sm text-gray-600">Habitación: {roomNumber}</p>
             </div>
-            <div>
-              <p className="text-muted-foreground">Fecha:</p>
-              <p className="font-medium">{new Date(order.orderDate).toLocaleDateString()}</p>
+            <div className="flex items-center gap-2">
+              <Badge className={getPriorityColor(orderPriority)}>
+                {orderPriority.toUpperCase()}
+              </Badge>
+              <Badge className={getStatusBadgeColor(orderStatus)}>
+                {getStatusIcon(orderStatus)}
+                <span className="ml-1 capitalize">{orderStatus.replace('_', ' ')}</span>
+              </Badge>
             </div>
           </div>
-
-          {order.notes && (
-            <div>
-              <p className="text-muted-foreground text-sm">Notas:</p>
-              <p className="text-sm bg-gray-50 p-2 rounded">{order.notes}</p>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {/* Tipo y descripción de la orden */}
+            <div className="p-3 bg-blue-50 rounded-lg border border-blue-100">
+              <div className="flex items-center gap-2 mb-1">
+                <Pill className="h-4 w-4 text-blue-600" />
+                <span className="font-medium text-gray-900">{order.type || 'Orden Médica'}</span>
+              </div>
+              <p className="font-medium text-lg text-gray-900">
+                {order.medication || order.description || 'Sin descripción'}
+              </p>
+              {(order.dosage || order.route || order.frequency) && (
+                <p className="text-sm text-gray-700 mt-1">
+                  {[order.dosage, order.route, order.frequency].filter(Boolean).join(' • ')}
+                </p>
+              )}
             </div>
-          )}
-
-          <div className="flex gap-2 pt-3">
-            {order.status === "pending" && (
-              <>
-                <Button 
-                  size="sm" 
-                  onClick={() => handleStatusChange(order.id, "in_progress")}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  Iniciar
-                </Button>
-                <Button 
-                  size="sm" 
-                  variant="outline"
-                  onClick={() => handleStatusChange(order.id, "cancelled")}
-                >
-                  Cancelar
-                </Button>
-              </>
+            
+            {/* Instrucciones si existen */}
+            {order.instructions && (
+              <div>
+                <p className="text-sm font-medium text-gray-700">Instrucciones:</p>
+                <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">{order.instructions}</p>
+              </div>
             )}
             
-            {order.status === "in_progress" && (
-              <>
-                <Button 
-                  size="sm" 
-                  onClick={() => handleStatusChange(order.id, "completed")}
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  Completar
-                </Button>
-                <Button 
-                  size="sm" 
-                  variant="outline"
-                  onClick={() => handleStatusChange(order.id, "cancelled")}
-                >
-                  Cancelar
-                </Button>
-              </>
+            {/* Información de la orden */}
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <p className="text-gray-500">Prescrito por:</p>
+                <p className="font-medium text-gray-900">{orderedBy}</p>
+              </div>
+              <div>
+                <p className="text-gray-500">Fecha:</p>
+                <p className="font-medium text-gray-900">{orderDate.toLocaleDateString('es-ES')}</p>
+              </div>
+              {order.category && (
+                <div>
+                  <p className="text-gray-500">Categoría:</p>
+                  <p className="font-medium text-gray-900">{order.category}</p>
+                </div>
+              )}
+              {order.duration && (
+                <div>
+                  <p className="text-gray-500">Duración:</p>
+                  <p className="font-medium text-gray-900">{order.duration}</p>
+                </div>
+              )}
+            </div>
+
+            {order.notes && (
+              <div>
+                <p className="text-gray-500 text-sm">Notas adicionales:</p>
+                <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">{order.notes}</p>
+              </div>
             )}
-            
-            <Button 
-              size="sm" 
-              variant="outline"
-              className="text-destructive hover:text-destructive border-destructive/50 hover:border-destructive"
-              onClick={() => {
-                if (confirm(`¿Estás seguro de eliminar esta orden de ${order.patientName}?`)) {
-                  deleteMedicalOrder(order.id)
-                  toast({
-                    title: "Orden eliminada",
-                    description: "La orden médica ha sido eliminada correctamente",
-                  })
-                }
-              }}
-            >
-              <Trash2 className="w-4 h-4 mr-1" />
-              Eliminar
-            </Button>
+
+            <div className="flex gap-2 pt-3 border-t">
+              {(orderStatus === "pending" || orderStatus === "Pending") && (
+                <>
+                  <Button 
+                    size="sm" 
+                    onClick={() => handleStatusChange(order.id, "In Progress")}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    Iniciar
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => handleStatusChange(order.id, "Cancelled")}
+                  >
+                    Cancelar
+                  </Button>
+                </>
+              )}
+              
+              {(orderStatus === "in progress" || orderStatus === "In Progress") && (
+                <>
+                  <Button 
+                    size="sm" 
+                    onClick={() => handleStatusChange(order.id, "Completed")}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    Completar
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => handleStatusChange(order.id, "Cancelled")}
+                  >
+                    Cancelar
+                  </Button>
+                </>
+              )}
+              
+              <Button 
+                size="sm" 
+                variant="outline"
+                className="text-red-600 hover:text-red-700 border-red-200 hover:border-red-300 hover:bg-red-50"
+                onClick={() => {
+                  if (confirm(`¿Estás seguro de eliminar esta orden?`)) {
+                    deleteMedicalOrder(order.id)
+                    toast({
+                      title: "Orden eliminada",
+                      description: "La orden médica ha sido eliminada correctamente",
+                    })
+                  }
+                }}
+              >
+                <Trash2 className="w-4 h-4 mr-1" />
+                Eliminar
+              </Button>
+            </div>
           </div>
-        </div>
-      </CardContent>
-    </Card>
-  )
+        </CardContent>
+      </Card>
+    )
+  }
 
   return (
     <div className="space-y-6">
       {/* Header y Filtros */}
       <div className="flex flex-col gap-4">
         <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold">Órdenes Médicas</h2>
-          <Button>
-            <Plus className="w-4 h-4 mr-2" />
-            Nueva Orden
-          </Button>
+          <h2 className="text-2xl font-bold text-gray-900">Órdenes Médicas</h2>
+          <CreateOrderDialog />
         </div>
 
         <div className="flex flex-col sm:flex-row gap-4">

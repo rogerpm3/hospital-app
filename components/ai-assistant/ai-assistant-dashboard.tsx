@@ -176,9 +176,9 @@ export default function AIAssistantDashboard() {
                     Conversación con MediBot
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="flex-1 flex flex-col">
-                  <ScrollArea className="flex-1 pr-4">
-                    <div className="space-y-4">
+                <CardContent className="flex-1 flex flex-col overflow-hidden">
+                  <ScrollArea className="flex-1 pr-4 h-[380px]">
+                    <div className="space-y-4 pb-4">
                       {chatHistory.map((message) => (
                         <div
                           key={message.id}
@@ -188,16 +188,16 @@ export default function AIAssistantDashboard() {
                             className={`max-w-[80%] rounded-lg p-3 ${
                               message.type === 'user'
                                 ? 'bg-blue-500 text-white ml-4'
-                                : 'bg-muted mr-4'
+                                : 'bg-gray-100 text-gray-900 mr-4'
                             }`}
                           >
                             <div className="flex items-center space-x-2 mb-1">
                               {message.type === 'ai' ? (
-                                <Bot className="h-4 w-4" />
+                                <Bot className="h-4 w-4 text-gray-600" />
                               ) : (
                                 <User className="h-4 w-4" />
                               )}
-                              <span className="text-xs opacity-70">
+                              <span className={`text-xs ${message.type === 'user' ? 'text-white/70' : 'text-gray-500'}`}>
                                 {message.timestamp.toLocaleTimeString()}
                               </span>
                             </div>
@@ -210,13 +210,13 @@ export default function AIAssistantDashboard() {
                       
                       {isTyping && (
                         <div className="flex justify-start">
-                          <div className="bg-muted rounded-lg p-3 mr-4">
+                          <div className="bg-gray-100 rounded-lg p-3 mr-4">
                             <div className="flex items-center space-x-2">
-                              <Bot className="h-4 w-4" />
+                              <Bot className="h-4 w-4 text-gray-600" />
                               <div className="flex space-x-1">
                                 <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
-                                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-100" />
-                                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-200" />
+                                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '100ms'}} />
+                                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '200ms'}} />
                               </div>
                             </div>
                           </div>

@@ -41,6 +41,13 @@ function AppContent() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('dashboard');
 
+  // Resetear a Dashboard cuando el usuario inicie sesión
+  useEffect(() => {
+    if (user) {
+      setActiveSection('dashboard');
+    }
+  }, [user?.id]); // Se ejecuta cuando cambia el ID del usuario (login/logout)
+
   useEffect(() => {
     // Cerrar sidebar en móvil cuando se cambia de sección
     setSidebarOpen(false);
