@@ -222,13 +222,24 @@ export default function VitalSignsPanel() {
                     <SelectValue placeholder="Seleccionar paciente" />
                   </SelectTrigger>
                   <SelectContent>
-                    {hospitalizedPatients.map(patient => (
-                      <SelectItem key={patient.id} value={patient.id}>
-                        {patient.firstName} {patient.lastName} - Hab. {patient.roomId}
+                    {hospitalizedPatients.length === 0 ? (
+                      <SelectItem value="none" disabled>
+                        No hay pacientes hospitalizados asignados
                       </SelectItem>
-                    ))}
+                    ) : (
+                      hospitalizedPatients.map(patient => (
+                        <SelectItem key={patient.id} value={patient.id}>
+                          {patient.firstName} {patient.lastName} - Hab. {patient.roomId}{patient.bedNumber ? ` - Cama ${patient.bedNumber}` : ''}
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
+                {hospitalizedPatients.length === 0 && (
+                  <p className="text-sm text-amber-600">
+                    No tienes pacientes hospitalizados asignados actualmente.
+                  </p>
+                )}
               </div>
 
               {/* Signos vitales */}
@@ -404,7 +415,7 @@ export default function VitalSignsPanel() {
                             {patient?.firstName} {patient?.lastName}
                           </h4>
                           <p className="text-sm text-muted-foreground">
-                            Habitación {patient?.roomId} • {vital.timestamp.toLocaleString()} • {vital.recordedBy}
+                            {patient?.roomId ? `Habitación ${patient.roomId}${patient.bedNumber ? ` - Cama ${patient.bedNumber}` : ''}` : 'Sin habitación'} • {vital.timestamp.toLocaleString()} • {vital.recordedBy}
                           </p>
                         </div>
                         {hasAlerts && (

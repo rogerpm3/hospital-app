@@ -8,7 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Search, Filter, Shield, Eye, Download } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Search, Filter, Shield, Eye, Download, Clock, User, Monitor, MapPin, FileText, AlertTriangle, Activity } from 'lucide-react';
 import { mockAuditLogs } from '@/lib/mock-data';
 
 export default function AuditLogList() {
@@ -17,6 +18,8 @@ export default function AuditLogList() {
   const [actionFilter, setActionFilter] = useState<string>('all');
   const [severityFilter, setSeverityFilter] = useState<string>('all');
   const [resourceFilter, setResourceFilter] = useState<string>('all');
+  const [selectedLog, setSelectedLog] = useState<typeof mockAuditLogs[0] | null>(null);
+  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
 
   // Filtrar logs de auditoría
   const filteredLogs = mockAuditLogs.filter(log => {
@@ -286,10 +289,15 @@ export default function AuditLogList() {
                   <TableCell>
                     <Button
                       variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
+                      size="sm"
+                      className="h-8 flex items-center gap-1"
+                      onClick={() => {
+                        setSelectedLog(log);
+                        setShowDetailsDialog(true);
+                      }}
                     >
                       <Eye className="h-4 w-4" />
+                      <span className="text-xs">Ver Detalles</span>
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -304,6 +312,216 @@ export default function AuditLogList() {
           )}
         </CardContent>
       </Card>
+
+      {/* Diálogo de detalles del evento de auditoría */}
+      <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <FileText className="h-5 w-5 text-blue-600" />
+              Detalles del Evento de Auditoría
+            </DialogTitle>
+            <DialogDescription>
+              Información completa del registro de auditoría seleccionado
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedLog && (
+            <div className="space-y-6">
+              {/* Encabezado con severidad */}
+              <div className="flex items-center justify-between p-4 rounded-lg bg-gray-50 dark:bg-gray-800">
+                <div className="flex items-center gap-3">
+                  <Activity className="h-8 w-8 text-blue-600" />
+                  <div>
+                    <h3 className="font-semibold text-lg">{selectedLog.action}</h3>
+                    <p className="text-sm text-muted-foreground">ID: {selectedLog.id}</p>
+                  </div>
+                </div>
+                <Badge 
+                  variant={getSeverityColor(selectedLog.severity)}
+                  className={`text-sm px-3 py-1 ${
+                    selectedLog.severity === 'Critical' ? 'bg-red-100 text-red-700 border-red-300' :
+                    selectedLog.severity === 'High' ? 'bg-orange-100 text-orange-700 border-orange-300' :
+                    selectedLog.severity === 'Medium' ? 'bg-yellow-100 text-yellow-700 border-yellow-300' :
+                    'bg-green-100 text-green-700 border-green-300'
+                  }`}
+                >
+                  <AlertTriangle className="h-3 w-3 mr-1" />
+                  Severidad: {selectedLog.severity}
+                </Badge>
+              </div>
+
+              {/* Información del evento */}
+              <div className="grid gap-4 md:grid-cols-2">
+                {/* Fecha y hora */}
+                <Card>
+                  <CardContent className="pt-4">
+                    <div className="flex items-center gap-3">
+                      <Clock className="h-5 w-5 text-purple-600" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">Fecha y Hora</p>
+                        <p className="font-medium">
+                          {selectedLog.timestamp.toLocaleDateString('es-ES', {
+                            weekday: 'long',
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          })}
+                        </p>
+                        <p className="text-sm">
+                          {selectedLog.timestamp.toLocaleTimeString('es-ES', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit'
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Usuario */}
+                <Card>
+                  <CardContent className="pt-4">
+                    <div className="flex items-center gap-3">
+                      <User className="h-5 w-5 text-green-600" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">Usuario que realizó la acción</p>
+                        <p className="font-medium">{selectedLog.userId}</p>
+                        <Badge variant="outline" className="mt-1">{selectedLog.userRole}</Badge>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Recurso afectado */}
+                <Card>
+                  <CardContent className="pt-4">
+                    <div className="flex items-center gap-3">
+                      <Monitor className="h-5 w-5 text-blue-600" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">Recurso Afectado</p>
+                        <p className="font-medium">{selectedLog.resource}</p>
+                        {selectedLog.resourceId && (
+                          <p className="text-sm text-muted-foreground">
+                            ID del recurso: <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">{selectedLog.resourceId}</code>
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Dirección IP */}
+                <Card>
+                  <CardContent className="pt-4">
+                    <div className="flex items-center gap-3">
+                      <MapPin className="h-5 w-5 text-red-600" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">Dirección IP de origen</p>
+                        <code className="font-mono text-lg bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
+                          {selectedLog.ipAddress || 'No disponible'}
+                        </code>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Detalles adicionales */}
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Descripción del Evento
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <p className="text-gray-700 dark:text-gray-300">
+                      {getActionDescription(selectedLog.action, selectedLog.resource, selectedLog.resourceId)}
+                    </p>
+                    
+                    <div className="border-t pt-3 mt-3">
+                      <p className="text-sm text-muted-foreground">
+                        <strong>Tipo de Acción:</strong> {getActionType(selectedLog.action)}
+                      </p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        <strong>Impacto:</strong> {getImpactDescription(selectedLog.severity)}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Botones de acción */}
+              <div className="flex justify-end gap-2 pt-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    // Simular exportación del registro individual
+                    alert(`Exportando registro ${selectedLog.id}...`);
+                  }}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Exportar Registro
+                </Button>
+                <Button onClick={() => setShowDetailsDialog(false)}>
+                  Cerrar
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
+}
+
+// Funciones auxiliares para generar descripciones más claras
+function getActionDescription(action: string, resource: string, resourceId?: string): string {
+  const descriptions: Record<string, string> = {
+    'LOGIN': `El usuario ha iniciado sesión en el sistema de forma exitosa.`,
+    'LOGOUT': `El usuario ha cerrado sesión correctamente.`,
+    'VIEW': `Se ha consultado información del recurso "${resource}"${resourceId ? ` con identificador ${resourceId}` : ''}.`,
+    'CREATE': `Se ha creado un nuevo registro en "${resource}"${resourceId ? ` con identificador ${resourceId}` : ''}.`,
+    'UPDATE': `Se han modificado datos del recurso "${resource}"${resourceId ? ` (ID: ${resourceId})` : ''}.`,
+    'DELETE': `Se ha eliminado un registro del recurso "${resource}"${resourceId ? ` (ID: ${resourceId})` : ''}.`,
+    'EXPORT': `Se han exportado datos del recurso "${resource}".`,
+    'PRINT': `Se ha impreso documentación relacionada con "${resource}".`,
+    'ACCESS_DENIED': `Se ha denegado el acceso al recurso "${resource}". Posible intento de acceso no autorizado.`,
+    'PASSWORD_CHANGE': `El usuario ha cambiado su contraseña de acceso.`,
+    'PERMISSION_CHANGE': `Se han modificado los permisos de acceso del usuario.`,
+  };
+  
+  return descriptions[action] || `Se ha realizado la acción "${action}" sobre el recurso "${resource}".`;
+}
+
+function getActionType(action: string): string {
+  const types: Record<string, string> = {
+    'LOGIN': 'Autenticación - Inicio de sesión',
+    'LOGOUT': 'Autenticación - Cierre de sesión',
+    'VIEW': 'Consulta de datos',
+    'CREATE': 'Creación de registro',
+    'UPDATE': 'Modificación de datos',
+    'DELETE': 'Eliminación de registro',
+    'EXPORT': 'Exportación de datos',
+    'PRINT': 'Impresión de documentos',
+    'ACCESS_DENIED': 'Acceso denegado - Seguridad',
+    'PASSWORD_CHANGE': 'Cambio de credenciales',
+    'PERMISSION_CHANGE': 'Modificación de permisos',
+  };
+  
+  return types[action] || action;
+}
+
+function getImpactDescription(severity: string): string {
+  const impacts: Record<string, string> = {
+    'Critical': 'Acción crítica que puede afectar la seguridad o integridad de datos sensibles. Requiere revisión inmediata.',
+    'High': 'Acción de alto impacto que modifica datos importantes o configuraciones del sistema.',
+    'Medium': 'Acción de impacto moderado. Operación estándar con modificación de datos.',
+    'Low': 'Acción de bajo impacto. Operación rutinaria de consulta o visualización.',
+  };
+  
+  return impacts[severity] || 'Impacto no determinado';
 }

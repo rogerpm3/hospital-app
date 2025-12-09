@@ -11,19 +11,26 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
-import { CalendarIcon, Save, X, Stethoscope } from 'lucide-react';
+import { CalendarIcon, Save, X, Stethoscope, Shield, Lock } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 interface PatientFormProps {
   patientId?: string | null;
   onClose: () => void;
+  restrictDemographicEdit?: boolean; // Si es true, solo permite editar datos clínicos
 }
 
-export default function PatientForm({ patientId, onClose }: PatientFormProps) {
+export default function PatientForm({ patientId, onClose, restrictDemographicEdit = false }: PatientFormProps) {
   const { patients, staff, addPatient, updatePatient } = useHospital();
   const { user } = useAuth();
   const { toast } = useToast();
+  
+  // Los médicos solo pueden editar información clínica, no datos demográficos
+  const isDoctor = user?.role === 'doctor';
+  const canEditDemographics = !restrictDemographicEdit && !isDoctor;
 
   // Obtener médicos disponibles para asignar
   const doctors = staff.filter(s => s.role === 'doctor');
@@ -174,9 +181,37 @@ export default function PatientForm({ patientId, onClose }: PatientFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 max-h-[70vh] overflow-y-auto pr-2">
+      {/* Banner de restricción para médicos */}
+      {!canEditDemographics && patientId && (
+        <Card className="bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800">
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-3">
+              <Shield className="h-5 w-5 text-amber-600" />
+              <div>
+                <p className="font-medium text-amber-900 dark:text-amber-100">
+                  Modo de Edición Clínica
+                </p>
+                <p className="text-sm text-amber-700 dark:text-amber-300">
+                  Como médico, puedes editar información clínica (alergias, historial, medicación, estado). 
+                  Los datos demográficos (DNI, nombre, dirección) solo pueden ser modificados por Admisiones.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Información personal */}
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Datos Personales</h3>
+        <h3 className="text-lg font-semibold text-gray-900 border-b pb-2 flex items-center justify-between">
+          Datos Personales
+          {!canEditDemographics && patientId && (
+            <Badge variant="outline" className="text-amber-600 border-amber-300">
+              <Lock className="h-3 w-3 mr-1" />
+              Solo lectura
+            </Badge>
+          )}
+        </h3>
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="dni">DNI / NIE *</Label>
@@ -186,6 +221,8 @@ export default function PatientForm({ patientId, onClose }: PatientFormProps) {
               onChange={(e) => setFormData(prev => ({ ...prev, dni: e.target.value }))}
               placeholder="12345678A"
               required
+              disabled={!canEditDemographics && !!patientId}
+              className={!canEditDemographics && patientId ? 'bg-gray-100 cursor-not-allowed' : ''}
             />
           </div>
 
@@ -196,6 +233,8 @@ export default function PatientForm({ patientId, onClose }: PatientFormProps) {
               value={formData.socialSecurityNumber}
               onChange={(e) => setFormData(prev => ({ ...prev, socialSecurityNumber: e.target.value }))}
               placeholder="12 12345678 90"
+              disabled={!canEditDemographics && !!patientId}
+              className={!canEditDemographics && patientId ? 'bg-gray-100 cursor-not-allowed' : ''}
             />
           </div>
 
@@ -206,6 +245,8 @@ export default function PatientForm({ patientId, onClose }: PatientFormProps) {
               value={formData.firstName}
               onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
               required
+              disabled={!canEditDemographics && !!patientId}
+              className={!canEditDemographics && patientId ? 'bg-gray-100 cursor-not-allowed' : ''}
             />
           </div>
 
@@ -216,6 +257,8 @@ export default function PatientForm({ patientId, onClose }: PatientFormProps) {
               value={formData.lastName}
               onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
               required
+              disabled={!canEditDemographics && !!patientId}
+              className={!canEditDemographics && patientId ? 'bg-gray-100 cursor-not-allowed' : ''}
             />
           </div>
 
@@ -234,14 +277,19 @@ export default function PatientForm({ patientId, onClose }: PatientFormProps) {
               max={format(new Date(), 'yyyy-MM-dd')}
               min="1900-01-01"
               required
-              className="w-full"
+              className={`w-full ${!canEditDemographics && patientId ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+              disabled={!canEditDemographics && !!patientId}
             />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="gender">Género *</Label>
-            <Select value={formData.gender} onValueChange={(value: any) => setFormData(prev => ({ ...prev, gender: value }))}>
-              <SelectTrigger>
+            <Select 
+              value={formData.gender} 
+              onValueChange={(value: any) => setFormData(prev => ({ ...prev, gender: value }))}
+              disabled={!canEditDemographics && !!patientId}
+            >
+              <SelectTrigger className={!canEditDemographics && patientId ? 'bg-gray-100 cursor-not-allowed' : ''}>
                 <SelectValue placeholder="Seleccionar género" />
               </SelectTrigger>
               <SelectContent>
@@ -279,6 +327,8 @@ export default function PatientForm({ patientId, onClose }: PatientFormProps) {
               onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
               placeholder="+34 600 000 000"
               required
+              disabled={!canEditDemographics && !!patientId}
+              className={!canEditDemographics && patientId ? 'bg-gray-100 cursor-not-allowed' : ''}
             />
           </div>
 
@@ -290,6 +340,8 @@ export default function PatientForm({ patientId, onClose }: PatientFormProps) {
               value={formData.email}
               onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
               placeholder="paciente@email.com"
+              disabled={!canEditDemographics && !!patientId}
+              className={!canEditDemographics && patientId ? 'bg-gray-100 cursor-not-allowed' : ''}
             />
           </div>
         </div>
@@ -297,9 +349,16 @@ export default function PatientForm({ patientId, onClose }: PatientFormProps) {
 
       {/* Asignación médica */}
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-gray-900 border-b pb-2 flex items-center gap-2">
-          <Stethoscope className="h-5 w-5 text-blue-600" />
-          Asignación Médica
+        <h3 className="text-lg font-semibold text-gray-900 border-b pb-2 flex items-center gap-2 justify-between">
+          <span className="flex items-center gap-2">
+            <Stethoscope className="h-5 w-5 text-blue-600" />
+            Asignación Médica
+          </span>
+          {!canEditDemographics && patientId && (
+            <Badge variant="default" className="bg-green-600">
+              ✓ Editable
+            </Badge>
+          )}
         </h3>
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
@@ -377,7 +436,15 @@ export default function PatientForm({ patientId, onClose }: PatientFormProps) {
 
       {/* Información de seguro */}
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Información de Seguro</h3>
+        <h3 className="text-lg font-semibold text-gray-900 border-b pb-2 flex items-center justify-between">
+          Información de Seguro
+          {!canEditDemographics && patientId && (
+            <Badge variant="outline" className="text-amber-600 border-amber-300">
+              <Lock className="h-3 w-3 mr-1" />
+              Solo lectura
+            </Badge>
+          )}
+        </h3>
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="insuranceProvider">Aseguradora</Label>
@@ -389,6 +456,8 @@ export default function PatientForm({ patientId, onClose }: PatientFormProps) {
                 insuranceInfo: { ...prev.insuranceInfo, provider: e.target.value }
               }))}
               placeholder="Ej: Seguridad Social, Sanitas, Adeslas..."
+              disabled={!canEditDemographics && !!patientId}
+              className={!canEditDemographics && patientId ? 'bg-gray-100 cursor-not-allowed' : ''}
             />
           </div>
           <div className="space-y-2">
@@ -401,6 +470,8 @@ export default function PatientForm({ patientId, onClose }: PatientFormProps) {
                 insuranceInfo: { ...prev.insuranceInfo, policyNumber: e.target.value }
               }))}
               placeholder="Número de póliza"
+              disabled={!canEditDemographics && !!patientId}
+              className={!canEditDemographics && patientId ? 'bg-gray-100 cursor-not-allowed' : ''}
             />
           </div>
         </div>
@@ -408,7 +479,15 @@ export default function PatientForm({ patientId, onClose }: PatientFormProps) {
 
       {/* Dirección */}
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Dirección</h3>
+        <h3 className="text-lg font-semibold text-gray-900 border-b pb-2 flex items-center justify-between">
+          Dirección
+          {!canEditDemographics && patientId && (
+            <Badge variant="outline" className="text-amber-600 border-amber-300">
+              <Lock className="h-3 w-3 mr-1" />
+              Solo lectura
+            </Badge>
+          )}
+        </h3>
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2 md:col-span-2">
             <Label htmlFor="street">Calle y Número</Label>
@@ -420,6 +499,8 @@ export default function PatientForm({ patientId, onClose }: PatientFormProps) {
                 address: { ...prev.address, street: e.target.value }
               }))}
               placeholder="Ej: Calle Mayor 123, 2º B"
+              disabled={!canEditDemographics && !!patientId}
+              className={!canEditDemographics && patientId ? 'bg-gray-100 cursor-not-allowed' : ''}
             />
           </div>
           <div className="space-y-2">
@@ -432,6 +513,8 @@ export default function PatientForm({ patientId, onClose }: PatientFormProps) {
                 address: { ...prev.address, city: e.target.value }
               }))}
               placeholder="Ej: Madrid"
+              disabled={!canEditDemographics && !!patientId}
+              className={!canEditDemographics && patientId ? 'bg-gray-100 cursor-not-allowed' : ''}
             />
           </div>
           <div className="space-y-2">
@@ -444,6 +527,8 @@ export default function PatientForm({ patientId, onClose }: PatientFormProps) {
                 address: { ...prev.address, postalCode: e.target.value }
               }))}
               placeholder="Ej: 28001"
+              disabled={!canEditDemographics && !!patientId}
+              className={!canEditDemographics && patientId ? 'bg-gray-100 cursor-not-allowed' : ''}
             />
           </div>
         </div>
@@ -451,7 +536,15 @@ export default function PatientForm({ patientId, onClose }: PatientFormProps) {
 
       {/* Contacto de emergencia */}
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Contacto de Emergencia</h3>
+        <h3 className="text-lg font-semibold text-gray-900 border-b pb-2 flex items-center justify-between">
+          Contacto de Emergencia
+          {!canEditDemographics && patientId && (
+            <Badge variant="outline" className="text-amber-600 border-amber-300">
+              <Lock className="h-3 w-3 mr-1" />
+              Solo lectura
+            </Badge>
+          )}
+        </h3>
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="emergencyName">Nombre Completo</Label>
@@ -463,6 +556,8 @@ export default function PatientForm({ patientId, onClose }: PatientFormProps) {
                 emergencyContact: { ...prev.emergencyContact, name: e.target.value }
               }))}
               placeholder="Nombre del contacto de emergencia"
+              disabled={!canEditDemographics && !!patientId}
+              className={!canEditDemographics && patientId ? 'bg-gray-100 cursor-not-allowed' : ''}
             />
           </div>
           <div className="space-y-2">
@@ -473,8 +568,9 @@ export default function PatientForm({ patientId, onClose }: PatientFormProps) {
                 ...prev, 
                 emergencyContact: { ...prev.emergencyContact, relationship: value }
               }))}
+              disabled={!canEditDemographics && !!patientId}
             >
-              <SelectTrigger>
+              <SelectTrigger className={!canEditDemographics && patientId ? 'bg-gray-100 cursor-not-allowed' : ''}>
                 <SelectValue placeholder="Seleccionar relación" />
               </SelectTrigger>
               <SelectContent>
@@ -499,6 +595,8 @@ export default function PatientForm({ patientId, onClose }: PatientFormProps) {
                 emergencyContact: { ...prev.emergencyContact, phone: e.target.value }
               }))}
               placeholder="+34 600 000 000"
+              disabled={!canEditDemographics && !!patientId}
+              className={!canEditDemographics && patientId ? 'bg-gray-100 cursor-not-allowed' : ''}
             />
           </div>
         </div>
@@ -506,7 +604,14 @@ export default function PatientForm({ patientId, onClose }: PatientFormProps) {
 
       {/* Información médica */}
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Información Médica</h3>
+        <h3 className="text-lg font-semibold text-gray-900 border-b pb-2 flex items-center justify-between">
+          Información Médica
+          {!canEditDemographics && patientId && (
+            <Badge variant="default" className="bg-green-600">
+              ✓ Editable
+            </Badge>
+          )}
+        </h3>
         
         {/* Alergias */}
         <div className="space-y-2">

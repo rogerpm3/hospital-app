@@ -501,6 +501,104 @@ export default function DashboardContent({ activeSection, setActiveSection }: Da
               </Card>
             </div>
 
+            {/* Próximas Citas del Paciente */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-blue-600" />
+                  Mis Próximas Citas
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {(() => {
+                  const now = new Date();
+                  const upcomingAppointments = appointments
+                    .filter(apt => apt.date >= now)
+                    .sort((a, b) => a.date.getTime() - b.date.getTime())
+                    .slice(0, 5);
+                  
+                  if (upcomingAppointments.length === 0) {
+                    return (
+                      <div className="text-center py-6 text-gray-500">
+                        <Calendar className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                        <p>No tienes citas programadas próximamente</p>
+                        <Button 
+                          variant="outline" 
+                          className="mt-3"
+                          onClick={() => setActiveSection('appointments')}
+                        >
+                          Solicitar una cita
+                        </Button>
+                      </div>
+                    );
+                  }
+                  
+                  return (
+                    <div className="space-y-3">
+                      {upcomingAppointments.map(apt => (
+                        <div 
+                          key={apt.id} 
+                          className="p-4 border rounded-lg bg-blue-50 border-blue-200"
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <Clock className="h-4 w-4 text-blue-600" />
+                              <span className="font-semibold text-blue-900">
+                                {apt.date.toLocaleDateString('es-ES', { 
+                                  weekday: 'long', 
+                                  day: 'numeric', 
+                                  month: 'long',
+                                  year: 'numeric'
+                                })}
+                              </span>
+                            </div>
+                            <Badge variant={apt.status === 'Confirmed' ? 'default' : 'secondary'}>
+                              {apt.status === 'Confirmed' ? 'Confirmada' : 
+                               apt.status === 'Scheduled' ? 'Programada' : apt.status}
+                            </Badge>
+                          </div>
+                          <div className="grid grid-cols-2 gap-3 text-sm">
+                            <div>
+                              <span className="text-gray-500">Hora:</span>
+                              <p className="font-medium text-gray-900">
+                                {apt.date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                              </p>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Duración:</span>
+                              <p className="font-medium text-gray-900">{apt.duration || 30} minutos</p>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Tipo:</span>
+                              <p className="font-medium text-gray-900">{apt.type || 'Consulta General'}</p>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Médico:</span>
+                              <p className="font-medium text-gray-900">{apt.doctorName || 'Por asignar'}</p>
+                            </div>
+                          </div>
+                          {apt.reason && (
+                            <div className="mt-2 pt-2 border-t border-blue-200">
+                              <span className="text-gray-500 text-sm">Motivo: </span>
+                              <span className="text-gray-900 text-sm">{apt.reason}</span>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                      
+                      <Button 
+                        variant="outline" 
+                        className="w-full mt-2"
+                        onClick={() => setActiveSection('appointments')}
+                      >
+                        Ver todas mis citas
+                      </Button>
+                    </div>
+                  );
+                })()}
+              </CardContent>
+            </Card>
+
             <div className="grid gap-4 md:grid-cols-2">
               <Card>
                 <CardHeader>

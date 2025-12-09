@@ -6,7 +6,6 @@ export type UserRole =
   | 'nurse' 
   | 'auxiliary' 
   | 'cleaning' 
-  | 'pharmacy' 
   | 'radiology' 
   | 'admission' 
   | 'social_work' 
@@ -720,17 +719,6 @@ export const roleDataVisibility: Record<UserRole, DataVisibilityFilter> = {
     mostrarContactosEmergencia: false,
     usarIdentificadorAnonimo: true
   },
-  pharmacy: {
-    mostrarNombreCompleto: true,
-    mostrarDNI: false,
-    mostrarHistorialMedico: false,
-    mostrarDiagnosticos: false,
-    mostrarMedicaciones: true,
-    mostrarNotasClinicas: false,
-    mostrarDatosFinancieros: false,
-    mostrarContactosEmergencia: false,
-    usarIdentificadorAnonimo: false
-  },
   radiology: {
     mostrarNombreCompleto: true,
     mostrarDNI: false,
@@ -834,10 +822,6 @@ export const rolePermissions: Record<UserRole, string[]> = {
     'manage_cleaning_tasks', 'view_communication', 'view_basic_patient_info',
     'view_hospital_floors_limited', 'mark_beds_cleaning_required'
   ],
-  pharmacy: [
-    'view_prescriptions', 'manage_medication_inventory', 'check_drug_interactions',
-    'view_patients', 'view_communication', 'dispense_medications', 'access_ai_assistant_limited'
-  ],
   radiology: [
     'view_imaging_orders', 'manage_imaging_results', 'view_patients', 'view_communication',
     'schedule_imaging', 'upload_images'
@@ -883,9 +867,6 @@ export const roleMenuItems: Record<UserRole, string[]> = {
   ],
   cleaning: [
     'dashboard', 'cleaning', 'hospital-floors', 'communication'
-  ],
-  pharmacy: [
-    'dashboard', 'patients', 'medical-orders', 'communication', 'ai-assistant'
   ],
   radiology: [
     'dashboard', 'patients', 'medical-orders', 'communication'

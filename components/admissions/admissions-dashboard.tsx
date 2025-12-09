@@ -213,19 +213,30 @@ export default function AdmissionsDashboard() {
               filteredAdmissions.slice(0, 15).map(admission => {
                 const patient = patients.find(p => p.id === admission.patientId);
                 const room = rooms.find(r => r.id === admission.roomId);
+                const bed = patient?.bedNumber || beds.find(b => b.patientId === patient?.id)?.number;
+                const age = patient?.dateOfBirth ? new Date().getFullYear() - patient.dateOfBirth.getFullYear() : null;
+                
                 return (
                   <div key={admission.id} className="p-4 border rounded-lg hover:shadow-md transition-shadow">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                          <User className="h-5 w-5 text-blue-600" />
+                    {/* Encabezado con datos principales del paciente */}
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                          <User className="h-6 w-6 text-blue-600" />
                         </div>
                         <div>
-                          <div className="font-medium">
+                          <div className="font-semibold text-lg text-gray-900">
                             {patient?.firstName} {patient?.lastName}
                           </div>
-                          <div className="text-sm text-muted-foreground">
-                            DNI: {patient?.dni}
+                          <div className="flex items-center gap-3 text-sm">
+                            <span className="font-mono bg-gray-100 px-2 py-0.5 rounded text-gray-700 font-medium">
+                              DNI: {patient?.dni || 'No registrado'}
+                            </span>
+                            {patient?.socialSecurityNumber && (
+                              <span className="text-gray-500">
+                                NSS: {patient.socialSecurityNumber}
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -240,26 +251,67 @@ export default function AdmissionsDashboard() {
                         {admission.priority === 'Urgent' && (
                           <Badge variant="destructive">Urgente</Badge>
                         )}
+                        {admission.priority === 'High' && (
+                          <Badge variant="outline" className="border-orange-500 text-orange-600">Alta Prioridad</Badge>
+                        )}
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mt-3">
-                      <div>
-                        <span className="text-muted-foreground">Motivo:</span>
-                        <p className="font-medium">{admission.reason}</p>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Habitación:</span>
-                        <p className="font-medium">{room?.number || 'No asignada'}</p>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Fecha ingreso:</span>
-                        <p className="font-medium">{format(admission.admissionDate, 'dd/MM/yyyy HH:mm')}</p>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Médico:</span>
-                        <p className="font-medium">{admission.admittingPhysician}</p>
+                    
+                    {/* Datos demográficos del paciente */}
+                    <div className="bg-gray-50 rounded-lg p-3 mb-3">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                        <div>
+                          <span className="text-gray-500 text-xs uppercase">Edad</span>
+                          <p className="font-medium text-gray-900">{age ? `${age} años` : 'N/A'}</p>
+                        </div>
+                        <div>
+                          <span className="text-gray-500 text-xs uppercase">Género</span>
+                          <p className="font-medium text-gray-900">
+                            {patient?.gender === 'M' ? 'Masculino' : patient?.gender === 'F' ? 'Femenino' : 'Otro'}
+                          </p>
+                        </div>
+                        <div>
+                          <span className="text-gray-500 text-xs uppercase">Teléfono</span>
+                          <p className="font-medium text-gray-900">{patient?.phone || 'No registrado'}</p>
+                        </div>
+                        <div>
+                          <span className="text-gray-500 text-xs uppercase">Email</span>
+                          <p className="font-medium text-gray-900 truncate">{patient?.email || 'No registrado'}</p>
+                        </div>
                       </div>
                     </div>
+                    
+                    {/* Información de la admisión */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                      <div>
+                        <span className="text-gray-500 text-xs uppercase">Motivo de ingreso</span>
+                        <p className="font-medium text-gray-900">{admission.reason}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-500 text-xs uppercase">Ubicación</span>
+                        <p className="font-medium text-gray-900">
+                          {room ? `Hab. ${room.number}${bed ? ` - Cama ${bed}` : ''}` : 'No asignada'}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-gray-500 text-xs uppercase">Fecha de ingreso</span>
+                        <p className="font-medium text-gray-900">{format(admission.admissionDate, 'dd/MM/yyyy HH:mm')}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-500 text-xs uppercase">Médico responsable</span>
+                        <p className="font-medium text-gray-900">{admission.admittingPhysician}</p>
+                      </div>
+                    </div>
+                    
+                    {/* Contacto de emergencia si existe */}
+                    {patient?.emergencyContact?.name && (
+                      <div className="mt-3 pt-3 border-t text-sm">
+                        <span className="text-gray-500 text-xs uppercase">Contacto de emergencia: </span>
+                        <span className="text-gray-900">
+                          {patient.emergencyContact.name} ({patient.emergencyContact.relationship}) - {patient.emergencyContact.phone}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 );
               })

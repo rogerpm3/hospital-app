@@ -24,7 +24,7 @@ import {
 } from "lucide-react"
 
 export default function NursingNotesPanel() {
-  const { patients, nursingNotes, addNursingNote } = useHospital()
+  const { patients, nursingNotes, addNursingNote, getFilteredPatients } = useHospital()
   const { user } = useAuth()
   const { toast } = useToast()
   
@@ -46,8 +46,9 @@ export default function NursingNotesPanel() {
     priority: "normal"
   })
 
-  // Obtener solo pacientes hospitalizados
-  const hospitalizedPatients = patients.filter(p => p.roomId)
+  // Obtener pacientes asignados al enfermero (hospitalizados)
+  const assignedPatients = getFilteredPatients()
+  const hospitalizedPatients = assignedPatients.filter(p => p.roomId)
 
   // Obtener turno actual basado en la hora
   const getCurrentShift = () => {
@@ -236,13 +237,24 @@ export default function NursingNotesPanel() {
                           <SelectValue placeholder="Seleccionar paciente" />
                         </SelectTrigger>
                         <SelectContent>
-                          {hospitalizedPatients.map(patient => (
-                            <SelectItem key={patient.id} value={patient.id}>
-                              {patient.firstName} {patient.lastName} - Hab. {patient.roomId}
+                          {hospitalizedPatients.length === 0 ? (
+                            <SelectItem value="none" disabled>
+                              No hay pacientes hospitalizados asignados
                             </SelectItem>
-                          ))}
+                          ) : (
+                            hospitalizedPatients.map(patient => (
+                              <SelectItem key={patient.id} value={patient.id}>
+                                {patient.firstName} {patient.lastName} - Hab. {patient.roomId}{patient.bedNumber ? ` - Cama ${patient.bedNumber}` : ''}
+                              </SelectItem>
+                            ))
+                          )}
                         </SelectContent>
                       </Select>
+                      {hospitalizedPatients.length === 0 && (
+                        <p className="text-sm text-amber-600 mt-1">
+                          No tienes pacientes hospitalizados asignados actualmente.
+                        </p>
+                      )}
                     </div>
                     
                     <div>

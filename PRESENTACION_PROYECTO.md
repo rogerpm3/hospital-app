@@ -441,3 +441,4 @@ MedInsight es una solución integral para la gestión hospitalaria que demuestra
 **Versión:** 2.0.0  
 **Fecha:** Diciembre 2024
 
+

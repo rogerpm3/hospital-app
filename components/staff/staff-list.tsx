@@ -53,7 +53,6 @@ export default function StaffList() {
       nurse: 'Enfermero/a',
       auxiliary: 'Auxiliar',
       cleaning: 'Limpieza',
-      pharmacy: 'Farmacia',
       radiology: 'Radiología',
       admission: 'Admisiones',
       social_work: 'Trabajo Social'
@@ -159,7 +158,6 @@ export default function StaffList() {
                 <SelectItem value="nurse">Enfermero/a</SelectItem>
                 <SelectItem value="auxiliary">Auxiliar</SelectItem>
                 <SelectItem value="cleaning">Limpieza</SelectItem>
-                <SelectItem value="pharmacy">Farmacia</SelectItem>
                 <SelectItem value="radiology">Radiología</SelectItem>
                 <SelectItem value="admission">Admisiones</SelectItem>
                 <SelectItem value="social_work">Trabajo Social</SelectItem>

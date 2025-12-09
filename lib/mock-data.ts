@@ -103,17 +103,6 @@ export const mockUsers: User[] = [
     isActive: true
   },
   {
-    id: '7',
-    dni: '78901234G',
-    firstName: 'Elena',
-    lastName: 'Fernández',
-    email: 'elena.fernandez@hospital.com',
-    phone: '+34 600 000 007',
-    role: 'pharmacy',
-    department: 'Farmacia',
-    isActive: true
-  },
-  {
     id: '8',
     dni: '89012345H',
     firstName: 'Roberto',

@@ -25,7 +25,8 @@ export default function EnhancedDischargeDashboard() {
     patients, 
     dischargeChecklists, 
     futureAppointments, 
-    followUpAlerts 
+    followUpAlerts,
+    getFilteredPatients 
   } = useHospital();
   const { user } = useAuth();
   
@@ -34,7 +35,9 @@ export default function EnhancedDischargeDashboard() {
   const [dischargeInstructions, setDischargeInstructions] = useState('');
   const [medicalRecommendations, setMedicalRecommendations] = useState(['']);
 
-  const hospitalizedPatients = patients.filter(p => p.roomId);
+  // Obtener pacientes filtrados según el rol del usuario
+  const accessiblePatients = getFilteredPatients();
+  const hospitalizedPatients = accessiblePatients.filter(p => p.roomId);
   const pendingDischarges = dischargeChecklists.filter(dc => dc.status === 'In Progress');
   const readyForDischarge = dischargeChecklists.filter(dc => dc.status === 'Ready');
   const todayDischarges = dischargeChecklists.filter(dc => 
@@ -331,18 +334,35 @@ export default function EnhancedDischargeDashboard() {
           <div className="space-y-4">
             <div>
               <label className="text-sm font-medium text-gray-900">Paciente *</label>
-              <select 
-                className="w-full mt-1 p-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:ring-2 focus:ring-blue-500"
-                value={selectedPatient}
-                onChange={(e) => setSelectedPatient(e.target.value)}
-              >
-                <option value="">Seleccionar paciente</option>
-                {hospitalizedPatients.map(patient => (
-                  <option key={patient.id} value={patient.id}>
-                    {patient.firstName} {patient.lastName} - Habitación {patient.roomId}
-                  </option>
-                ))}
-              </select>
+              {hospitalizedPatients.length === 0 ? (
+                <div className="mt-2 p-4 border border-amber-200 bg-amber-50 rounded-lg">
+                  <p className="text-amber-800 text-sm">
+                    {user?.role === 'doctor' 
+                      ? 'No tienes pacientes hospitalizados asignados actualmente. Solo puedes crear planes de alta para tus pacientes asignados que estén hospitalizados.'
+                      : 'No hay pacientes hospitalizados disponibles para dar de alta.'
+                    }
+                  </p>
+                </div>
+              ) : (
+                <select 
+                  className="w-full mt-1 p-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:ring-2 focus:ring-blue-500"
+                  value={selectedPatient}
+                  onChange={(e) => setSelectedPatient(e.target.value)}
+                >
+                  <option value="">Seleccionar paciente hospitalizado</option>
+                  {hospitalizedPatients.map(patient => (
+                    <option key={patient.id} value={patient.id}>
+                      {patient.firstName} {patient.lastName} - Habitación {patient.roomId}
+                      {patient.currentCondition && ` (${patient.currentCondition})`}
+                    </option>
+                  ))}
+                </select>
+              )}
+              {user?.role === 'doctor' && hospitalizedPatients.length > 0 && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Mostrando {hospitalizedPatients.length} paciente(s) hospitalizado(s) asignado(s) a ti
+                </p>
+              )}
             </div>
             
             <div>

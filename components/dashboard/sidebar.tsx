@@ -165,7 +165,6 @@ export default function Sidebar({ open, setOpen, activeSection, setActiveSection
                 {user.role === 'nurse' && 'Enfermero/a'}
                 {user.role === 'auxiliary' && 'Auxiliar'}
                 {user.role === 'cleaning' && 'Limpieza'}
-                {user.role === 'pharmacy' && 'Farmacia'}
                 {user.role === 'radiology' && 'Radiología'}
                 {user.role === 'admission' && 'Admisiones'}
                 {user.role === 'social_work' && 'Trabajo Social'}

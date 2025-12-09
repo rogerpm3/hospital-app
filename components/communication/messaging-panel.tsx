@@ -60,7 +60,6 @@ export default function MessagingPanel() {
     { value: "nurse", label: "Enfermería", icon: <User className="w-4 h-4" /> },
     { value: "auxiliary", label: "Auxiliares", icon: <Users className="w-4 h-4" /> },
     { value: "cleaning", label: "Limpieza", icon: <Users className="w-4 h-4" /> },
-    { value: "pharmacy", label: "Farmacia", icon: <Users className="w-4 h-4" /> },
     { value: "radiology", label: "Radiología", icon: <Users className="w-4 h-4" /> },
     { value: "admission", label: "Admisiones", icon: <Users className="w-4 h-4" /> }
   ]

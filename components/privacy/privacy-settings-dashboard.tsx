@@ -183,7 +183,6 @@ export default function PrivacySettingsDashboard() {
       nurse: 'Enfermero/a',
       auxiliary: 'Auxiliar',
       cleaning: 'Personal de Limpieza',
-      pharmacy: 'Farmacia',
       radiology: 'Radiología',
       admission: 'Admisión',
       social_work: 'Trabajo Social',

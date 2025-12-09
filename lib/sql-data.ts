@@ -2141,10 +2141,6 @@ export const sqlPermisosAreaClinica: PermisoAreaClinica[] = [
   { id: 'PERM013', rol: 'admission', areaClinica: 'camas', puedeVer: true, puedeEditar: true, puedeCrear: false, puedeEliminar: false, accesoDatosSensibles: false, descripcion: 'Asignación de camas' },
   { id: 'PERM014', rol: 'admission', areaClinica: 'datos_clinicos', puedeVer: false, puedeEditar: false, puedeCrear: false, puedeEliminar: false, accesoDatosSensibles: false, descripcion: 'Sin acceso a datos clínicos' },
   
-  // Permisos de Farmacia
-  { id: 'PERM015', rol: 'pharmacy', areaClinica: 'medicamentos', puedeVer: true, puedeEditar: true, puedeCrear: true, puedeEliminar: false, accesoDatosSensibles: false, descripcion: 'Gestión de medicamentos' },
-  { id: 'PERM016', rol: 'pharmacy', areaClinica: 'ordenes_medicacion', puedeVer: true, puedeEditar: false, puedeCrear: false, puedeEliminar: false, accesoDatosSensibles: false, descripcion: 'Ver órdenes de medicación' },
-  
   // Permisos de Paciente (solo sus propios datos)
   { id: 'PERM017', rol: 'patient', areaClinica: 'datos_propios', puedeVer: true, puedeEditar: false, puedeCrear: false, puedeEliminar: false, accesoDatosSensibles: false, descripcion: 'Ver sus propios datos' },
   { id: 'PERM018', rol: 'patient', areaClinica: 'citas', puedeVer: true, puedeEditar: false, puedeCrear: true, puedeEliminar: false, accesoDatosSensibles: false, descripcion: 'Ver y solicitar citas' },

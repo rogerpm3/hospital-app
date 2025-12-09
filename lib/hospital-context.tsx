@@ -398,6 +398,43 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
     loadFromSQLite();
   }, []);
 
+  // Sincronizar roomId de pacientes basándose en las camas ocupadas
+  useEffect(() => {
+    // Crear un mapa de patientId -> roomId basándose en las camas
+    const patientRoomMap = new Map<string, { roomId: string; bedNumber: string }>();
+    
+    beds.forEach(bed => {
+      if (bed.patientId && bed.status === 'Occupied') {
+        const room = rooms.find(r => r.id === bed.roomId);
+        if (room) {
+          patientRoomMap.set(bed.patientId, { 
+            roomId: room.id, 
+            bedNumber: bed.number 
+          });
+        }
+      }
+    });
+    
+    // Actualizar pacientes que tienen cama asignada pero sin roomId
+    setPatients(prevPatients => {
+      let needsUpdate = false;
+      const updatedPatients = prevPatients.map(patient => {
+        const bedInfo = patientRoomMap.get(patient.id);
+        if (bedInfo && (!patient.roomId || patient.roomId !== bedInfo.roomId)) {
+          needsUpdate = true;
+          return { ...patient, roomId: bedInfo.roomId, bedNumber: bedInfo.bedNumber };
+        }
+        return patient;
+      });
+      
+      if (needsUpdate) {
+        console.log('🔄 Sincronizando roomId de pacientes con camas asignadas');
+        return updatedPatients;
+      }
+      return prevPatients;
+    });
+  }, [beds, rooms]);
+
   // Función para recargar datos desde SQLite
   const refreshFromDatabase = useCallback(async () => {
     try {
@@ -971,6 +1008,9 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
       return chatMessages;
     }
     
+    // Roles clínicos que pueden ver comunicaciones internas clínicas
+    const clinicalRoles = ['doctor', 'nurse', 'auxiliary'];
+    
     // PACIENTE y FAMILIA: Solo ven mensajes dirigidos ESPECÍFICAMENTE a ellos
     // NO deben ver comunicaciones internas del hospital
     if (user.role === 'patient' || user.role === 'family') {
@@ -984,12 +1024,45 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
       });
     }
     
-    // Para el resto del personal clínico: filtrar por rol y permisos
+    // LIMPIEZA: Solo ver mensajes dirigidos a su rol o a ellos específicamente
+    // NO deben ver comunicaciones clínicas entre médicos y enfermeros
+    if (user.role === 'cleaning') {
+      return chatMessages.filter(msg => {
+        // Mensajes enviados por el usuario
+        if (msg.senderId === user.id) return true;
+        // Mensajes dirigidos específicamente al usuario
+        if (msg.recipientId === user.id) return true;
+        // Mensajes dirigidos al rol de limpieza
+        if (msg.recipientRole === 'cleaning') return true;
+        // Mensajes broadcast para todo el hospital (no clínicos)
+        if (msg.recipientRole === 'all' && !clinicalRoles.includes(msg.senderRole || '')) return true;
+        return false;
+      });
+    }
+    
+    // ADMISIONES: Solo ver mensajes dirigidos a su rol o a ellos
+    // NO deben ver comunicaciones internas clínicas entre médicos/enfermeros
+    if (user.role === 'admission') {
+      return chatMessages.filter(msg => {
+        // Mensajes enviados por el usuario
+        if (msg.senderId === user.id) return true;
+        // Mensajes dirigidos específicamente al usuario
+        if (msg.recipientId === user.id) return true;
+        // Mensajes dirigidos al rol de admisiones
+        if (msg.recipientRole === 'admission') return true;
+        // Mensajes broadcast
+        if (msg.recipientRole === 'all') return true;
+        return false;
+      });
+    }
+    
+    
+    // Para el resto del personal clínico (doctor, nurse, auxiliary): filtrar normalmente
     return chatMessages.filter(msg => {
       // Mensajes enviados por el usuario
       if (msg.senderId === user.id) return true;
       
-      // Mensajes broadcast (para personal del hospital, no pacientes)
+      // Mensajes broadcast (para personal del hospital)
       if (!msg.recipientRole || msg.recipientRole === 'all') return true;
       
       // Mensajes dirigidos al rol del usuario

@@ -123,7 +123,6 @@ export default function LoginForm({ onForgotPassword }: LoginFormProps) {
     ],
     support: [
       { dni: 'ADM001001', password: 'admision123', professionalId: 'ADM-001', role: 'Admisiones', color: 'from-pink-500 to-rose-600' },
-      { dni: '78901234G', password: 'pharmacy123', professionalId: 'FAR001', role: 'Farmacia', color: 'from-violet-500 to-purple-600' },
       { dni: '56789012E', password: 'clean123', professionalId: 'LIM001', role: 'Limpieza', color: 'from-amber-500 to-orange-600' },
     ],
     patients: [

@@ -55,7 +55,6 @@ export default function Header({ onToggleSidebar, title, activeSection, onNaviga
       nurse: 'Enfermero/a',
       auxiliary: 'Auxiliar',
       cleaning: 'Limpieza',
-      pharmacy: 'Farmacia',
       radiology: 'Radiología',
       admission: 'Admisiones',
       social_work: 'Trabajo Social',
@@ -238,22 +237,17 @@ export default function Header({ onToggleSidebar, title, activeSection, onNaviga
             <DropdownMenuLabel className="text-gray-900 font-semibold">Mi Cuenta</DropdownMenuLabel>
             <DropdownMenuSeparator className="bg-gray-200" />
             
-            {/* Ocultar Perfil y Configuración para farmacia */}
-            {user.role !== 'pharmacy' && (
-              <>
-                <DropdownMenuItem className="flex items-center gap-2 text-gray-700 cursor-pointer">
-                  <User className="h-4 w-4 text-gray-500" />
-                  <span>Perfil</span>
-                </DropdownMenuItem>
-                
-                <DropdownMenuItem className="flex items-center gap-2 text-gray-700 cursor-pointer">
-                  <Settings className="h-4 w-4 text-gray-500" />
-                  <span>Configuración</span>
-                </DropdownMenuItem>
-                
-                <DropdownMenuSeparator className="bg-gray-200" />
-              </>
-            )}
+            <DropdownMenuItem className="flex items-center gap-2 text-gray-700 cursor-pointer">
+              <User className="h-4 w-4 text-gray-500" />
+              <span>Perfil</span>
+            </DropdownMenuItem>
+            
+            <DropdownMenuItem className="flex items-center gap-2 text-gray-700 cursor-pointer">
+              <Settings className="h-4 w-4 text-gray-500" />
+              <span>Configuración</span>
+            </DropdownMenuItem>
+            
+            <DropdownMenuSeparator className="bg-gray-200" />
             
             <div className="px-3 py-2">
               <div className="text-xs font-medium text-gray-500 mb-1.5">Estado de conexión</div>

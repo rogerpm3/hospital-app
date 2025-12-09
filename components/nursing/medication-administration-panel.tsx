@@ -28,7 +28,7 @@ import {
 } from "lucide-react"
 
 export default function MedicationAdministrationPanel() {
-  const { patients, medicalOrders, updateMedicalOrder } = useHospital()
+  const { patients, medicalOrders, updateMedicalOrder, addMedicalOrder, getFilteredPatients } = useHospital()
   const { user } = useAuth()
   const { toast } = useToast()
   
@@ -37,6 +37,21 @@ export default function MedicationAdministrationPanel() {
   const [administrationDialog, setAdministrationDialog] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [filterRoom, setFilterRoom] = useState("all")
+  const [showNewMedicationDialog, setShowNewMedicationDialog] = useState(false)
+  
+  // Estado para nueva medicación
+  const [newMedication, setNewMedication] = useState({
+    patientId: '',
+    medication: '',
+    dosage: '',
+    route: '',
+    frequency: '',
+    notes: ''
+  })
+  
+  // Obtener pacientes asignados
+  const assignedPatients = getFilteredPatients()
+  const hospitalizedPatients = assignedPatients.filter(p => p.roomId)
   
   const [administrationData, setAdministrationData] = useState({
     actualDose: "",
@@ -249,9 +264,175 @@ export default function MedicationAdministrationPanel() {
     </Card>
   )
 
+  // Manejar agregar nueva medicación
+  const handleAddMedication = () => {
+    if (!newMedication.patientId || !newMedication.medication || !newMedication.dosage) {
+      toast({
+        title: "Error de validación",
+        description: "Por favor completa los campos obligatorios",
+        variant: "destructive",
+      })
+      return
+    }
+    
+    const patient = patients.find(p => p.id === newMedication.patientId)
+    
+    addMedicalOrder({
+      patientId: newMedication.patientId,
+      patientName: patient ? `${patient.firstName} ${patient.lastName}` : '',
+      roomNumber: patient?.roomId || '',
+      doctorId: user?.id || '',
+      type: 'Medication',
+      medication: newMedication.medication,
+      dosage: newMedication.dosage,
+      route: newMedication.route || 'Oral',
+      frequency: newMedication.frequency || 'Según necesidad',
+      priority: 'Routine',
+      status: 'pending',
+      orderBy: `${user?.firstName} ${user?.lastName}`,
+      notes: newMedication.notes,
+      createdAt: new Date()
+    })
+    
+    toast({
+      title: "Medicación agregada",
+      description: `${newMedication.medication} agregado para ${patient?.firstName} ${patient?.lastName}`,
+    })
+    
+    // Resetear formulario
+    setNewMedication({
+      patientId: '',
+      medication: '',
+      dosage: '',
+      route: '',
+      frequency: '',
+      notes: ''
+    })
+    setShowNewMedicationDialog(false)
+  }
+
   return (
     <div className="space-y-6">
-      {/* Header y Stats */}
+      {/* Header con botón de nueva medicación */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h3 className="text-lg font-semibold">Administración de Medicamentos</h3>
+          <p className="text-sm text-muted-foreground">Gestiona la administración de medicamentos a pacientes</p>
+        </div>
+        <Dialog open={showNewMedicationDialog} onOpenChange={setShowNewMedicationDialog}>
+          <DialogTrigger asChild>
+            <Button className="flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              Nueva Medicación
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Agregar Nueva Medicación</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div>
+                <Label>Paciente *</Label>
+                <Select 
+                  value={newMedication.patientId} 
+                  onValueChange={(v) => setNewMedication({...newMedication, patientId: v})}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar paciente" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {hospitalizedPatients.length === 0 ? (
+                      <SelectItem value="none" disabled>No hay pacientes asignados</SelectItem>
+                    ) : (
+                      hospitalizedPatients.map(p => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.firstName} {p.lastName} - Hab. {p.roomId}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Medicamento *</Label>
+                <Input 
+                  placeholder="Nombre del medicamento"
+                  value={newMedication.medication}
+                  onChange={(e) => setNewMedication({...newMedication, medication: e.target.value})}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Dosis *</Label>
+                  <Input 
+                    placeholder="Ej: 500mg"
+                    value={newMedication.dosage}
+                    onChange={(e) => setNewMedication({...newMedication, dosage: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <Label>Vía</Label>
+                  <Select 
+                    value={newMedication.route} 
+                    onValueChange={(v) => setNewMedication({...newMedication, route: v})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar vía" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Oral">Oral</SelectItem>
+                      <SelectItem value="IV">Intravenosa (IV)</SelectItem>
+                      <SelectItem value="IM">Intramuscular (IM)</SelectItem>
+                      <SelectItem value="SC">Subcutánea (SC)</SelectItem>
+                      <SelectItem value="Topical">Tópica</SelectItem>
+                      <SelectItem value="Inhalation">Inhalación</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div>
+                <Label>Frecuencia</Label>
+                <Select 
+                  value={newMedication.frequency} 
+                  onValueChange={(v) => setNewMedication({...newMedication, frequency: v})}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar frecuencia" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Cada 4 horas">Cada 4 horas</SelectItem>
+                    <SelectItem value="Cada 6 horas">Cada 6 horas</SelectItem>
+                    <SelectItem value="Cada 8 horas">Cada 8 horas</SelectItem>
+                    <SelectItem value="Cada 12 horas">Cada 12 horas</SelectItem>
+                    <SelectItem value="Una vez al día">Una vez al día</SelectItem>
+                    <SelectItem value="Según necesidad">Según necesidad (PRN)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Notas</Label>
+                <Textarea 
+                  placeholder="Instrucciones adicionales..."
+                  value={newMedication.notes}
+                  onChange={(e) => setNewMedication({...newMedication, notes: e.target.value})}
+                  rows={2}
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setShowNewMedicationDialog(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleAddMedication}>
+                <Plus className="h-4 w-4 mr-2" />
+                Agregar Medicación
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {/* Stats */}
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">

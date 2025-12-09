@@ -41,7 +41,6 @@ const defaultCredentials: Record<string, { password: string; role: UserRole; pro
   '45678901D': { password: 'nurse123', role: 'nurse', professionalId: 'ENF001' },
   '56789012E': { password: 'clean123', role: 'cleaning', professionalId: 'LIM001' },
   '67890123F': { password: 'nurse123', role: 'nurse', professionalId: 'ENF002' },
-  '78901234G': { password: 'pharmacy123', role: 'pharmacy', professionalId: 'FAR001' },
   '89012345H': { password: 'radiology123', role: 'radiology', professionalId: 'RAD001' },
   '90123456I': { password: 'admission123', role: 'admission', professionalId: 'ADM002' },
   '01234567J': { password: 'social123', role: 'social_work', professionalId: 'SOC001' },

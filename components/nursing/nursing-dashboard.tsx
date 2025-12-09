@@ -348,13 +348,20 @@ export default function NursingDashboard() {
                               <SelectValue placeholder="Seleccionar paciente" />
                             </SelectTrigger>
                             <SelectContent>
-                              {assignedPatients.map(p => (
-                                <SelectItem key={p.id} value={p.id}>
-                                  {p.firstName} {p.lastName} - Hab. {p.roomId}
-                                </SelectItem>
-                              ))}
+                              {assignedPatients.length === 0 ? (
+                                <SelectItem value="none" disabled>No hay pacientes asignados</SelectItem>
+                              ) : (
+                                assignedPatients.map(p => (
+                                  <SelectItem key={p.id} value={p.id}>
+                                    {p.firstName} {p.lastName} - Hab. {p.roomId}{p.bedNumber ? ` - Cama ${p.bedNumber}` : ''}
+                                  </SelectItem>
+                                ))
+                              )}
                             </SelectContent>
                           </Select>
+                          {assignedPatients.length === 0 && (
+                            <p className="text-sm text-amber-600 mt-1">No tienes pacientes asignados</p>
+                          )}
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                           <div>
@@ -439,13 +446,20 @@ export default function NursingDashboard() {
                               <SelectValue placeholder="Seleccionar paciente" />
                             </SelectTrigger>
                             <SelectContent>
-                              {assignedPatients.map(p => (
-                                <SelectItem key={p.id} value={p.id}>
-                                  {p.firstName} {p.lastName} - Hab. {p.roomId}
-                                </SelectItem>
-                              ))}
+                              {assignedPatients.length === 0 ? (
+                                <SelectItem value="none" disabled>No hay pacientes asignados</SelectItem>
+                              ) : (
+                                assignedPatients.map(p => (
+                                  <SelectItem key={p.id} value={p.id}>
+                                    {p.firstName} {p.lastName} - Hab. {p.roomId}{p.bedNumber ? ` - Cama ${p.bedNumber}` : ''}
+                                  </SelectItem>
+                                ))
+                              )}
                             </SelectContent>
                           </Select>
+                          {assignedPatients.length === 0 && (
+                            <p className="text-sm text-amber-600 mt-1">No tienes pacientes asignados</p>
+                          )}
                         </div>
                         <div>
                           <Label className="text-gray-900">Tipo de Escala *</Label>
@@ -520,13 +534,20 @@ export default function NursingDashboard() {
                               <SelectValue placeholder="Seleccionar paciente" />
                             </SelectTrigger>
                             <SelectContent>
-                              {assignedPatients.map(p => (
-                                <SelectItem key={p.id} value={p.id}>
-                                  {p.firstName} {p.lastName} - Hab. {p.roomId}
-                                </SelectItem>
-                              ))}
+                              {assignedPatients.length === 0 ? (
+                                <SelectItem value="none" disabled>No hay pacientes asignados</SelectItem>
+                              ) : (
+                                assignedPatients.map(p => (
+                                  <SelectItem key={p.id} value={p.id}>
+                                    {p.firstName} {p.lastName} - Hab. {p.roomId}{p.bedNumber ? ` - Cama ${p.bedNumber}` : ''}
+                                  </SelectItem>
+                                ))
+                              )}
                             </SelectContent>
                           </Select>
+                          {assignedPatients.length === 0 && (
+                            <p className="text-sm text-amber-600 mt-1">No tienes pacientes asignados</p>
+                          )}
                         </div>
                         <div>
                           <Label className="text-gray-900">Tipo de Herida *</Label>

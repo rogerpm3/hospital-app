@@ -11,7 +11,9 @@ import {
 } from 'lucide-react';
 import { useHospital } from '@/lib/hospital-context';
 import { useAuth } from '@/lib/auth-context';
+import { useToast } from '@/hooks/use-toast';
 import { Bed as BedType } from '@/lib/types';
+import BedReservationDialog from '@/components/bed-management/bed-reservation-dialog';
 
 interface BedMapViewProps {
   selectedFloor: string;
@@ -24,9 +26,12 @@ interface BedMapViewProps {
 }
 
 export default function BedMapView({ selectedFloor, selectedUnit, filters }: BedMapViewProps) {
-  const { hospitalFloors, beds, patients, rooms, reserveBed } = useHospital();
+  const { hospitalFloors, beds, patients, rooms, reserveBed, updateBedCleaning } = useHospital();
   const { user } = useAuth();
+  const { toast } = useToast();
   const [selectedBed, setSelectedBed] = useState<BedType | null>(null);
+  const [showReservationDialog, setShowReservationDialog] = useState(false);
+  const [bedToReserve, setBedToReserve] = useState<BedType | null>(null);
 
   const floor = hospitalFloors.find(f => f.id === selectedFloor);
   if (!floor) return <div>Planta no encontrada</div>;
@@ -272,23 +277,35 @@ export default function BedMapView({ selectedFloor, selectedUnit, filters }: Bed
                           {/* Actions */}
                           <div className="flex gap-2 pt-2 border-t">
                             {canMarkCleaningRequired && bed.status !== 'Occupied' && (
-                              <Button size="sm" variant="outline">
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => {
+                                  updateBedCleaning(bed.id, 'In Progress', user?.firstName + ' ' + user?.lastName);
+                                  toast({
+                                    title: "Estado de limpieza actualizado",
+                                    description: `Cama ${room?.number}-${bed.number} marcada para limpieza`,
+                                  });
+                                }}
+                              >
                                 <Sparkles className="h-4 w-4 mr-2" />
                                 Marcar Limpieza
                               </Button>
                             )}
                             
                             {canReserveBed && bed.status === 'Available' && (
-                              <Button size="sm" variant="default">
+                              <Button 
+                                size="sm" 
+                                variant="default"
+                                onClick={() => {
+                                  setBedToReserve(bed);
+                                  setShowReservationDialog(true);
+                                }}
+                              >
                                 <Clock className="h-4 w-4 mr-2" />
                                 Reservar
                               </Button>
                             )}
-
-                            <Button size="sm" variant="outline">
-                              <Eye className="h-4 w-4 mr-2" />
-                              Ver Detalles
-                            </Button>
                           </div>
                         </div>
                       </DialogContent>
@@ -299,6 +316,19 @@ export default function BedMapView({ selectedFloor, selectedUnit, filters }: Bed
           </CardContent>
         </Card>
       ))}
+
+      {/* Diálogo de reserva de cama */}
+      {bedToReserve && (
+        <BedReservationDialog
+          open={showReservationDialog}
+          onOpenChange={(open) => {
+            setShowReservationDialog(open);
+            if (!open) setBedToReserve(null);
+          }}
+          bed={bedToReserve}
+          room={rooms.find(r => r.id === bedToReserve.roomId)}
+        />
+      )}
     </div>
   );
 }
