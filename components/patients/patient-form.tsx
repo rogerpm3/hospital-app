@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useHospital } from '@/lib/hospital-context';
+import { useAuth } from '@/lib/auth-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
-import { CalendarIcon, Save, X } from 'lucide-react';
+import { CalendarIcon, Save, X, Stethoscope } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -20,11 +21,16 @@ interface PatientFormProps {
 }
 
 export default function PatientForm({ patientId, onClose }: PatientFormProps) {
-  const { patients, addPatient, updatePatient } = useHospital();
+  const { patients, staff, addPatient, updatePatient } = useHospital();
+  const { user } = useAuth();
   const { toast } = useToast();
+
+  // Obtener médicos disponibles para asignar
+  const doctors = staff.filter(s => s.role === 'doctor');
 
   const [formData, setFormData] = useState({
     dni: '',
+    socialSecurityNumber: '',
     firstName: '',
     lastName: '',
     dateOfBirth: undefined as Date | undefined,
@@ -43,9 +49,19 @@ export default function PatientForm({ patientId, onClose }: PatientFormProps) {
       relationship: '',
       phone: ''
     },
+    insuranceInfo: {
+      provider: '',
+      policyNumber: '',
+      expirationDate: undefined as Date | undefined
+    },
     allergies: [] as string[],
     medicalHistory: [] as string[],
-    currentMedications: [] as string[]
+    currentMedications: [] as string[],
+    attendingPhysician: '',
+    attendingPhysicianId: '',
+    admissionReason: '',
+    currentCondition: 'Stable' as string,
+    riskLevel: 'Low' as string
   });
 
   const [allergyInput, setAllergyInput] = useState('');
@@ -58,6 +74,7 @@ export default function PatientForm({ patientId, onClose }: PatientFormProps) {
       if (patient) {
         setFormData({
           dni: patient.dni,
+          socialSecurityNumber: patient.socialSecurityNumber || '',
           firstName: patient.firstName,
           lastName: patient.lastName,
           dateOfBirth: patient.dateOfBirth,
@@ -67,9 +84,15 @@ export default function PatientForm({ patientId, onClose }: PatientFormProps) {
           email: patient.email || '',
           address: patient.address,
           emergencyContact: patient.emergencyContact,
+          insuranceInfo: patient.insuranceInfo || { provider: '', policyNumber: '', expirationDate: undefined },
           allergies: patient.allergies,
           medicalHistory: patient.medicalHistory,
-          currentMedications: patient.currentMedications
+          currentMedications: patient.currentMedications,
+          attendingPhysician: patient.attendingPhysician || '',
+          attendingPhysicianId: '',
+          admissionReason: patient.admissionReason || '',
+          currentCondition: patient.currentCondition || 'Stable',
+          riskLevel: patient.riskLevel || 'Low'
         });
       }
     }
@@ -81,14 +104,21 @@ export default function PatientForm({ patientId, onClose }: PatientFormProps) {
     if (!formData.dni || !formData.firstName || !formData.lastName || !formData.dateOfBirth) {
       toast({
         title: "Error de validación",
-        description: "Por favor completa todos los campos requeridos",
+        description: "Por favor completa todos los campos requeridos (DNI, nombre, apellidos, fecha de nacimiento)",
         variant: "destructive",
       });
       return;
     }
 
+    // Obtener nombre del médico si se seleccionó uno
+    const selectedDoctor = doctors.find(d => d.id === formData.attendingPhysicianId);
+    const attendingPhysicianName = selectedDoctor 
+      ? `Dr. ${selectedDoctor.firstName} ${selectedDoctor.lastName}` 
+      : formData.attendingPhysician;
+
     const patientData = {
       dni: formData.dni,
+      socialSecurityNumber: formData.socialSecurityNumber,
       firstName: formData.firstName,
       lastName: formData.lastName,
       dateOfBirth: formData.dateOfBirth,
@@ -98,9 +128,14 @@ export default function PatientForm({ patientId, onClose }: PatientFormProps) {
       email: formData.email,
       address: formData.address,
       emergencyContact: formData.emergencyContact,
+      insuranceInfo: formData.insuranceInfo,
       allergies: formData.allergies,
       medicalHistory: formData.medicalHistory,
-      currentMedications: formData.currentMedications
+      currentMedications: formData.currentMedications,
+      attendingPhysician: attendingPhysicianName,
+      admissionReason: formData.admissionReason,
+      currentCondition: formData.currentCondition,
+      riskLevel: formData.riskLevel
     };
 
     if (patientId) {
@@ -113,7 +148,7 @@ export default function PatientForm({ patientId, onClose }: PatientFormProps) {
       addPatient(patientData);
       toast({
         title: "Paciente registrado",
-        description: "El nuevo paciente ha sido registrado exitosamente",
+        description: `${formData.firstName} ${formData.lastName} ha sido registrado exitosamente`,
       });
     }
 
@@ -138,118 +173,242 @@ export default function PatientForm({ patientId, onClose }: PatientFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 max-h-[70vh] overflow-y-auto">
+    <form onSubmit={handleSubmit} className="space-y-6 max-h-[70vh] overflow-y-auto pr-2">
       {/* Información personal */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="dni">DNI *</Label>
-          <Input
-            id="dni"
-            value={formData.dni}
-            onChange={(e) => setFormData(prev => ({ ...prev, dni: e.target.value }))}
-            placeholder="12345678A"
-            required
-          />
-        </div>
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Datos Personales</h3>
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="dni">DNI / NIE *</Label>
+            <Input
+              id="dni"
+              value={formData.dni}
+              onChange={(e) => setFormData(prev => ({ ...prev, dni: e.target.value }))}
+              placeholder="12345678A"
+              required
+            />
+          </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="firstName">Nombre *</Label>
-          <Input
-            id="firstName"
-            value={formData.firstName}
-            onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
-            required
-          />
-        </div>
+          <div className="space-y-2">
+            <Label htmlFor="socialSecurityNumber">Nº Seguridad Social</Label>
+            <Input
+              id="socialSecurityNumber"
+              value={formData.socialSecurityNumber}
+              onChange={(e) => setFormData(prev => ({ ...prev, socialSecurityNumber: e.target.value }))}
+              placeholder="12 12345678 90"
+            />
+          </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="lastName">Apellidos *</Label>
-          <Input
-            id="lastName"
-            value={formData.lastName}
-            onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
-            required
-          />
-        </div>
+          <div className="space-y-2">
+            <Label htmlFor="firstName">Nombre *</Label>
+            <Input
+              id="firstName"
+              value={formData.firstName}
+              onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
+              required
+            />
+          </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="dateOfBirth">Fecha de Nacimiento *</Label>
-          <Input
-            id="dateOfBirth"
-            type="date"
-            value={formData.dateOfBirth ? format(formData.dateOfBirth, 'yyyy-MM-dd') : ''}
-            onChange={(e) => {
-              const dateValue = e.target.value;
-              if (dateValue) {
-                setFormData(prev => ({ ...prev, dateOfBirth: new Date(dateValue) }));
-              }
-            }}
-            max={format(new Date(), 'yyyy-MM-dd')}
-            min="1900-01-01"
-            required
-            className="w-full"
-          />
-        </div>
+          <div className="space-y-2">
+            <Label htmlFor="lastName">Apellidos *</Label>
+            <Input
+              id="lastName"
+              value={formData.lastName}
+              onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
+              required
+            />
+          </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="gender">Género</Label>
-          <Select value={formData.gender} onValueChange={(value: any) => setFormData(prev => ({ ...prev, gender: value }))}>
-            <SelectTrigger>
-              <SelectValue placeholder="Seleccionar género" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="M">Masculino</SelectItem>
-              <SelectItem value="F">Femenino</SelectItem>
-              <SelectItem value="Other">Otro</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+          <div className="space-y-2">
+            <Label htmlFor="dateOfBirth">Fecha de Nacimiento *</Label>
+            <Input
+              id="dateOfBirth"
+              type="date"
+              value={formData.dateOfBirth ? format(formData.dateOfBirth, 'yyyy-MM-dd') : ''}
+              onChange={(e) => {
+                const dateValue = e.target.value;
+                if (dateValue) {
+                  setFormData(prev => ({ ...prev, dateOfBirth: new Date(dateValue) }));
+                }
+              }}
+              max={format(new Date(), 'yyyy-MM-dd')}
+              min="1900-01-01"
+              required
+              className="w-full"
+            />
+          </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="bloodType">Tipo de Sangre</Label>
-          <Select value={formData.bloodType} onValueChange={(value) => setFormData(prev => ({ ...prev, bloodType: value }))}>
-            <SelectTrigger>
-              <SelectValue placeholder="Seleccionar tipo" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="A+">A+</SelectItem>
-              <SelectItem value="A-">A-</SelectItem>
-              <SelectItem value="B+">B+</SelectItem>
-              <SelectItem value="B-">B-</SelectItem>
-              <SelectItem value="AB+">AB+</SelectItem>
-              <SelectItem value="AB-">AB-</SelectItem>
-              <SelectItem value="O+">O+</SelectItem>
-              <SelectItem value="O-">O-</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+          <div className="space-y-2">
+            <Label htmlFor="gender">Género *</Label>
+            <Select value={formData.gender} onValueChange={(value: any) => setFormData(prev => ({ ...prev, gender: value }))}>
+              <SelectTrigger>
+                <SelectValue placeholder="Seleccionar género" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="M">Masculino</SelectItem>
+                <SelectItem value="F">Femenino</SelectItem>
+                <SelectItem value="Other">Otro</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="phone">Teléfono *</Label>
-          <Input
-            id="phone"
-            value={formData.phone}
-            onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-            placeholder="+34 600 000 000"
-            required
-          />
-        </div>
+          <div className="space-y-2">
+            <Label htmlFor="bloodType">Tipo de Sangre</Label>
+            <Select value={formData.bloodType} onValueChange={(value) => setFormData(prev => ({ ...prev, bloodType: value }))}>
+              <SelectTrigger>
+                <SelectValue placeholder="Seleccionar tipo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="A+">A+</SelectItem>
+                <SelectItem value="A-">A-</SelectItem>
+                <SelectItem value="B+">B+</SelectItem>
+                <SelectItem value="B-">B-</SelectItem>
+                <SelectItem value="AB+">AB+</SelectItem>
+                <SelectItem value="AB-">AB-</SelectItem>
+                <SelectItem value="O+">O+</SelectItem>
+                <SelectItem value="O-">O-</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
-          <Input
-            id="email"
-            type="email"
-            value={formData.email}
-            onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-            placeholder="paciente@email.com"
-          />
+          <div className="space-y-2">
+            <Label htmlFor="phone">Teléfono *</Label>
+            <Input
+              id="phone"
+              value={formData.phone}
+              onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+              placeholder="+34 600 000 000"
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="email">Correo Electrónico</Label>
+            <Input
+              id="email"
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+              placeholder="paciente@email.com"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Asignación médica */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold text-gray-900 border-b pb-2 flex items-center gap-2">
+          <Stethoscope className="h-5 w-5 text-blue-600" />
+          Asignación Médica
+        </h3>
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="attendingPhysician">Médico Responsable</Label>
+            <Select 
+              value={formData.attendingPhysicianId} 
+              onValueChange={(value) => setFormData(prev => ({ ...prev, attendingPhysicianId: value }))}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Seleccionar médico..." />
+              </SelectTrigger>
+              <SelectContent>
+                {doctors.length === 0 ? (
+                  <SelectItem value="none" disabled>No hay médicos disponibles</SelectItem>
+                ) : (
+                  doctors.map(doctor => (
+                    <SelectItem key={doctor.id} value={doctor.id}>
+                      Dr. {doctor.firstName} {doctor.lastName}
+                      {doctor.department && ` - ${doctor.department}`}
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="admissionReason">Motivo de Admisión</Label>
+            <Input
+              id="admissionReason"
+              value={formData.admissionReason}
+              onChange={(e) => setFormData(prev => ({ ...prev, admissionReason: e.target.value }))}
+              placeholder="Ej: Dolor abdominal, control rutinario..."
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="currentCondition">Estado Actual</Label>
+            <Select 
+              value={formData.currentCondition} 
+              onValueChange={(value) => setFormData(prev => ({ ...prev, currentCondition: value }))}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Stable">Estable</SelectItem>
+                <SelectItem value="Serious">Grave</SelectItem>
+                <SelectItem value="Critical">Crítico</SelectItem>
+                <SelectItem value="Improving">Mejorando</SelectItem>
+                <SelectItem value="Observation">En Observación</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="riskLevel">Nivel de Riesgo</Label>
+            <Select 
+              value={formData.riskLevel} 
+              onValueChange={(value) => setFormData(prev => ({ ...prev, riskLevel: value }))}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Low">Bajo</SelectItem>
+                <SelectItem value="Medium">Medio</SelectItem>
+                <SelectItem value="High">Alto</SelectItem>
+                <SelectItem value="Critical">Crítico</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </div>
+
+      {/* Información de seguro */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Información de Seguro</h3>
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="insuranceProvider">Aseguradora</Label>
+            <Input
+              id="insuranceProvider"
+              value={formData.insuranceInfo.provider}
+              onChange={(e) => setFormData(prev => ({ 
+                ...prev, 
+                insuranceInfo: { ...prev.insuranceInfo, provider: e.target.value }
+              }))}
+              placeholder="Ej: Seguridad Social, Sanitas, Adeslas..."
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="policyNumber">Nº de Póliza</Label>
+            <Input
+              id="policyNumber"
+              value={formData.insuranceInfo.policyNumber}
+              onChange={(e) => setFormData(prev => ({ 
+                ...prev, 
+                insuranceInfo: { ...prev.insuranceInfo, policyNumber: e.target.value }
+              }))}
+              placeholder="Número de póliza"
+            />
+          </div>
         </div>
       </div>
 
       {/* Dirección */}
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold">Dirección</h3>
+        <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Dirección</h3>
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2 md:col-span-2">
             <Label htmlFor="street">Calle y Número</Label>
@@ -260,6 +419,7 @@ export default function PatientForm({ patientId, onClose }: PatientFormProps) {
                 ...prev, 
                 address: { ...prev.address, street: e.target.value }
               }))}
+              placeholder="Ej: Calle Mayor 123, 2º B"
             />
           </div>
           <div className="space-y-2">
@@ -271,6 +431,7 @@ export default function PatientForm({ patientId, onClose }: PatientFormProps) {
                 ...prev, 
                 address: { ...prev.address, city: e.target.value }
               }))}
+              placeholder="Ej: Madrid"
             />
           </div>
           <div className="space-y-2">
@@ -282,6 +443,7 @@ export default function PatientForm({ patientId, onClose }: PatientFormProps) {
                 ...prev, 
                 address: { ...prev.address, postalCode: e.target.value }
               }))}
+              placeholder="Ej: 28001"
             />
           </div>
         </div>
@@ -289,10 +451,10 @@ export default function PatientForm({ patientId, onClose }: PatientFormProps) {
 
       {/* Contacto de emergencia */}
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold">Contacto de Emergencia</h3>
+        <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Contacto de Emergencia</h3>
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="emergencyName">Nombre</Label>
+            <Label htmlFor="emergencyName">Nombre Completo</Label>
             <Input
               id="emergencyName"
               value={formData.emergencyContact.name}
@@ -300,21 +462,35 @@ export default function PatientForm({ patientId, onClose }: PatientFormProps) {
                 ...prev, 
                 emergencyContact: { ...prev.emergencyContact, name: e.target.value }
               }))}
+              placeholder="Nombre del contacto de emergencia"
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="relationship">Relación</Label>
-            <Input
-              id="relationship"
-              value={formData.emergencyContact.relationship}
-              onChange={(e) => setFormData(prev => ({ 
+            <Label htmlFor="relationship">Relación con el Paciente</Label>
+            <Select 
+              value={formData.emergencyContact.relationship} 
+              onValueChange={(value) => setFormData(prev => ({ 
                 ...prev, 
-                emergencyContact: { ...prev.emergencyContact, relationship: e.target.value }
+                emergencyContact: { ...prev.emergencyContact, relationship: value }
               }))}
-            />
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Seleccionar relación" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Cónyuge">Cónyuge</SelectItem>
+                <SelectItem value="Padre/Madre">Padre/Madre</SelectItem>
+                <SelectItem value="Hijo/a">Hijo/a</SelectItem>
+                <SelectItem value="Hermano/a">Hermano/a</SelectItem>
+                <SelectItem value="Otro familiar">Otro familiar</SelectItem>
+                <SelectItem value="Amigo/a">Amigo/a</SelectItem>
+                <SelectItem value="Tutor legal">Tutor legal</SelectItem>
+                <SelectItem value="Otro">Otro</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-2 md:col-span-2">
-            <Label htmlFor="emergencyPhone">Teléfono</Label>
+            <Label htmlFor="emergencyPhone">Teléfono de Emergencia</Label>
             <Input
               id="emergencyPhone"
               value={formData.emergencyContact.phone}
@@ -322,47 +498,140 @@ export default function PatientForm({ patientId, onClose }: PatientFormProps) {
                 ...prev, 
                 emergencyContact: { ...prev.emergencyContact, phone: e.target.value }
               }))}
+              placeholder="+34 600 000 000"
             />
           </div>
         </div>
       </div>
 
-      {/* Alergias */}
+      {/* Información médica */}
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold">Alergias</h3>
-        <div className="flex gap-2">
-          <Input
-            value={allergyInput}
-            onChange={(e) => setAllergyInput(e.target.value)}
-            placeholder="Añadir alergia..."
-            onKeyPress={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                addToArray('allergies', allergyInput, setAllergyInput);
-              }
-            }}
-          />
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => addToArray('allergies', allergyInput, setAllergyInput)}
-          >
-            Añadir
-          </Button>
+        <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Información Médica</h3>
+        
+        {/* Alergias */}
+        <div className="space-y-2">
+          <Label>Alergias</Label>
+          <div className="flex gap-2">
+            <Input
+              value={allergyInput}
+              onChange={(e) => setAllergyInput(e.target.value)}
+              placeholder="Añadir alergia (ej: Penicilina, Polen, Mariscos...)"
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  addToArray('allergies', allergyInput, setAllergyInput);
+                }
+              }}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => addToArray('allergies', allergyInput, setAllergyInput)}
+            >
+              Añadir
+            </Button>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {formData.allergies.map((allergy, index) => (
+              <div key={index} className="flex items-center gap-1 bg-red-100 text-red-800 px-2 py-1 rounded text-sm">
+                {allergy}
+                <button
+                  type="button"
+                  onClick={() => removeFromArray('allergies', index)}
+                  className="ml-1 hover:text-red-600"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+            {formData.allergies.length === 0 && (
+              <span className="text-sm text-gray-400">Sin alergias registradas</span>
+            )}
+          </div>
         </div>
-        <div className="flex flex-wrap gap-2">
-          {formData.allergies.map((allergy, index) => (
-            <div key={index} className="flex items-center gap-1 bg-red-100 text-red-800 px-2 py-1 rounded text-sm">
-              {allergy}
-              <button
-                type="button"
-                onClick={() => removeFromArray('allergies', index)}
-                className="ml-1 hover:text-red-600"
-              >
-                <X className="h-3 w-3" />
-              </button>
-            </div>
-          ))}
+
+        {/* Historial médico */}
+        <div className="space-y-2">
+          <Label>Antecedentes / Historial Médico</Label>
+          <div className="flex gap-2">
+            <Input
+              value={historyInput}
+              onChange={(e) => setHistoryInput(e.target.value)}
+              placeholder="Añadir antecedente (ej: Diabetes, Hipertensión...)"
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  addToArray('medicalHistory', historyInput, setHistoryInput);
+                }
+              }}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => addToArray('medicalHistory', historyInput, setHistoryInput)}
+            >
+              Añadir
+            </Button>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {formData.medicalHistory.map((history, index) => (
+              <div key={index} className="flex items-center gap-1 bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">
+                {history}
+                <button
+                  type="button"
+                  onClick={() => removeFromArray('medicalHistory', index)}
+                  className="ml-1 hover:text-blue-600"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+            {formData.medicalHistory.length === 0 && (
+              <span className="text-sm text-gray-400">Sin antecedentes registrados</span>
+            )}
+          </div>
+        </div>
+
+        {/* Medicación actual */}
+        <div className="space-y-2">
+          <Label>Medicación Actual</Label>
+          <div className="flex gap-2">
+            <Input
+              value={medicationInput}
+              onChange={(e) => setMedicationInput(e.target.value)}
+              placeholder="Añadir medicación (ej: Paracetamol 500mg...)"
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  addToArray('currentMedications', medicationInput, setMedicationInput);
+                }
+              }}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => addToArray('currentMedications', medicationInput, setMedicationInput)}
+            >
+              Añadir
+            </Button>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {formData.currentMedications.map((med, index) => (
+              <div key={index} className="flex items-center gap-1 bg-green-100 text-green-800 px-2 py-1 rounded text-sm">
+                {med}
+                <button
+                  type="button"
+                  onClick={() => removeFromArray('currentMedications', index)}
+                  className="ml-1 hover:text-green-600"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+            {formData.currentMedications.length === 0 && (
+              <span className="text-sm text-gray-400">Sin medicación registrada</span>
+            )}
+          </div>
         </div>
       </div>
 

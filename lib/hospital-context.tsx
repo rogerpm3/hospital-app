@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { useAuth } from './auth-context';
 
-// Importaciones de datos SQL pre-parseados (datos reales de la base de datos)
+// Importaciones de datos SQL pre-parseados (fallback en caso de error de SQLite)
 import {
   sqlPatients,
   sqlStaff,
@@ -40,8 +40,94 @@ import {
   mockAppointmentSummaries
 } from './mock-data';
 
-// Importar servicio de base de datos para persistencia
-import * as dbService from './database/db-service';
+// ============================================
+// FUNCIONES HELPER PARA API SQLite
+// ============================================
+
+/**
+ * Convierte strings ISO a objetos Date en los datos recibidos
+ */
+function parsePatientDates(patients: any[]): any[] {
+  return patients.map(p => ({
+    ...p,
+    dateOfBirth: p.dateOfBirth ? new Date(p.dateOfBirth) : new Date(),
+    admissionDate: p.admissionDate ? new Date(p.admissionDate) : undefined
+  }));
+}
+
+function parseAdmissionDates(admissions: any[]): any[] {
+  return admissions.map(a => ({
+    ...a,
+    admissionDate: a.admissionDate ? new Date(a.admissionDate) : new Date(),
+    expectedDischargeDate: a.expectedDischargeDate ? new Date(a.expectedDischargeDate) : undefined,
+    actualDischargeDate: a.actualDischargeDate ? new Date(a.actualDischargeDate) : undefined
+  }));
+}
+
+function parseOrderDates(orders: any[]): any[] {
+  return orders.map(o => ({
+    ...o,
+    orderDate: o.orderDate ? new Date(o.orderDate) : new Date()
+  }));
+}
+
+function parseVitalSignDates(vitals: any[]): any[] {
+  return vitals.map(v => ({
+    ...v,
+    timestamp: v.timestamp ? new Date(v.timestamp) : new Date()
+  }));
+}
+
+function parseMedicationDates(medications: any[]): any[] {
+  return medications.map(m => ({
+    ...m,
+    startDate: m.startDate ? new Date(m.startDate) : new Date(),
+    endDate: m.endDate ? new Date(m.endDate) : undefined
+  }));
+}
+
+function parseBedDates(beds: any[]): any[] {
+  return beds.map(b => ({
+    ...b,
+    lastCleaned: b.lastCleaned ? new Date(b.lastCleaned) : new Date(),
+    reservationExpires: b.reservationExpires ? new Date(b.reservationExpires) : undefined
+  }));
+}
+
+function parseRoomDates(rooms: any[]): any[] {
+  return rooms.map(r => ({
+    ...r,
+    lastCleaned: r.lastCleaned ? new Date(r.lastCleaned) : new Date(),
+    beds: r.beds ? parseBedDates(r.beds) : []
+  }));
+}
+
+async function fetchFromSQLite(action: string) {
+  try {
+    const response = await fetch(`/api/sqlite?action=${action}`);
+    if (!response.ok) throw new Error(`Error: ${response.status}`);
+    const result = await response.json();
+    return result.data;
+  } catch (error) {
+    console.error(`Error fetching ${action}:`, error);
+    return null;
+  }
+}
+
+async function postToSQLite(action: string, data: any) {
+  try {
+    const response = await fetch('/api/sqlite', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, data })
+    });
+    if (!response.ok) throw new Error(`Error: ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.error(`Error posting ${action}:`, error);
+    return { success: false, error };
+  }
+}
 
 import type { 
   Patient, 
@@ -214,67 +300,145 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
   const [privacySettings] = useState<PrivacySettings[]>(mockPrivacySettings);
   const [appointmentSummaries] = useState<AppointmentSummary[]>(mockAppointmentSummaries);
 
-  // Inicializar servicio de base de datos al cargar
+  // Inicializar base de datos SQLite al cargar
   useEffect(() => {
-    console.log('🏥 Hospital Context inicializado con datos SQL:');
-    console.log(`  - Pacientes: ${patients.length}`);
-    console.log(`  - Personal: ${staff.length}`);
-    console.log(`  - Habitaciones: ${rooms.length}`);
-    console.log(`  - Camas: ${beds.length}`);
-    console.log(`  - Medicamentos: ${medications.length}`);
-    console.log(`  - Servicios: ${services.length}`);
-    console.log(`  - Admisiones: ${admissions.length}`);
-    console.log(`  - Órdenes médicas: ${medicalOrders.length}`);
+    console.log('🏥 Hospital Context inicializando...');
     
-    // Inicializar el servicio de base de datos para permitir persistencia
-    dbService.initializeDatabase().then(() => {
-      console.log('✅ Servicio de base de datos inicializado');
-    }).catch(error => {
-      console.warn('⚠️ No se pudo inicializar el servicio de base de datos:', error);
-    });
+    // Cargar datos desde SQLite
+    async function loadFromSQLite() {
+      try {
+        console.log('🔄 Cargando datos desde SQLite...');
+        
+        // Cargar todos los datos en paralelo
+        const [
+          patientsData,
+          staffData,
+          roomsBedsData,
+          medicationsData,
+          servicesData,
+          admissionsData,
+          ordersData,
+          vitalsData
+        ] = await Promise.all([
+          fetchFromSQLite('patients'),
+          fetchFromSQLite('staff'),
+          fetchFromSQLite('rooms-beds'),
+          fetchFromSQLite('medications'),
+          fetchFromSQLite('services'),
+          fetchFromSQLite('admissions'),
+          fetchFromSQLite('orders'),
+          fetchFromSQLite('vitals')
+        ]);
+        
+        // Actualizar estados - usar SQLite si tiene más datos que los estáticos
+        // Si SQLite tiene muy pocos datos, usar los datos estáticos de sql-data.ts
+        
+        // Pacientes: usar SQLite solo si tiene más pacientes que los estáticos
+        if (patientsData?.length >= sqlPatients.length) {
+          setPatients(parsePatientDates(patientsData));
+        } else {
+          console.log('⚠️ SQLite tiene menos pacientes, usando datos estáticos');
+        }
+        
+        // Staff: usar SQLite solo si tiene más personal que los estáticos
+        if (staffData?.length >= sqlStaff.length) {
+          setStaff(staffData);
+        } else {
+          console.log('⚠️ SQLite tiene menos personal, usando datos estáticos');
+        }
+        
+        // Habitaciones y camas
+        if (roomsBedsData?.rooms?.length >= sqlRooms.length) {
+          setRooms(parseRoomDates(roomsBedsData.rooms));
+        }
+        if (roomsBedsData?.beds?.length >= sqlBeds.length) {
+          setBeds(parseBedDates(roomsBedsData.beds));
+        }
+        
+        // Medicamentos
+        if (medicationsData?.length >= sqlMedications.length) {
+          setMedications(parseMedicationDates(medicationsData));
+        }
+        
+        // Servicios
+        if (servicesData?.length >= sqlServices.length) {
+          setServices(servicesData);
+        }
+        
+        // Admisiones
+        if (admissionsData?.length >= sqlAdmissions.length) {
+          setAdmissions(parseAdmissionDates(admissionsData));
+        }
+        
+        // Órdenes médicas
+        if (ordersData?.length >= sqlMedicalOrders.length) {
+          setMedicalOrders(parseOrderDates(ordersData));
+        }
+        
+        // Signos vitales - solo de SQLite si hay datos
+        if (vitalsData?.length > 0) {
+          setVitalSigns(parseVitalSignDates(vitalsData));
+        }
+        
+        console.log('✅ Datos cargados desde SQLite');
+        console.log(`  - Pacientes: ${patientsData?.length || patients.length}`);
+        console.log(`  - Personal: ${staffData?.length || staff.length}`);
+        console.log(`  - Habitaciones: ${roomsBedsData?.rooms?.length || rooms.length}`);
+        console.log(`  - Camas: ${roomsBedsData?.beds?.length || beds.length}`);
+        console.log(`  - Medicamentos: ${medicationsData?.length || medications.length}`);
+        console.log(`  - Servicios: ${servicesData?.length || services.length}`);
+        console.log(`  - Admisiones: ${admissionsData?.length || admissions.length}`);
+        console.log(`  - Órdenes: ${ordersData?.length || medicalOrders.length}`);
+        
+      } catch (error) {
+        console.warn('⚠️ Error cargando datos desde SQLite, usando datos estáticos:', error);
+      }
+    }
+    
+    loadFromSQLite();
   }, []);
 
-  // Función para recargar datos desde la base de datos SQL
+  // Función para recargar datos desde SQLite
   const refreshFromDatabase = useCallback(async () => {
     try {
-      // Reiniciar la base de datos y recargar
-      await dbService.resetDatabase();
+      console.log('🔄 Recargando datos desde SQLite...');
       
-      // Obtener datos frescos
-      const freshPatients = dbService.getPatients();
-      const freshStaff = dbService.getStaff();
-      const { rooms: freshRooms, beds: freshBeds } = dbService.getRoomsAndBeds();
-      const freshMedications = dbService.getMedications();
-      const freshServices = dbService.getServices();
-      const freshAdmissions = dbService.getAdmissions();
-      const freshOrders = dbService.getMedicalOrders();
+      // Resetear y recargar
+      await postToSQLite('reset', {});
       
-      // Si hay datos del servicio, usarlos; si no, usar los datos estáticos
-      if (freshPatients.length > 0) setPatients(freshPatients);
-      else setPatients(sqlPatients);
+      // Cargar todos los datos en paralelo
+      const [
+        patientsData,
+        staffData,
+        roomsBedsData,
+        medicationsData,
+        servicesData,
+        admissionsData,
+        ordersData,
+        vitalsData
+      ] = await Promise.all([
+        fetchFromSQLite('patients'),
+        fetchFromSQLite('staff'),
+        fetchFromSQLite('rooms-beds'),
+        fetchFromSQLite('medications'),
+        fetchFromSQLite('services'),
+        fetchFromSQLite('admissions'),
+        fetchFromSQLite('orders'),
+        fetchFromSQLite('vitals')
+      ]);
       
-      if (freshStaff.length > 0) setStaff(freshStaff);
-      else setStaff(sqlStaff as User[]);
+      // Actualizar estados - convertir strings de fechas a objetos Date
+      setPatients(patientsData?.length > 0 ? parsePatientDates(patientsData) : sqlPatients);
+      setStaff(staffData?.length > 0 ? staffData : sqlStaff as User[]);
+      setRooms(roomsBedsData?.rooms?.length > 0 ? parseRoomDates(roomsBedsData.rooms) : sqlRooms);
+      setBeds(roomsBedsData?.beds?.length > 0 ? parseBedDates(roomsBedsData.beds) : sqlBeds);
+      setMedications(medicationsData?.length > 0 ? parseMedicationDates(medicationsData) : sqlMedications);
+      setServices(servicesData?.length > 0 ? servicesData : sqlServices);
+      setAdmissions(admissionsData?.length > 0 ? parseAdmissionDates(admissionsData) : sqlAdmissions);
+      setMedicalOrders(ordersData?.length > 0 ? parseOrderDates(ordersData) : sqlMedicalOrders);
+      if (vitalsData?.length > 0) setVitalSigns(parseVitalSignDates(vitalsData));
       
-      if (freshRooms.length > 0) setRooms(freshRooms);
-      else setRooms(sqlRooms);
-      
-      if (freshBeds.length > 0) setBeds(freshBeds);
-      else setBeds(sqlBeds);
-      
-      if (freshMedications.length > 0) setMedications(freshMedications);
-      else setMedications(sqlMedications);
-      
-      if (freshServices.length > 0) setServices(freshServices);
-      else setServices(sqlServices);
-      
-      if (freshAdmissions.length > 0) setAdmissions(freshAdmissions);
-      else setAdmissions(sqlAdmissions);
-      
-      if (freshOrders.length > 0) setMedicalOrders(freshOrders);
-      else setMedicalOrders(sqlMedicalOrders);
-      
-      console.log('✅ Datos recargados desde la base de datos SQL');
+      console.log('✅ Datos recargados desde SQLite');
     } catch (error) {
       console.error('❌ Error recargando datos:', error);
       // En caso de error, usar datos estáticos
@@ -289,7 +453,7 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Funciones para pacientes - CON PERSISTENCIA SQL
+  // Funciones para pacientes - CON PERSISTENCIA SQLite
   const addPatient = useCallback(async (patientData: Omit<Patient, 'id'>) => {
     const newPatient: Patient = {
       ...patientData,
@@ -299,12 +463,12 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
     // Actualizar estado local inmediatamente
     setPatients(prev => [...prev, newPatient]);
     
-    // Persistir en archivos SQL
-    try {
-      await dbService.addPatient(patientData);
-      console.log('✅ Paciente guardado en SQL');
-    } catch (error) {
-      console.error('❌ Error guardando paciente en SQL:', error);
+    // Persistir en SQLite
+    const result = await postToSQLite('add-patient', patientData);
+    if (result.success) {
+      console.log('✅ Paciente guardado en SQLite');
+    } else {
+      console.error('❌ Error guardando paciente en SQLite:', result.error);
     }
     
     addAuditLog({
@@ -321,12 +485,12 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
       patient.id === patientId ? { ...patient, ...updates } : patient
     ));
     
-    // Persistir en archivos SQL
-    try {
-      await dbService.updatePatient(patientId, updates);
-      console.log('✅ Paciente actualizado en SQL');
-    } catch (error) {
-      console.error('❌ Error actualizando paciente en SQL:', error);
+    // Persistir en SQLite
+    const result = await postToSQLite('update-patient', { id: patientId, updates });
+    if (result.success) {
+      console.log('✅ Paciente actualizado en SQLite');
+    } else {
+      console.error('❌ Error actualizando paciente en SQLite:', result.error);
     }
     
     addAuditLog({
@@ -341,12 +505,12 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
     // Actualizar estado local inmediatamente
     setPatients(prev => prev.filter(patient => patient.id !== patientId));
     
-    // Persistir en archivos SQL
-    try {
-      await dbService.deletePatient(patientId);
-      console.log('✅ Paciente eliminado de SQL');
-    } catch (error) {
-      console.error('❌ Error eliminando paciente de SQL:', error);
+    // Persistir en SQLite
+    const result = await postToSQLite('delete-patient', { id: patientId });
+    if (result.success) {
+      console.log('✅ Paciente eliminado de SQLite');
+    } else {
+      console.error('❌ Error eliminando paciente de SQLite:', result.error);
     }
     
     addAuditLog({
@@ -356,7 +520,7 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
     });
   }, [addAuditLog]);
 
-  // Funciones para personal - CON PERSISTENCIA SQL
+  // Funciones para personal - CON PERSISTENCIA SQLite
   const addStaff = useCallback(async (staffData: Omit<User, 'id'>) => {
     const newStaff: User = {
       ...staffData,
@@ -366,12 +530,12 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
     // Actualizar estado local inmediatamente
     setStaff(prev => [...prev, newStaff]);
     
-    // Persistir en archivos SQL
-    try {
-      await dbService.addStaff(staffData);
-      console.log('✅ Personal guardado en SQL');
-    } catch (error) {
-      console.error('❌ Error guardando personal en SQL:', error);
+    // Persistir en SQLite
+    const result = await postToSQLite('add-staff', staffData);
+    if (result.success) {
+      console.log('✅ Personal guardado en SQLite');
+    } else {
+      console.error('❌ Error guardando personal en SQLite:', result.error);
     }
     
     addAuditLog({
@@ -388,12 +552,12 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
       member.id === staffId ? { ...member, ...updates } : member
     ));
     
-    // Persistir en archivos SQL
-    try {
-      await dbService.updateStaff(staffId, updates);
-      console.log('✅ Personal actualizado en SQL');
-    } catch (error) {
-      console.error('❌ Error actualizando personal en SQL:', error);
+    // Persistir en SQLite
+    const result = await postToSQLite('update-staff', { id: staffId, updates });
+    if (result.success) {
+      console.log('✅ Personal actualizado en SQLite');
+    } else {
+      console.error('❌ Error actualizando personal en SQLite:', result.error);
     }
     
     addAuditLog({
@@ -408,8 +572,13 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
     // Actualizar estado local inmediatamente
     setStaff(prev => prev.filter(member => member.id !== staffId));
     
-    // Persistir en archivos SQL (nota: no hay función específica en db-service, se maneja localmente)
-    console.log('✅ Personal eliminado localmente');
+    // Persistir en SQLite
+    const result = await postToSQLite('delete-staff', { id: staffId });
+    if (result.success) {
+      console.log('✅ Personal eliminado de SQLite');
+    } else {
+      console.error('❌ Error eliminando personal de SQLite:', result.error);
+    }
     
     addAuditLog({
       action: 'DELETE',
@@ -477,19 +646,19 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
     });
   }, [addAuditLog]);
 
-  // Funciones para camas - CON PERSISTENCIA SQL
+  // Funciones para camas - CON PERSISTENCIA SQLite
   const updateBedStatus = useCallback(async (bedId: string, status: Bed['status']) => {
     // Actualizar estado local inmediatamente
     setBeds(prev => prev.map(bed => 
       bed.id === bedId ? { ...bed, status } : bed
     ));
     
-    // Persistir en archivos SQL
-    try {
-      await dbService.updateBedStatus(bedId, status);
-      console.log('✅ Estado de cama actualizado en SQL');
-    } catch (error) {
-      console.error('❌ Error actualizando cama en SQL:', error);
+    // Persistir en SQLite
+    const result = await postToSQLite('update-bed-status', { bedId, status });
+    if (result.success) {
+      console.log('✅ Estado de cama actualizado en SQLite');
+    } else {
+      console.error('❌ Error actualizando cama en SQLite:', result.error);
     }
     
     addAuditLog({
@@ -513,12 +682,13 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
         : bed
     ));
     
-    // Persistir en archivos SQL
-    try {
-      await dbService.updateBedStatus(bedId, cleaningStatus === 'Cleaning Required' ? 'Cleaning Required' : 'Available');
-      console.log('✅ Limpieza de cama actualizada en SQL');
-    } catch (error) {
-      console.error('❌ Error actualizando limpieza de cama en SQL:', error);
+    // Persistir en SQLite
+    const status = cleaningStatus === 'Cleaning Required' ? 'Cleaning Required' : 'Available';
+    const result = await postToSQLite('update-bed-status', { bedId, status });
+    if (result.success) {
+      console.log('✅ Limpieza de cama actualizada en SQLite');
+    } else {
+      console.error('❌ Error actualizando limpieza de cama en SQLite:', result.error);
     }
     
     addAuditLog({
@@ -542,12 +712,12 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
         : bed
     ));
     
-    // Persistir en archivos SQL
-    try {
-      await dbService.updateBedStatus(bedId, 'Reserved');
-      console.log('✅ Reserva de cama guardada en SQL');
-    } catch (error) {
-      console.error('❌ Error reservando cama en SQL:', error);
+    // Persistir en SQLite
+    const result = await postToSQLite('update-bed-status', { bedId, status: 'Reserved' });
+    if (result.success) {
+      console.log('✅ Reserva de cama guardada en SQLite');
+    } else {
+      console.error('❌ Error reservando cama en SQLite:', result.error);
     }
     
     addAuditLog({
@@ -558,7 +728,7 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
     });
   }, [addAuditLog]);
 
-  // Funciones para signos vitales - CON PERSISTENCIA SQL
+  // Funciones para signos vitales - CON PERSISTENCIA SQLite
   const addVitalSigns = useCallback(async (vitalSignsData: Omit<VitalSigns, 'id'>) => {
     const newVitalSigns: VitalSigns = {
       ...vitalSignsData,
@@ -568,12 +738,15 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
     // Actualizar estado local inmediatamente
     setVitalSigns(prev => [...prev, newVitalSigns]);
     
-    // Persistir en archivos SQL
-    try {
-      await dbService.addVitalSignsRecord(vitalSignsData);
-      console.log('✅ Signos vitales guardados en SQL');
-    } catch (error) {
-      console.error('❌ Error guardando signos vitales en SQL:', error);
+    // Persistir en SQLite
+    const result = await postToSQLite('add-vital-signs', {
+      ...vitalSignsData,
+      timestamp: vitalSignsData.timestamp.toISOString()
+    });
+    if (result.success) {
+      console.log('✅ Signos vitales guardados en SQLite');
+    } else {
+      console.error('❌ Error guardando signos vitales en SQLite:', result.error);
     }
     
     addAuditLog({
@@ -588,7 +761,7 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
     });
   }, [addAuditLog]);
 
-  // Funciones para órdenes médicas - CON PERSISTENCIA SQL
+  // Funciones para órdenes médicas - CON PERSISTENCIA SQLite
   const addMedicalOrder = useCallback(async (orderData: Omit<MedicalOrder, 'id'>) => {
     const newOrder: MedicalOrder = {
       ...orderData,
@@ -598,12 +771,15 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
     // Actualizar estado local inmediatamente
     setMedicalOrders(prev => [...prev, newOrder]);
     
-    // Persistir en archivos SQL
-    try {
-      await dbService.addMedicalOrder(orderData);
-      console.log('✅ Orden médica guardada en SQL');
-    } catch (error) {
-      console.error('❌ Error guardando orden médica en SQL:', error);
+    // Persistir en SQLite
+    const result = await postToSQLite('add-medical-order', {
+      ...orderData,
+      orderDate: orderData.orderDate.toISOString()
+    });
+    if (result.success) {
+      console.log('✅ Orden médica guardada en SQLite');
+    } else {
+      console.error('❌ Error guardando orden médica en SQLite:', result.error);
     }
     
     addAuditLog({
@@ -646,7 +822,7 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
     });
   }, [addAuditLog]);
 
-  // Funciones para notas de enfermería - CON PERSISTENCIA SQL
+  // Funciones para notas de enfermería - CON PERSISTENCIA SQLite
   const addNursingNote = useCallback(async (noteData: Omit<NursingNote, 'id'>) => {
     const newNote: NursingNote = {
       ...noteData,
@@ -656,17 +832,17 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
     // Actualizar estado local inmediatamente
     setNursingNotes(prev => [...prev, newNote]);
     
-    // Persistir en archivos SQL
-    try {
-      await dbService.addNursingDocument(
-        noteData.patientId,
-        noteData.nurseId,
-        noteData.category,
-        noteData.content
-      );
-      console.log('✅ Nota de enfermería guardada en SQL');
-    } catch (error) {
-      console.error('❌ Error guardando nota de enfermería en SQL:', error);
+    // Persistir en SQLite
+    const result = await postToSQLite('add-nursing-document', {
+      episodeId: noteData.patientId,
+      professionalId: noteData.nurseId,
+      documentType: noteData.category,
+      text: noteData.content
+    });
+    if (result.success) {
+      console.log('✅ Nota de enfermería guardada en SQLite');
+    } else {
+      console.error('❌ Error guardando nota de enfermería en SQLite:', result.error);
     }
     
     addAuditLog({
@@ -795,16 +971,25 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
       return chatMessages;
     }
     
-    // Filtrar mensajes donde:
-    // 1. El usuario es el remitente (mensajes enviados)
-    // 2. recipientRole es 'all' o undefined (broadcast)
-    // 3. recipientRole coincide con el rol del usuario
-    // 4. recipientId coincide con el ID del usuario
+    // PACIENTE y FAMILIA: Solo ven mensajes dirigidos ESPECÍFICAMENTE a ellos
+    // NO deben ver comunicaciones internas del hospital
+    if (user.role === 'patient' || user.role === 'family') {
+      return chatMessages.filter(msg => {
+        // Solo mensajes dirigidos específicamente al usuario por ID
+        if (msg.recipientId === user.id) return true;
+        // O mensajes que el paciente/familiar ha enviado
+        if (msg.senderId === user.id) return true;
+        // NO mostrar broadcasts ni mensajes dirigidos a roles
+        return false;
+      });
+    }
+    
+    // Para el resto del personal clínico: filtrar por rol y permisos
     return chatMessages.filter(msg => {
       // Mensajes enviados por el usuario
       if (msg.senderId === user.id) return true;
       
-      // Mensajes broadcast (para todos)
+      // Mensajes broadcast (para personal del hospital, no pacientes)
       if (!msg.recipientRole || msg.recipientRole === 'all') return true;
       
       // Mensajes dirigidos al rol del usuario
@@ -861,14 +1046,38 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
   const getFilteredPatients = useCallback((): Patient[] => {
     if (!user) return [];
     
-    // Admin y roles con acceso total ven todos los pacientes
+    // Admin ve todos los pacientes
     if (user.role === 'admin') {
       return patients;
     }
     
-    // Para personal de limpieza, admisiones: mostrar datos básicos de todos
-    if (user.role === 'cleaning' || user.role === 'admission') {
+    // PACIENTE: Solo puede ver su propio perfil
+    if (user.role === 'patient') {
+      // El ID del usuario paciente debería coincidir con un patientId
+      return patients.filter(patient => 
+        patient.id === user.id || 
+        patient.dni === user.professionalId ||
+        patient.id === user.professionalId
+      );
+    }
+    
+    // FAMILIA: Solo puede ver el paciente vinculado
+    if (user.role === 'family') {
+      // El professionalId del familiar debería ser el ID del paciente relacionado
+      return patients.filter(patient => 
+        patient.id === user.professionalId ||
+        patient.dni === user.professionalId
+      );
+    }
+    
+    // Para personal de admisiones: mostrar todos los pacientes
+    if (user.role === 'admission') {
       return patients;
+    }
+    
+    // Para personal de limpieza: NO mostrar información de pacientes
+    if (user.role === 'cleaning') {
+      return [];
     }
     
     // Para médicos, enfermeras y otros roles clínicos: solo pacientes asignados

@@ -37,8 +37,9 @@ export default function PatientList() {
   const accessiblePatients = useMemo(() => getFilteredPatients(), [getFilteredPatients]);
   const visibilityFilter = getPatientVisibilityFilter();
   const isAdmin = user?.role === 'admin';
+  const isAdmission = user?.role === 'admission';
   const canCreatePatients = hasPermission('manage_admissions') || hasPermission('view_all_patients');
-  const canDeletePatients = hasPermission('view_all_patients'); // Solo admin
+  const canDeletePatients = hasPermission('view_all_patients') && isAdmin; // Solo admin puede eliminar
 
   const filteredPatients = accessiblePatients.filter(patient => {
     const matchesSearch = searchTerm === '' || 
@@ -84,7 +85,9 @@ export default function PatientList() {
           <p className="text-muted-foreground">
             {isAdmin 
               ? 'Administra la información de todos los pacientes'
-              : `Pacientes asignados a tu perfil profesional (${user?.professionalId || user?.id})`
+              : isAdmission
+                ? 'Registro y gestión de pacientes del hospital'
+                : `Pacientes asignados a tu perfil profesional (${user?.professionalId || user?.id})`
             }
           </p>
         </div>

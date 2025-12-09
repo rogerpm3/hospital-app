@@ -33,14 +33,14 @@ export default function MedicalEvolutionDialog() {
     recommendations: ""
   })
 
-  // Obtener pacientes filtrados según el rol del usuario
-  const availablePatients = getFilteredPatients().filter(p => p.roomId)
+  // Obtener pacientes filtrados según el rol del usuario (todos los asignados, no solo hospitalizados)
+  const availablePatients = getFilteredPatients()
   
   const filteredPatients = availablePatients.filter(patient => {
     const fullName = `${patient.firstName} ${patient.lastName}`.toLowerCase()
     return fullName.includes(patientSearch.toLowerCase()) ||
       patient.id.toLowerCase().includes(patientSearch.toLowerCase()) ||
-      patient.roomId?.toString().includes(patientSearch)
+      (patient.roomId && patient.roomId.toString().includes(patientSearch))
   })
 
   const evolutionTypes = [
@@ -146,7 +146,10 @@ export default function MedicalEvolutionDialog() {
                 
                 {filteredPatients.length === 0 ? (
                   <div className="p-4 text-center text-gray-500 border rounded-md">
-                    No hay pacientes hospitalizados disponibles
+                    {availablePatients.length === 0 
+                      ? 'No tiene pacientes asignados. Contacte con el administrador.'
+                      : 'No se encontraron pacientes con ese criterio de búsqueda'
+                    }
                   </div>
                 ) : (
                   <div className="max-h-48 overflow-y-auto border rounded-md">

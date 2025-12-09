@@ -273,16 +273,11 @@ export default function EnhancedDischargeDashboard() {
                           </div>
                         </div>
                         
-                        <div className="flex justify-between items-center">
-                          <div className="w-full bg-gray-200 rounded-full h-2 mr-4">
-                            <div 
-                              className="bg-blue-600 h-2 rounded-full" 
-                              style={{ width: `${progress}%` }}
-                            />
-                          </div>
-                          <Button size="sm" variant="outline">
-                            Ver Detalle
-                          </Button>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div 
+                            className="bg-blue-600 h-2 rounded-full transition-all" 
+                            style={{ width: `${progress}%` }}
+                          />
                         </div>
                       </div>
                     );

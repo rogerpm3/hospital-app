@@ -24,9 +24,29 @@ export default function LoginForm({ onForgotPassword }: LoginFormProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [failedAttempts, setFailedAttempts] = useState(0);
   const [isLocked, setIsLocked] = useState(false);
   const [lockTimeRemaining, setLockTimeRemaining] = useState(0);
+  
+  // Persistir contador de intentos fallidos en sessionStorage
+  const [failedAttempts, setFailedAttempts] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = sessionStorage.getItem('medinsight-failed-attempts');
+      return saved ? parseInt(saved, 10) : 0;
+    }
+    return 0;
+  });
+  
+  // Actualizar sessionStorage cuando cambian los intentos
+  const updateFailedAttempts = (newCount: number) => {
+    setFailedAttempts(newCount);
+    if (typeof window !== 'undefined') {
+      if (newCount === 0) {
+        sessionStorage.removeItem('medinsight-failed-attempts');
+      } else {
+        sessionStorage.setItem('medinsight-failed-attempts', newCount.toString());
+      }
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,7 +68,7 @@ export default function LoginForm({ onForgotPassword }: LoginFormProps) {
       }
 
       await login(dni, password, rememberMe, professionalId);
-      setFailedAttempts(0);
+      updateFailedAttempts(0);
       
       toast({
         title: "Acceso exitoso",
@@ -58,7 +78,7 @@ export default function LoginForm({ onForgotPassword }: LoginFormProps) {
 
     } catch (error) {
       const newFailedAttempts = failedAttempts + 1;
-      setFailedAttempts(newFailedAttempts);
+      updateFailedAttempts(newFailedAttempts);
 
       if (newFailedAttempts >= 3) {
         setIsLocked(true);
@@ -68,7 +88,7 @@ export default function LoginForm({ onForgotPassword }: LoginFormProps) {
           setLockTimeRemaining(prev => {
             if (prev <= 1) {
               setIsLocked(false);
-              setFailedAttempts(0);
+              updateFailedAttempts(0);
               clearInterval(countdown);
               return 0;
             }
@@ -82,9 +102,10 @@ export default function LoginForm({ onForgotPassword }: LoginFormProps) {
           variant: "destructive",
         });
       } else {
+        const remaining = 3 - newFailedAttempts;
         toast({
           title: "Error de autenticación",
-          description: `Credenciales incorrectas. Intentos restantes: ${3 - newFailedAttempts}`,
+          description: `Credenciales incorrectas. ${remaining === 1 ? 'Queda 1 intento' : `Quedan ${remaining} intentos`}`,
           variant: "destructive",
         });
       }
@@ -414,6 +435,18 @@ export default function LoginForm({ onForgotPassword }: LoginFormProps) {
           <div className="text-center text-xs text-gray-400 pt-4">
             <p>Sistema protegido con cifrado end-to-end</p>
             <p className="mt-1">v2.0.0 - MedInsight Platform</p>
+            <button
+              type="button"
+              onClick={() => {
+                // Importar y llamar showCookieConsent
+                import('@/components/cookie-consent').then(({ showCookieConsent }) => {
+                  showCookieConsent();
+                });
+              }}
+              className="mt-2 text-blue-500 hover:text-blue-600 hover:underline"
+            >
+              🍪 Gestionar cookies
+            </button>
           </div>
         </div>
       </div>

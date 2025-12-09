@@ -1002,6 +1002,7 @@ export const mockChatMessages: ChatMessage[] = [
 ];
 
 // Plantas y unidades hospitalarias mock
+// NOTA: Los IDs de habitaciones ahora coinciden con sqlRooms para sincronización
 export const mockHospitalFloors: HospitalFloor[] = [
   {
     id: 'floor-1',
@@ -1009,7 +1010,7 @@ export const mockHospitalFloors: HospitalFloor[] = [
     name: 'Planta 1 — Acceso, Urgencias y Consultas Externas',
     description: 'Servicios de acceso, emergencias y consultas ambulatorias',
     totalCapacity: 30,
-    currentOccupancy: 25,
+    currentOccupancy: 5,
     units: [
       {
         id: 'unit-emergency-obs',
@@ -1019,8 +1020,8 @@ export const mockHospitalFloors: HospitalFloor[] = [
         specialization: 'Emergency',
         description: 'Observación y estabilización de pacientes urgentes',
         isActive: true,
-        rooms: ['room-101', 'room-102', 'room-103'], // Habitaciones existentes
-        staff: ['2', '4', '6'] // Ana García, Luis Martínez, Javier Sánchez
+        rooms: ['P1_HO_101', 'P1_URG_102', 'P1_URG_103'], // IDs sincronizados con sqlRooms
+        staff: ['2', '4', '6']
       },
       {
         id: 'unit-emergency-surgery',
@@ -1030,8 +1031,8 @@ export const mockHospitalFloors: HospitalFloor[] = [
         specialization: 'Surgery',
         description: 'Quirófanos para cirugías de emergencia',
         isActive: true,
-        rooms: [],
-        staff: ['3'] // María Rodríguez
+        rooms: ['P3_UC_301'],
+        staff: ['3']
       },
       {
         id: 'unit-outpatient',
@@ -1042,7 +1043,7 @@ export const mockHospitalFloors: HospitalFloor[] = [
         description: 'Consultas ambulatorias especializadas',
         isActive: true,
         rooms: [],
-        staff: ['2', '3'] // Doctores
+        staff: ['2', '3']
       }
     ]
   },
@@ -1051,8 +1052,8 @@ export const mockHospitalFloors: HospitalFloor[] = [
     number: 2,
     name: 'Planta 2 — Cirugía, Recuperación y Traumatología',
     description: 'Servicios quirúrgicos y traumatológicos',
-    totalCapacity: 47,
-    currentOccupancy: 30,
+    totalCapacity: 20,
+    currentOccupancy: 3,
     units: [
       {
         id: 'unit-pacu',
@@ -1062,8 +1063,8 @@ export const mockHospitalFloors: HospitalFloor[] = [
         specialization: 'Recovery',
         description: 'Unidad de cuidados post-anestésicos',
         isActive: true,
-        rooms: [],
-        staff: ['4', '6'] // Enfermeros
+        rooms: ['P2_HMI_201'],
+        staff: ['4', '6']
       },
       {
         id: 'unit-surgical',
@@ -1073,7 +1074,7 @@ export const mockHospitalFloors: HospitalFloor[] = [
         specialization: 'Surgery',
         description: 'Hospitalización para pacientes quirúrgicos',
         isActive: true,
-        rooms: ['room-201'],
+        rooms: ['P2_CIR_201', 'P3_SC_302'],
         staff: ['2', '4']
       },
       {
@@ -1084,7 +1085,7 @@ export const mockHospitalFloors: HospitalFloor[] = [
         specialization: 'Trauma',
         description: 'Atención especializada en traumatología',
         isActive: true,
-        rooms: [],
+        rooms: ['P2_TRA_202', 'P5_TRU_501'],
         staff: ['3', '6']
       }
     ]
@@ -1094,25 +1095,25 @@ export const mockHospitalFloors: HospitalFloor[] = [
     number: 3,
     name: 'Planta 3 — Obstetricia, Materno-Infantil, Atención Domiciliaria',
     description: 'Servicios especializados en obstetricia y pediatría',
-    totalCapacity: 50,
-    currentOccupancy: 40,
+    totalCapacity: 20,
+    currentOccupancy: 2,
     units: [
       {
         id: 'unit-obstetrics',
         name: 'Hospitalización Obstétrica',
         floor: 3,
-        capacity: 30,
+        capacity: 15,
         specialization: 'Obstetrics',
         description: 'Atención integral a pacientes obstétricas',
         isActive: true,
-        rooms: [],
+        rooms: ['P3_OBS_301', 'P3_QUI_303'],
         staff: ['2', '4']
       },
       {
         id: 'unit-maternal',
         name: 'Hospitalización Materno-Infantil',
         floor: 3,
-        capacity: 20,
+        capacity: 5,
         specialization: 'Maternity',
         description: 'Cuidados madre-hijo',
         isActive: true,
@@ -1126,29 +1127,29 @@ export const mockHospitalFloors: HospitalFloor[] = [
     number: 4,
     name: 'Planta 4 — Hospitalización General y Medicina Interna',
     description: 'Servicios de hospitalización general',
-    totalCapacity: 50,
-    currentOccupancy: 42,
+    totalCapacity: 20,
+    currentOccupancy: 3,
     units: [
       {
         id: 'unit-general',
         name: 'Hospitalización General',
         floor: 4,
-        capacity: 30,
+        capacity: 10,
         specialization: 'General',
         description: 'Hospitalización médica general',
         isActive: true,
-        rooms: [],
+        rooms: ['P4_HG_330', 'P4_MED_401'],
         staff: ['3', '4']
       },
       {
         id: 'unit-internal',
         name: 'Medicina Interna',
         floor: 4,
-        capacity: 20,
+        capacity: 10,
         specialization: 'Internal Medicine',
         description: 'Especialidades médicas internas',
         isActive: true,
-        rooms: [],
+        rooms: ['P4_UCI_670'],
         staff: ['3']
       }
     ]
@@ -1156,32 +1157,32 @@ export const mockHospitalFloors: HospitalFloor[] = [
   {
     id: 'floor-5',
     number: 5,
-    name: 'Planta 5 — UCI y Cuidados Intermedios',
-    description: 'Cuidados intensivos y semi-intensivos',
-    totalCapacity: 28,
-    currentOccupancy: 25,
-    isRestricted: true,
+    name: 'Planta 5 — UCI y Hospitalización General',
+    description: 'Cuidados intensivos y hospitalización general',
+    totalCapacity: 20,
+    currentOccupancy: 2,
+    isRestricted: false,
     units: [
       {
         id: 'unit-icu',
         name: 'Unidad de Cuidados Intensivos (UCI)',
         floor: 5,
-        capacity: 20,
+        capacity: 10,
         specialization: 'ICU',
         description: 'Cuidados intensivos para pacientes críticos',
         isActive: true,
-        rooms: [],
-        staff: ['4', '6'] // Personal especializado UCI
+        rooms: ['P4_UCI_402'],
+        staff: ['4', '6']
       },
       {
         id: 'unit-stepdown',
-        name: 'Unidad de Cuidados Intermedios',
+        name: 'Hospitalización General',
         floor: 5,
-        capacity: 8,
-        specialization: 'Intermediate Care',
-        description: 'Cuidados semi-intensivos',
+        capacity: 10,
+        specialization: 'General',
+        description: 'Hospitalización general',
         isActive: true,
-        rooms: [],
+        rooms: ['P5_HG_501', 'P5_HG_502'],
         staff: ['4']
       }
     ]

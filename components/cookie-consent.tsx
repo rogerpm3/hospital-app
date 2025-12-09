@@ -4,8 +4,35 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Cookie, Shield, Settings, X } from 'lucide-react';
 
+// Evento global para mostrar el banner de cookies
+const SHOW_COOKIE_BANNER_EVENT = 'show-cookie-consent';
+
+// Función para mostrar el banner de cookies desde cualquier parte de la app
+export function showCookieConsent() {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent(SHOW_COOKIE_BANNER_EVENT));
+  }
+}
+
+// Función para resetear las preferencias de cookies (útil para testing)
+export function resetCookieConsent() {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('medinsight-cookie-consent');
+    window.dispatchEvent(new CustomEvent(SHOW_COOKIE_BANNER_EVENT));
+  }
+}
+
+// Función para verificar si hay consentimiento
+export function hasCookieConsent(): boolean {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('medinsight-cookie-consent') !== null;
+  }
+  return false;
+}
+
 export default function CookieConsent() {
-  const [showBanner, setShowBanner] = useState(false);
+  // Inicializar en null para evitar flash de contenido
+  const [showBanner, setShowBanner] = useState<boolean | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [preferences, setPreferences] = useState({
     necessary: true,
@@ -13,14 +40,22 @@ export default function CookieConsent() {
     analytics: false,
     marketing: false
   });
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
+    setIsClient(true);
     // Verificar si ya se aceptaron las cookies
     const consent = localStorage.getItem('medinsight-cookie-consent');
-    if (!consent) {
-      // Mostrar banner después de un pequeño delay
-      setTimeout(() => setShowBanner(true), 1000);
-    }
+    // Si NO hay consentimiento, mostrar el banner inmediatamente
+    setShowBanner(!consent);
+    
+    // Escuchar evento para mostrar el banner (desde el botón de preferencias)
+    const handleShowBanner = () => setShowBanner(true);
+    window.addEventListener(SHOW_COOKIE_BANNER_EVENT, handleShowBanner);
+    
+    return () => {
+      window.removeEventListener(SHOW_COOKIE_BANNER_EVENT, handleShowBanner);
+    };
   }, []);
 
   const acceptAll = () => {
@@ -57,16 +92,17 @@ export default function CookieConsent() {
     setShowBanner(false);
   };
 
-  if (!showBanner) return null;
+  // No renderizar nada en el servidor o mientras se verifica el estado
+  if (!isClient || showBanner === null || !showBanner) return null;
 
   return (
     <>
-      {/* Overlay oscuro */}
-      <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-[9998]" />
+      {/* Overlay oscuro que bloquea toda la aplicación */}
+      <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-[9998]" />
       
-      {/* Banner de cookies */}
-      <div className="fixed bottom-0 left-0 right-0 z-[9999] p-4 md:p-6">
-        <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden">
+      {/* Banner de cookies centrado */}
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 md:p-6">
+        <div className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden">
           {!showSettings ? (
             // Vista principal
             <div className="p-6">

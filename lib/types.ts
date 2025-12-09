@@ -843,10 +843,11 @@ export const rolePermissions: Record<UserRole, string[]> = {
     'schedule_imaging', 'upload_images'
   ],
   admission: [
-    'manage_admissions', 'manage_appointments', 'view_patients', 'manage_bed_assignments',
-    'view_room_availability', 'view_communication', 'patient_registration', 'view_hospital_floors',
-    'create_patient_profiles', 'verify_identity', 'manage_insurance', 'manage_waiting_list',
-    'initial_bed_assignment', 'manage_transfers', 'view_hospital_status'
+    'manage_admissions', 'manage_appointments', 'view_patients', 'view_all_patients',
+    'manage_bed_assignments', 'manage_rooms', 'view_room_availability', 'view_communication', 
+    'patient_registration', 'view_hospital_floors', 'create_patient_profiles', 'verify_identity', 
+    'manage_insurance', 'manage_waiting_list', 'initial_bed_assignment', 'manage_transfers', 
+    'view_hospital_status', 'view_full_patient_data', 'manage_staff_limited'
   ],
   social_work: [
     'view_patients', 'manage_discharge_planning', 'coordinate_home_care', 
@@ -891,15 +892,15 @@ export const roleMenuItems: Record<UserRole, string[]> = {
   ],
   admission: [
     'dashboard', 'hospital-floors', 'patients', 'admissions', 'appointments', 
-    'bed-management', 'rooms', 'communication', 'patient-registration'
+    'rooms', 'communication'
   ],
   social_work: [
     'dashboard', 'patients', 'discharge', 'communication'
   ],
   patient: [
-    'dashboard', 'appointments', 'records', 'communication', 'my-schedule'
+    'dashboard', 'appointments', 'satisfaction-survey'
   ],
   family: [
-    'dashboard', 'patient-status', 'communication', 'visiting-hours'
+    'patient-status', 'visiting-hours'
   ]
 };

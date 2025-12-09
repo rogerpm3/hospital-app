@@ -56,6 +56,9 @@ import PrivacySettingsDashboard from '../privacy/privacy-settings-dashboard';
 // Componente de gestión de usuarios
 import UserManagementDashboard from '../user-management/user-management-dashboard';
 
+// Componente de encuesta de satisfacción del paciente
+import SatisfactionSurvey from '../patient/satisfaction-survey';
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -71,7 +74,10 @@ import {
   Building2,
   Stethoscope,
   Bot,
-  MessageSquare
+  MessageSquare,
+  Heart,
+  Phone,
+  FileText
 } from 'lucide-react';
 
 interface DashboardContentProps {
@@ -440,6 +446,189 @@ export default function DashboardContent({ activeSection, setActiveSection }: Da
           </div>
         );
 
+      // Dashboard específico para pacientes - sin datos globales del hospital
+      case 'patient':
+        return (
+          <div className="space-y-6">
+            <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
+                    <Heart className="h-8 w-8 text-blue-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-semibold text-blue-900">
+                      ¡Bienvenido/a a tu portal de paciente!
+                    </h2>
+                    <p className="text-blue-700">
+                      Aquí puedes ver tus citas y gestionar tu información médica.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Mis Próximas Citas</CardTitle>
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-blue-600">
+                    {appointments.filter(apt => {
+                      const now = new Date();
+                      return apt.date >= now;
+                    }).length}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Citas programadas
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Tu Médico Asignado</CardTitle>
+                  <Stethoscope className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-lg font-semibold">Dr. García López</div>
+                  <p className="text-xs text-muted-foreground">
+                    Medicina General
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Acceso Rápido</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start"
+                    onClick={() => setActiveSection('appointments')}
+                  >
+                    <Calendar className="mr-2 h-4 w-4" />
+                    Ver mis citas
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start"
+                    onClick={() => setActiveSection('satisfaction-survey')}
+                  >
+                    <MessageSquare className="mr-2 h-4 w-4" />
+                    Encuesta de satisfacción
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Información Personal</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2 text-sm">
+                    <p><strong>Nombre:</strong> {user.firstName} {user.lastName}</p>
+                    <p><strong>DNI:</strong> {user.dni}</p>
+                    {user.phone && <p><strong>Teléfono:</strong> {user.phone}</p>}
+                    {user.email && <p><strong>Email:</strong> {user.email}</p>}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card className="bg-green-50 border-green-200">
+              <CardContent className="pt-4">
+                <div className="flex items-center gap-3">
+                  <Heart className="h-5 w-5 text-green-600" />
+                  <div>
+                    <p className="font-medium text-green-900">
+                      ¿Cómo fue tu experiencia?
+                    </p>
+                    <p className="text-sm text-green-700">
+                      Tu opinión es importante para nosotros. 
+                      <Button 
+                        variant="link" 
+                        className="text-green-700 font-semibold p-0 h-auto ml-1"
+                        onClick={() => setActiveSection('satisfaction-survey')}
+                      >
+                        Completa nuestra encuesta de satisfacción
+                      </Button>
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        );
+
+      // Dashboard específico para familiares - sin datos globales del hospital
+      case 'family':
+        return (
+          <div className="space-y-6">
+            <Card className="bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center">
+                    <Users className="h-8 w-8 text-purple-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-semibold text-purple-900">
+                      Portal para Familiares
+                    </h2>
+                    <p className="text-purple-700">
+                      Mantente informado sobre el estado de tu ser querido.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Heart className="h-5 w-5 text-red-500" />
+                  Estado del Paciente
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                    <span className="font-medium text-green-800">Estable</span>
+                  </div>
+                  <p className="text-sm text-green-700">
+                    El paciente se encuentra en buen estado. 
+                    Última actualización hace 2 horas.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Horarios de Visita</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <span className="font-medium">Mañana</span>
+                    <span className="text-muted-foreground">10:00 - 13:00</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <span className="font-medium">Tarde</span>
+                    <span className="text-muted-foreground">16:00 - 20:00</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        );
+
       default:
         return (
           <div className="space-y-6">
@@ -549,54 +738,9 @@ export default function DashboardContent({ activeSection, setActiveSection }: Da
     case 'user-management':
       return <UserManagementDashboard />;
 
-    // Vistas para pacientes
-    case 'my-schedule':
-    case 'records':
-      return (
-        <div className="p-6 space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">Mi Portal de Paciente</h1>
-              <p className="text-muted-foreground">Gestiona tu información y citas médicas</p>
-            </div>
-          </div>
-          <div className="grid gap-6 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5" />
-                  Mis Próximas Citas
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                    <p className="font-medium">Consulta General</p>
-                    <p className="text-sm text-muted-foreground">Dr. García - 15 Dic 2024, 10:00</p>
-                  </div>
-                  <div className="p-3 bg-gray-50 rounded-lg border">
-                    <p className="font-medium">Revisión Cardiología</p>
-                    <p className="text-sm text-muted-foreground">Dra. Rodríguez - 20 Dic 2024, 15:30</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>Información Personal</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2 text-sm">
-                  <p><strong>Nombre:</strong> {user.firstName} {user.lastName}</p>
-                  <p><strong>DNI:</strong> {user.dni}</p>
-                  <p><strong>Teléfono:</strong> {user.phone}</p>
-                  <p><strong>Email:</strong> {user.email}</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      );
+    // Encuesta de satisfacción del paciente
+    case 'satisfaction-survey':
+      return <SatisfactionSurvey />;
 
     // Vistas para familiares
     case 'patient-status':
@@ -604,43 +748,136 @@ export default function DashboardContent({ activeSection, setActiveSection }: Da
         <div className="p-6 space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">Estado del Paciente</h1>
-              <p className="text-muted-foreground">Información de tu familiar hospitalizado</p>
+              <h1 className="text-3xl font-bold tracking-tight">Estado Clínico del Paciente</h1>
+              <p className="text-muted-foreground">Información actualizada de tu familiar hospitalizado</p>
             </div>
           </div>
-          <Card>
-            <CardHeader>
-              <CardTitle>Información del Paciente</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                    <p className="text-sm text-green-600 font-medium">Estado Actual</p>
-                    <p className="text-xl font-bold text-green-700">Estable</p>
+
+          {/* Estado general destacado */}
+          <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                  <Heart className="h-8 w-8 text-green-600" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-3">
+                    <h2 className="text-2xl font-bold text-green-800">Estado: Estable</h2>
+                    <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Ubicación</p>
-                    <p className="font-medium">Planta 3 - Habitación 302, Cama A</p>
+                  <p className="text-green-700">Última actualización: Hoy a las 14:30</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Información principal */}
+          <div className="grid gap-6 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5 text-blue-500" />
+                  Datos de Hospitalización
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <p className="text-xs text-muted-foreground">Ubicación</p>
+                    <p className="font-semibold">Planta 3 - Hab. 302</p>
+                    <p className="text-sm text-muted-foreground">Cama A</p>
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Médico Responsable</p>
-                    <p className="font-medium">Dr. Ana García</p>
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <p className="text-xs text-muted-foreground">Médico Responsable</p>
+                    <p className="font-semibold">Dra. Ana García</p>
+                    <p className="text-sm text-muted-foreground">Medicina Interna</p>
                   </div>
                 </div>
-                <div className="space-y-4">
+                <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <p className="text-xs text-blue-600 font-medium">Motivo de Ingreso</p>
+                  <p className="font-semibold text-blue-900">Observación post-operatoria</p>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-sm text-muted-foreground">Motivo de Ingreso</p>
-                    <p className="font-medium">Observación post-operatoria</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Fecha de Ingreso</p>
+                    <p className="text-xs text-muted-foreground">Fecha de Ingreso</p>
                     <p className="font-medium">10 Dic 2024</p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Alta Estimada</p>
-                    <p className="font-medium">14 Dic 2024</p>
+                    <p className="text-xs text-muted-foreground">Alta Estimada</p>
+                    <p className="font-medium text-green-600">14 Dic 2024</p>
                   </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="h-5 w-5 text-red-500" />
+                  Últimos Signos Vitales
+                </CardTitle>
+                <p className="text-xs text-muted-foreground">Registrados hoy a las 08:00</p>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 bg-gray-50 rounded-lg text-center">
+                    <p className="text-xs text-muted-foreground">Presión Arterial</p>
+                    <p className="text-lg font-bold text-blue-600">120/80</p>
+                    <p className="text-xs text-green-600">Normal</p>
+                  </div>
+                  <div className="p-3 bg-gray-50 rounded-lg text-center">
+                    <p className="text-xs text-muted-foreground">Frecuencia Cardíaca</p>
+                    <p className="text-lg font-bold text-red-600">72</p>
+                    <p className="text-xs text-green-600">Normal</p>
+                  </div>
+                  <div className="p-3 bg-gray-50 rounded-lg text-center">
+                    <p className="text-xs text-muted-foreground">Temperatura</p>
+                    <p className="text-lg font-bold text-orange-600">36.5°C</p>
+                    <p className="text-xs text-green-600">Normal</p>
+                  </div>
+                  <div className="p-3 bg-gray-50 rounded-lg text-center">
+                    <p className="text-xs text-muted-foreground">Saturación O₂</p>
+                    <p className="text-lg font-bold text-cyan-600">98%</p>
+                    <p className="text-xs text-green-600">Normal</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Evolución clínica */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-purple-500" />
+                Última Evolución Médica
+              </CardTitle>
+              <p className="text-xs text-muted-foreground">9 Dic 2024 - 18:45</p>
+            </CardHeader>
+            <CardContent>
+              <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+                <p className="text-sm text-purple-900">
+                  Paciente evoluciona favorablemente. Tolerancia oral adecuada. 
+                  Herida quirúrgica con buen aspecto, sin signos de infección. 
+                  Se mantiene tratamiento actual. Pendiente resultado de analítica de control.
+                  <span className="block mt-2 text-xs text-purple-600">— Dra. Ana García</span>
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Información de contacto */}
+          <Card className="bg-blue-50 border-blue-200">
+            <CardContent className="pt-4">
+              <div className="flex items-center gap-3">
+                <Phone className="h-5 w-5 text-blue-600" />
+                <div>
+                  <p className="font-medium text-blue-900">
+                    ¿Tienes dudas sobre el estado de tu familiar?
+                  </p>
+                  <p className="text-sm text-blue-700">
+                    Contacta con el control de enfermería de Planta 3: <strong>Ext. 3302</strong>
+                  </p>
                 </div>
               </div>
             </CardContent>

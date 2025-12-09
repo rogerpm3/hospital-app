@@ -128,12 +128,12 @@ export default function AIAssistantDashboard() {
           </div>
           <div>
             <h1 className="text-3xl font-bold">Asistente IA - MediBot</h1>
-            <p className="text-muted-foreground">
-              Tu asistente inteligente para tareas hospitalarias • 
-              <Badge variant={assistant?.status === 'online' ? 'default' : 'secondary'} className="ml-2">
+            <div className="text-muted-foreground flex items-center gap-2">
+              <span>Tu asistente inteligente para tareas hospitalarias</span>
+              <Badge variant={assistant?.status === 'online' ? 'default' : 'secondary'}>
                 {assistant?.status === 'online' ? 'En Línea' : 'Ocupado'}
               </Badge>
-            </p>
+            </div>
           </div>
         </div>
       </div>

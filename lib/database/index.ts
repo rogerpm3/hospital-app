@@ -1,10 +1,10 @@
 /**
  * Database Module - Exportaciones centralizadas
  * 
- * Este módulo proporciona acceso a la base de datos SQL del hospital
+ * Este módulo proporciona acceso a la base de datos SQLite del hospital
  */
 
-// Parser SQL
+// Parser SQL (mantenido para compatibilidad)
 export { 
   parseSQLContent, 
   generateSQLContent, 
@@ -33,38 +33,72 @@ export {
   generateId
 } from './data-adapter';
 
-// Servicio de base de datos
-export {
-  initializeDatabase,
-  saveDatabase,
-  resetDatabase,
-  getPatients,
-  getPatientById,
-  getStaff,
-  getStaffById,
-  getRoomsAndBeds,
-  getMedications,
-  getMedicalOrders,
-  getVitalSigns,
-  getServices,
-  getAdmissions,
-  getHospitalUnits,
-  getDiagnoses,
-  addPatient,
-  updatePatient,
-  deletePatient,
-  addStaff,
-  updateStaff,
-  addVitalSignsRecord,
-  addMedicalOrder,
-  updateBedStatus,
-  addMedicationAdministration,
-  addNursingDocument,
-  createEpisode,
-  registerMovement,
-  dischargePatient,
-  exportAllData,
-  getRawTables,
-  isDatabaseLoaded
-} from './db-service';
+// ============================================
+// SERVICIO SQLITE - Exportaciones principales
+// ============================================
 
+export {
+  // Inicialización
+  initializeSQLiteDatabase as initializeDatabase,
+  closeSQLiteDatabase as closeDatabase,
+  resetSQLiteDatabase as resetDatabase,
+  isSQLiteDatabaseLoaded as isDatabaseLoaded,
+  
+  // Lectura de datos
+  getPatientsSQLite as getPatients,
+  getPatientByIdSQLite as getPatientById,
+  getStaffSQLite as getStaff,
+  getStaffByIdSQLite as getStaffById,
+  getRoomsAndBedsSQLite as getRoomsAndBeds,
+  getMedicationsSQLite as getMedications,
+  getMedicalOrdersSQLite as getMedicalOrders,
+  getVitalSignsSQLite as getVitalSigns,
+  getServicesSQLite as getServices,
+  getAdmissionsSQLite as getAdmissions,
+  getHospitalUnitsSQLite as getHospitalUnits,
+  getDiagnosesSQLite as getDiagnoses,
+  
+  // Escritura de datos - Pacientes
+  addPatientSQLite as addPatient,
+  updatePatientSQLite as updatePatient,
+  deletePatientSQLite as deletePatient,
+  
+  // Escritura de datos - Personal
+  addStaffSQLite as addStaff,
+  updateStaffSQLite as updateStaff,
+  deleteStaffSQLite as deleteStaff,
+  
+  // Escritura de datos - Signos vitales
+  addVitalSignsRecordSQLite as addVitalSignsRecord,
+  
+  // Escritura de datos - Órdenes médicas
+  addMedicalOrderSQLite as addMedicalOrder,
+  
+  // Escritura de datos - Camas
+  updateBedStatusSQLite as updateBedStatus,
+  
+  // Escritura de datos - Medicación
+  addMedicationAdministrationSQLite as addMedicationAdministration,
+  
+  // Escritura de datos - Enfermería
+  addNursingDocumentSQLite as addNursingDocument,
+  
+  // Escritura de datos - Episodios y movimientos
+  createEpisodeSQLite as createEpisode,
+  registerMovementSQLite as registerMovement,
+  dischargePatientSQLite as dischargePatient,
+  
+  // Exportación
+  exportAllDataSQLite as exportAllData
+} from './sqlite-service';
+
+// Función dummy para saveDatabase (SQLite guarda automáticamente)
+export async function saveDatabase(): Promise<boolean> {
+  // SQLite guarda automáticamente, no se necesita acción
+  return true;
+}
+
+// Función para obtener tablas crudas (compatibilidad)
+export function getRawTables() {
+  return { masterTables: {}, dataTables: {} };
+}

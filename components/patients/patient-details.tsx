@@ -1,17 +1,24 @@
 'use client';
 
 import { useHospital } from '@/lib/hospital-context';
+import { useAuth } from '@/lib/auth-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { User, Phone, Mail, MapPin, Heart, Calendar, AlertTriangle } from 'lucide-react';
+import { User, Phone, Mail, MapPin, Heart, Calendar, AlertTriangle, Shield, Lock } from 'lucide-react';
 
 interface PatientDetailsProps {
   patientId: string;
 }
 
 export default function PatientDetails({ patientId }: PatientDetailsProps) {
-  const { patients, vitalSigns, medications, medicalRecords } = useHospital();
+  const { patients, vitalSigns, medications, medicalRecords, getPatientVisibilityFilter } = useHospital();
+  const { user } = useAuth();
+  
+  // Obtener filtro de visibilidad según el rol
+  const visibilityFilter = getPatientVisibilityFilter();
+  const isPatientOrFamily = user?.role === 'patient' || user?.role === 'family';
+  const isOwnProfile = user?.role === 'patient' && (user.id === patientId || user.professionalId === patientId);
   
   const patient = patients.find(p => p.id === patientId);
   const patientVitals = vitalSigns.filter(vs => vs.patientId === patientId);
@@ -19,18 +26,98 @@ export default function PatientDetails({ patientId }: PatientDetailsProps) {
   const patientRecords = medicalRecords.filter(record => record.patientId === patientId);
 
   if (!patient) {
-    return <div>Paciente no encontrado</div>;
+    return <div className="text-gray-900">Paciente no encontrado</div>;
   }
 
   const age = new Date().getFullYear() - patient.dateOfBirth.getFullYear();
   const latestVitals = patientVitals.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0];
 
+  // Para familia, mostrar vista limitada
+  if (user?.role === 'family' && !isOwnProfile) {
+    return (
+      <div className="space-y-6 max-h-[70vh] overflow-y-auto">
+        <Card className="bg-blue-50 border-blue-200">
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-3">
+              <Lock className="h-5 w-5 text-blue-600" />
+              <div>
+                <p className="font-medium text-blue-900">Vista de Familiar</p>
+                <p className="text-sm text-blue-700">
+                  Como familiar, tienes acceso limitado a la información del paciente.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-gray-900">
+              <User className="h-5 w-5" />
+              Información Básica
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div>
+                <label className="text-sm font-medium text-gray-600">Nombre:</label>
+                <p className="text-gray-900">{patient.firstName} {patient.lastName}</p>
+              </div>
+              {patient.roomId && (
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Habitación:</label>
+                  <p className="text-gray-900">Habitación {patient.roomId}</p>
+                </div>
+              )}
+              {patient.currentCondition && (
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Estado General:</label>
+                  <Badge variant={
+                    patient.currentCondition === 'Critical' ? 'destructive' :
+                    patient.currentCondition === 'Serious' ? 'outline' : 'secondary'
+                  }>
+                    {patient.currentCondition === 'Stable' ? 'Estable' :
+                     patient.currentCondition === 'Serious' ? 'Serio' :
+                     patient.currentCondition === 'Critical' ? 'Crítico' : patient.currentCondition}
+                  </Badge>
+                </div>
+              )}
+              {patient.attendingPhysician && (
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Médico responsable:</label>
+                  <p className="text-gray-900">{patient.attendingPhysician}</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 max-h-[70vh] overflow-y-auto">
+      {/* Banner para paciente viendo su propio perfil */}
+      {isOwnProfile && (
+        <Card className="bg-green-50 border-green-200">
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-3">
+              <Shield className="h-5 w-5 text-green-600" />
+              <div>
+                <p className="font-medium text-green-900">Mi Perfil de Salud</p>
+                <p className="text-sm text-green-700">
+                  Esta es tu información médica personal. Algunos datos solo pueden ser modificados por el personal médico.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      
       {/* Información personal */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-gray-900">
             <User className="h-5 w-5" />
             Información Personal
           </CardTitle>
@@ -40,10 +127,14 @@ export default function PatientDetails({ patientId }: PatientDetailsProps) {
             <div>
               <div className="space-y-3">
                 <div>
-                  <h3 className="text-lg font-semibold">
-                    {patient.firstName} {patient.lastName}
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    {visibilityFilter?.mostrarNombreCompleto 
+                      ? `${patient.firstName} ${patient.lastName}`
+                      : patient.anonymousId || `Paciente`}
                   </h3>
-                  <p className="text-muted-foreground">DNI: {patient.dni}</p>
+                  {visibilityFilter?.mostrarDNI && (
+                    <p className="text-gray-600">DNI: {patient.dni}</p>
+                  )}
                 </div>
                 
                 <div className="flex items-center gap-2 text-sm">
@@ -119,19 +210,21 @@ export default function PatientDetails({ patientId }: PatientDetailsProps) {
         </CardContent>
       </Card>
 
-      {/* Contacto de emergencia */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Contacto de Emergencia</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            <p><strong>Nombre:</strong> {patient.emergencyContact.name}</p>
-            <p><strong>Relación:</strong> {patient.emergencyContact.relationship}</p>
-            <p><strong>Teléfono:</strong> {patient.emergencyContact.phone}</p>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Contacto de emergencia - solo si tiene permiso */}
+      {visibilityFilter?.mostrarContactosEmergencia && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-gray-900">Contacto de Emergencia</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <p className="text-gray-900"><strong className="text-gray-600">Nombre:</strong> {patient.emergencyContact.name}</p>
+              <p className="text-gray-900"><strong className="text-gray-600">Relación:</strong> {patient.emergencyContact.relationship}</p>
+              <p className="text-gray-900"><strong className="text-gray-600">Teléfono:</strong> {patient.emergencyContact.phone}</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Alergias */}
       {patient.allergies.length > 0 && (
@@ -191,11 +284,11 @@ export default function PatientDetails({ patientId }: PatientDetailsProps) {
         </Card>
       )}
 
-      {/* Medicaciones actuales */}
-      {patientMedications.length > 0 && (
+      {/* Medicaciones actuales - solo si tiene permiso */}
+      {visibilityFilter?.mostrarMedicaciones && patientMedications.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Medicaciones Actuales</CardTitle>
+            <CardTitle className="text-gray-900">Medicaciones Actuales</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
@@ -203,15 +296,15 @@ export default function PatientDetails({ patientId }: PatientDetailsProps) {
                 <div key={medication.id} className="p-3 border rounded-lg">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h4 className="font-semibold">{medication.name}</h4>
-                      <p className="text-sm text-muted-foreground">
+                      <h4 className="font-semibold text-gray-900">{medication.name}</h4>
+                      <p className="text-sm text-gray-600">
                         {medication.dosage} - {medication.frequency} - {medication.route}
                       </p>
                     </div>
                     <Badge variant="outline">{medication.status}</Badge>
                   </div>
                   {medication.instructions && (
-                    <p className="text-sm mt-2 text-muted-foreground">
+                    <p className="text-sm mt-2 text-gray-500">
                       {medication.instructions}
                     </p>
                   )}
@@ -222,27 +315,27 @@ export default function PatientDetails({ patientId }: PatientDetailsProps) {
         </Card>
       )}
 
-      {/* Historial médico */}
-      {patient.medicalHistory.length > 0 && (
+      {/* Historial médico - solo si tiene permiso */}
+      {visibilityFilter?.mostrarHistorialMedico && patient.medicalHistory.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Historial Médico</CardTitle>
+            <CardTitle className="text-gray-900">Historial Médico</CardTitle>
           </CardHeader>
           <CardContent>
             <ul className="space-y-1">
               {patient.medicalHistory.map((condition, index) => (
-                <li key={index} className="text-sm">• {condition}</li>
+                <li key={index} className="text-sm text-gray-900">• {condition}</li>
               ))}
             </ul>
           </CardContent>
         </Card>
       )}
 
-      {/* Registros médicos recientes */}
-      {patientRecords.length > 0 && (
+      {/* Registros médicos recientes - solo si tiene permiso */}
+      {visibilityFilter?.mostrarHistorialMedico && patientRecords.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Registros Médicos Recientes</CardTitle>
+            <CardTitle className="text-gray-900">Registros Médicos Recientes</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -250,16 +343,30 @@ export default function PatientDetails({ patientId }: PatientDetailsProps) {
                 <div key={record.id} className="p-3 border rounded-lg">
                   <div className="flex items-center justify-between mb-2">
                     <Badge variant="outline">{record.type}</Badge>
-                    <span className="text-sm text-muted-foreground">
+                    <span className="text-sm text-gray-500">
                       {record.date.toLocaleDateString()}
                     </span>
                   </div>
-                  <p className="text-sm">{record.description}</p>
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-sm text-gray-900">{record.description}</p>
+                  <p className="text-xs text-gray-500 mt-1">
                     Por: {record.physician}
                   </p>
                 </div>
               ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      
+      {/* Mensaje de información restringida para roles sin permisos completos */}
+      {!visibilityFilter?.mostrarHistorialMedico && !isPatientOrFamily && (
+        <Card className="bg-gray-50 border-gray-200">
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-3">
+              <Lock className="h-5 w-5 text-gray-400" />
+              <p className="text-sm text-gray-500">
+                Algunos datos clínicos no están disponibles para tu nivel de acceso.
+              </p>
             </div>
           </CardContent>
         </Card>

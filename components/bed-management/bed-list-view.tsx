@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Table, 
@@ -15,7 +16,7 @@ import {
   TableHeader, 
   TableRow 
 } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/lib/auth-context';
 import BedReservationDialog from './bed-reservation-dialog';
@@ -30,12 +31,14 @@ import {
   AlertCircle,
   CheckCircle,
   Wrench,
-  CalendarClock
+  CalendarClock,
+  UserPlus,
+  Sparkles
 } from 'lucide-react';
 import { Bed as BedType } from '@/lib/types';
 
 export default function BedListView() {
-  const { rooms, beds, patients, updateBedStatus, reserveBed } = useHospital();
+  const { rooms, beds, patients, staff, updateBedStatus, updateBedCleaning, reserveBed, updatePatient } = useHospital();
   const { user } = useAuth();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
@@ -46,6 +49,20 @@ export default function BedListView() {
   const [selectedBed, setSelectedBed] = useState<BedType | null>(null);
   const [showReservationDialog, setShowReservationDialog] = useState(false);
   const [bedToReserve, setBedToReserve] = useState<BedType | null>(null);
+  
+  // Estados para diálogos de asignación
+  const [showAssignPatientDialog, setShowAssignPatientDialog] = useState(false);
+  const [showAssignCleanerDialog, setShowAssignCleanerDialog] = useState(false);
+  const [bedForAssignment, setBedForAssignment] = useState<BedType | null>(null);
+  const [selectedPatientId, setSelectedPatientId] = useState('');
+  const [selectedCleanerId, setSelectedCleanerId] = useState('');
+  const [pendingBedStatus, setPendingBedStatus] = useState<string>('');
+  
+  // Obtener pacientes sin cama asignada (para asignar a camas)
+  const availablePatients = patients.filter(p => !p.roomId);
+  
+  // Obtener personal de limpieza
+  const cleaningStaff = staff.filter(s => s.role === 'cleaning');
   
   // Obtener pisos únicos
   const floors = [...new Set(rooms.map(room => room.floor))].sort((a, b) => a - b);
@@ -127,8 +144,90 @@ export default function BedListView() {
     }
   };
 
+  // Manejar cambio de estado con diálogos cuando es necesario
   const handleStatusChange = (bedId: string, newStatus: string) => {
+    const bed = beds.find(b => b.id === bedId);
+    if (!bed) return;
+    
+    // Si cambia a "Ocupada", solicitar paciente
+    if (newStatus === 'Occupied') {
+      setBedForAssignment(bed);
+      setPendingBedStatus(newStatus);
+      setShowAssignPatientDialog(true);
+      return;
+    }
+    
+    // Si cambia a "Requiere Limpieza" o "En proceso de limpieza", permitir asignar limpiador
+    if (newStatus === 'Cleaning Required') {
+      setBedForAssignment(bed);
+      setPendingBedStatus(newStatus);
+      setShowAssignCleanerDialog(true);
+      return;
+    }
+    
+    // Para otros estados, cambiar directamente
     updateBedStatus(bedId, newStatus as any);
+  };
+  
+  // Confirmar asignación de paciente a la cama
+  const handleAssignPatient = () => {
+    if (!bedForAssignment || !selectedPatientId) {
+      toast({
+        title: "Error",
+        description: "Debe seleccionar un paciente",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const room = rooms.find(r => r.id === bedForAssignment.roomId);
+    
+    // Actualizar estado de la cama
+    updateBedStatus(bedForAssignment.id, pendingBedStatus as any);
+    
+    // Asignar paciente a la habitación/cama
+    updatePatient(selectedPatientId, {
+      roomId: room?.id,
+      bedNumber: bedForAssignment.number
+    });
+    
+    const patient = patients.find(p => p.id === selectedPatientId);
+    
+    toast({
+      title: "Paciente asignado",
+      description: `${patient?.firstName} ${patient?.lastName} asignado a Hab. ${room?.number} - Cama ${bedForAssignment.number}`,
+    });
+    
+    // Limpiar estado
+    setShowAssignPatientDialog(false);
+    setBedForAssignment(null);
+    setSelectedPatientId('');
+    setPendingBedStatus('');
+  };
+  
+  // Confirmar asignación de personal de limpieza
+  const handleAssignCleaner = () => {
+    if (!bedForAssignment) return;
+    
+    const cleaner = staff.find(s => s.id === selectedCleanerId);
+    const cleanerName = cleaner ? `${cleaner.firstName} ${cleaner.lastName}` : undefined;
+    
+    // Actualizar estado de limpieza de la cama
+    updateBedCleaning(bedForAssignment.id, 'In Progress', cleanerName);
+    updateBedStatus(bedForAssignment.id, pendingBedStatus as any);
+    
+    toast({
+      title: "Estado de limpieza actualizado",
+      description: cleanerName 
+        ? `Tarea de limpieza asignada a ${cleanerName}`
+        : `Cama marcada para limpieza`,
+    });
+    
+    // Limpiar estado
+    setShowAssignCleanerDialog(false);
+    setBedForAssignment(null);
+    setSelectedCleanerId('');
+    setPendingBedStatus('');
   };
 
   return (
@@ -492,6 +591,111 @@ export default function BedListView() {
           room={rooms.find(r => r.id === bedToReserve.roomId)}
         />
       )}
+      
+      {/* Diálogo de asignación de paciente */}
+      <Dialog open={showAssignPatientDialog} onOpenChange={(open) => {
+        setShowAssignPatientDialog(open);
+        if (!open) {
+          setBedForAssignment(null);
+          setSelectedPatientId('');
+          setPendingBedStatus('');
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserPlus className="h-5 w-5 text-blue-600" />
+              Asignar Paciente a Cama
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-muted-foreground">
+              Seleccione el paciente que ocupará la cama {bedForAssignment?.number} 
+              en la habitación {rooms.find(r => r.id === bedForAssignment?.roomId)?.number}
+            </p>
+            <div className="space-y-2">
+              <Label>Paciente *</Label>
+              <Select value={selectedPatientId} onValueChange={setSelectedPatientId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar paciente..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {availablePatients.length === 0 ? (
+                    <SelectItem value="none" disabled>
+                      No hay pacientes disponibles
+                    </SelectItem>
+                  ) : (
+                    availablePatients.map(patient => (
+                      <SelectItem key={patient.id} value={patient.id}>
+                        {patient.firstName} {patient.lastName} - {patient.dni}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAssignPatientDialog(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleAssignPatient} disabled={!selectedPatientId}>
+              <UserPlus className="h-4 w-4 mr-2" />
+              Asignar Paciente
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Diálogo de asignación de personal de limpieza */}
+      <Dialog open={showAssignCleanerDialog} onOpenChange={(open) => {
+        setShowAssignCleanerDialog(open);
+        if (!open) {
+          setBedForAssignment(null);
+          setSelectedCleanerId('');
+          setPendingBedStatus('');
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-orange-600" />
+              Asignar Personal de Limpieza
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-muted-foreground">
+              Asigne el personal de limpieza responsable de la cama {bedForAssignment?.number} 
+              en la habitación {rooms.find(r => r.id === bedForAssignment?.roomId)?.number}
+            </p>
+            <div className="space-y-2">
+              <Label>Personal de Limpieza (opcional)</Label>
+              <Select value={selectedCleanerId} onValueChange={setSelectedCleanerId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar personal..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sin asignar</SelectItem>
+                  {cleaningStaff.map(cleaner => (
+                    <SelectItem key={cleaner.id} value={cleaner.id}>
+                      {cleaner.firstName} {cleaner.lastName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAssignCleanerDialog(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleAssignCleaner}>
+              <Sparkles className="h-4 w-4 mr-2" />
+              Confirmar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

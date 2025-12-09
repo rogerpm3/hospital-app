@@ -13,16 +13,20 @@ import {
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import { Bell, Menu, Settings, LogOut, User, Shield, MessageSquare, CheckCheck } from 'lucide-react';
+import { Bell, Menu, Settings, LogOut, User, Shield, MessageSquare, CheckCheck, ArrowLeft, Home } from 'lucide-react';
 
 interface HeaderProps {
   onToggleSidebar: () => void;
   title: string;
+  activeSection?: string;
+  onNavigateBack?: () => void;
 }
 
-export default function Header({ onToggleSidebar, title }: HeaderProps) {
+export default function Header({ onToggleSidebar, title, activeSection, onNavigateBack }: HeaderProps) {
   const { user, logout } = useAuth();
   const { getFilteredChatMessages, markMessageAsRead, markAllMessagesAsRead, systemNotifications } = useHospital();
+  
+  const showBackButton = activeSection && activeSection !== 'dashboard';
 
   if (!user) return null;
 
@@ -63,8 +67,8 @@ export default function Header({ onToggleSidebar, title }: HeaderProps) {
 
   return (
     <header className="flex h-16 items-center justify-between border-b border-gray-200 bg-white px-6 shadow-sm">
-      {/* Lado izquierdo - Menú y título */}
-      <div className="flex items-center gap-4">
+      {/* Lado izquierdo - Menú, botón atrás y título */}
+      <div className="flex items-center gap-3">
         <Button
           variant="ghost"
           size="icon"
@@ -74,8 +78,29 @@ export default function Header({ onToggleSidebar, title }: HeaderProps) {
           <Menu className="h-5 w-5" />
         </Button>
         
+        {/* Botón volver atrás */}
+        {showBackButton && onNavigateBack && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onNavigateBack}
+            className="text-gray-600 hover:bg-gray-100 hover:text-gray-900 gap-1.5"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span className="hidden sm:inline">Volver</span>
+          </Button>
+        )}
+        
+        {/* Separador visual */}
+        {showBackButton && onNavigateBack && (
+          <div className="h-6 w-px bg-gray-200 hidden sm:block" />
+        )}
+        
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">{title}</h1>
+          <div className="flex items-center gap-2">
+            {activeSection === 'dashboard' && <Home className="h-5 w-5 text-blue-600" />}
+            <h1 className="text-xl font-semibold text-gray-900">{title}</h1>
+          </div>
           <p className="text-sm text-gray-500">
             {new Date().toLocaleDateString('es-ES', { 
               weekday: 'long', 
@@ -213,17 +238,22 @@ export default function Header({ onToggleSidebar, title }: HeaderProps) {
             <DropdownMenuLabel className="text-gray-900 font-semibold">Mi Cuenta</DropdownMenuLabel>
             <DropdownMenuSeparator className="bg-gray-200" />
             
-            <DropdownMenuItem className="flex items-center gap-2 text-gray-700 cursor-pointer">
-              <User className="h-4 w-4 text-gray-500" />
-              <span>Perfil</span>
-            </DropdownMenuItem>
-            
-            <DropdownMenuItem className="flex items-center gap-2 text-gray-700 cursor-pointer">
-              <Settings className="h-4 w-4 text-gray-500" />
-              <span>Configuración</span>
-            </DropdownMenuItem>
-            
-            <DropdownMenuSeparator className="bg-gray-200" />
+            {/* Ocultar Perfil y Configuración para farmacia */}
+            {user.role !== 'pharmacy' && (
+              <>
+                <DropdownMenuItem className="flex items-center gap-2 text-gray-700 cursor-pointer">
+                  <User className="h-4 w-4 text-gray-500" />
+                  <span>Perfil</span>
+                </DropdownMenuItem>
+                
+                <DropdownMenuItem className="flex items-center gap-2 text-gray-700 cursor-pointer">
+                  <Settings className="h-4 w-4 text-gray-500" />
+                  <span>Configuración</span>
+                </DropdownMenuItem>
+                
+                <DropdownMenuSeparator className="bg-gray-200" />
+              </>
+            )}
             
             <div className="px-3 py-2">
               <div className="text-xs font-medium text-gray-500 mb-1.5">Estado de conexión</div>

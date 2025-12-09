@@ -914,102 +914,204 @@ export const sqlRooms: Room[] = [
     hasOxygen: true,
     hasMonitor: false,
     hasPrivateBathroom: true
+  },
+  // Habitaciones adicionales para sincronizar con plantas hospitalarias
+  {
+    id: "P1_URG_102",
+    number: "102",
+    floor: 1,
+    department: "Urgencias",
+    type: "Double",
+    beds: [],
+    amenities: ["Monitor continuo", "Oxígeno"],
+    dailyRate: 200.00,
+    isOccupied: true,
+    lastCleaned: new Date(),
+    maintenanceStatus: "Good",
+    hasOxygen: true,
+    hasMonitor: true,
+    hasPrivateBathroom: false
+  },
+  {
+    id: "P1_URG_103",
+    number: "103",
+    floor: 1,
+    department: "Urgencias",
+    type: "Single",
+    beds: [],
+    amenities: ["Monitor continuo", "Oxígeno"],
+    dailyRate: 180.00,
+    isOccupied: true,
+    lastCleaned: new Date(),
+    maintenanceStatus: "Good",
+    hasOxygen: true,
+    hasMonitor: true,
+    hasPrivateBathroom: false
+  },
+  {
+    id: "P2_CIR_201",
+    number: "201",
+    floor: 2,
+    department: "Cirugía",
+    type: "Double",
+    beds: [],
+    amenities: ["TV", "Baño privado"],
+    dailyRate: 180.00,
+    isOccupied: true,
+    lastCleaned: new Date(),
+    maintenanceStatus: "Good",
+    hasOxygen: true,
+    hasMonitor: false,
+    hasPrivateBathroom: true
+  },
+  {
+    id: "P2_TRA_202",
+    number: "202",
+    floor: 2,
+    department: "Traumatología",
+    type: "Single",
+    beds: [],
+    amenities: ["TV", "Baño privado"],
+    dailyRate: 150.00,
+    isOccupied: false,
+    lastCleaned: new Date('2024-01-10'),
+    maintenanceStatus: "Good",
+    hasOxygen: true,
+    hasMonitor: false,
+    hasPrivateBathroom: true
+  },
+  {
+    id: "P3_OBS_301",
+    number: "3-301",
+    floor: 3,
+    department: "Obstetricia",
+    type: "Double",
+    beds: [],
+    amenities: ["TV", "Baño privado", "Cuna"],
+    dailyRate: 180.00,
+    isOccupied: true,
+    lastCleaned: new Date(),
+    maintenanceStatus: "Good",
+    hasOxygen: true,
+    hasMonitor: true,
+    hasPrivateBathroom: true
+  },
+  {
+    id: "P4_MED_401",
+    number: "401",
+    floor: 4,
+    department: "Medicina Interna",
+    type: "Double",
+    beds: [],
+    amenities: ["TV", "Baño privado"],
+    dailyRate: 150.00,
+    isOccupied: true,
+    lastCleaned: new Date(),
+    maintenanceStatus: "Good",
+    hasOxygen: true,
+    hasMonitor: false,
+    hasPrivateBathroom: true
+  },
+  {
+    id: "P4_UCI_402",
+    number: "UCI-402",
+    floor: 4,
+    department: "UCI",
+    type: "ICU",
+    beds: [],
+    amenities: ["Monitor continuo", "Ventilador", "Desfibrilador"],
+    dailyRate: 500.00,
+    isOccupied: true,
+    lastCleaned: new Date(),
+    maintenanceStatus: "Good",
+    hasOxygen: true,
+    hasMonitor: true,
+    hasPrivateBathroom: false,
+    notes: "Unidad de Cuidados Intensivos - Acceso restringido"
+  },
+  {
+    id: "P5_HG_501",
+    number: "501",
+    floor: 5,
+    department: "Hospitalización General",
+    type: "Double",
+    beds: [],
+    amenities: ["TV", "Baño privado"],
+    dailyRate: 120.00,
+    isOccupied: false,
+    lastCleaned: new Date(),
+    maintenanceStatus: "Good",
+    hasOxygen: false,
+    hasMonitor: false,
+    hasPrivateBathroom: true
+  },
+  {
+    id: "P5_HG_502",
+    number: "502",
+    floor: 5,
+    department: "Hospitalización General",
+    type: "Single",
+    beds: [],
+    amenities: ["TV", "Baño privado"],
+    dailyRate: 100.00,
+    isOccupied: false,
+    lastCleaned: new Date('2024-01-12'),
+    maintenanceStatus: "Good",
+    hasOxygen: false,
+    hasMonitor: false,
+    hasPrivateBathroom: true
   }
 ];
 
 // ============================================
-// CAMAS (8 registros)
+// CAMAS - Extraídas de las habitaciones + camas adicionales
 // ============================================
-export const sqlBeds: Bed[] = [
-  {
-    id: "P1_HO_101_1",
-    number: "1",
-    roomId: "P1_HO_101",
-    isOccupied: false,
-    status: "Available",
-    cleaningStatus: "Clean",
-    lastCleaned: new Date(),
-    hasBedrails: true,
-    isElectric: true
-  },
-  {
-    id: "P5_TRU_501_1",
-    number: "1",
-    roomId: "P5_TRU_501",
-    isOccupied: false,
-    status: "Available",
-    cleaningStatus: "Clean",
-    lastCleaned: new Date(),
-    hasBedrails: true,
-    isElectric: true
-  },
-  {
-    id: "P3_UC_301_1",
-    number: "1",
-    roomId: "P3_UC_301",
-    isOccupied: false,
-    status: "Available",
-    cleaningStatus: "Clean",
-    lastCleaned: new Date(),
-    hasBedrails: true,
-    isElectric: true
-  },
-  {
-    id: "P3_SC_302_1",
-    number: "1",
-    roomId: "P3_SC_302",
-    isOccupied: false,
-    status: "Available",
-    cleaningStatus: "Clean",
-    lastCleaned: new Date(),
-    hasBedrails: true,
-    isElectric: true
-  },
-  {
-    id: "P3_QUI_303_1",
-    number: "1",
-    roomId: "P3_QUI_303",
-    isOccupied: false,
-    status: "Available",
-    cleaningStatus: "Clean",
-    lastCleaned: new Date(),
-    hasBedrails: true,
-    isElectric: true
-  },
-  {
-    id: "P4_UCI_670_1",
-    number: "1",
-    roomId: "P4_UCI_670",
-    isOccupied: false,
-    status: "Available",
-    cleaningStatus: "Clean",
-    lastCleaned: new Date(),
-    hasBedrails: true,
-    isElectric: true
-  },
-  {
-    id: "P4_HG_330_2",
-    number: "2",
-    roomId: "P4_HG_330",
-    isOccupied: false,
-    status: "Available",
-    cleaningStatus: "Clean",
-    lastCleaned: new Date(),
-    hasBedrails: true,
-    isElectric: true
-  },
-  {
-    id: "P2_HMI_201_M015",
-    number: "M015",
-    roomId: "P2_HMI_201",
-    isOccupied: false,
-    status: "Available",
-    cleaningStatus: "Clean",
-    lastCleaned: new Date(),
-    hasBedrails: true,
-    isElectric: true
-  }
+
+// Función para extraer todas las camas de las habitaciones
+function extractBedsFromRooms(rooms: Room[]): Bed[] {
+  const bedsFromRooms: Bed[] = [];
+  rooms.forEach(room => {
+    if (room.beds && room.beds.length > 0) {
+      bedsFromRooms.push(...room.beds);
+    }
+  });
+  return bedsFromRooms;
+}
+
+// Camas base extraídas de las habitaciones
+const bedsFromRooms = extractBedsFromRooms(sqlRooms);
+
+// Camas adicionales para completar la distribución del hospital
+// Estas camas están distribuidas en diferentes plantas y unidades
+const additionalBeds: Bed[] = [
+  // Planta 1 - Urgencias (Hab 102, 103)
+  { id: "P1_URG_102_1", number: "1", roomId: "P1_URG_102", isOccupied: true, patientId: "IFV_0001", status: "Occupied", cleaningStatus: "Clean", lastCleaned: new Date(), hasBedrails: true, isElectric: true },
+  { id: "P1_URG_102_2", number: "2", roomId: "P1_URG_102", isOccupied: false, status: "Available", cleaningStatus: "Clean", lastCleaned: new Date(), hasBedrails: true, isElectric: false },
+  { id: "P1_URG_103_1", number: "1", roomId: "P1_URG_103", isOccupied: true, patientId: "JML_0001", status: "Occupied", cleaningStatus: "Clean", lastCleaned: new Date(), hasBedrails: true, isElectric: true },
+  
+  // Planta 2 - Cirugía y Traumatología (Hab 201, 202)
+  { id: "P2_CIR_201_1", number: "1", roomId: "P2_CIR_201", isOccupied: true, patientId: "SVP_0001", status: "Occupied", cleaningStatus: "Clean", lastCleaned: new Date(), hasBedrails: true, isElectric: true },
+  { id: "P2_CIR_201_2", number: "2", roomId: "P2_CIR_201", isOccupied: false, status: "Available", cleaningStatus: "Clean", lastCleaned: new Date(), hasBedrails: true, isElectric: true },
+  { id: "P2_TRA_202_1", number: "1", roomId: "P2_TRA_202", isOccupied: false, status: "Cleaning Required", cleaningStatus: "Dirty", lastCleaned: new Date('2024-01-10'), hasBedrails: true, isElectric: false },
+  
+  // Planta 3 - Obstetricia (Hab 301, 302)
+  { id: "P3_OBS_301_1", number: "1", roomId: "P3_OBS_301", isOccupied: true, patientId: "PIF_0010", status: "Occupied", cleaningStatus: "Clean", lastCleaned: new Date(), hasBedrails: true, isElectric: true },
+  { id: "P3_OBS_301_2", number: "2", roomId: "P3_OBS_301", isOccupied: true, patientId: "MIF_0011", status: "Occupied", cleaningStatus: "Clean", lastCleaned: new Date(), hasBedrails: true, isElectric: true },
+  
+  // Planta 4 - Medicina Interna y UCI (Hab 401, 402)
+  { id: "P4_MED_401_1", number: "1", roomId: "P4_MED_401", isOccupied: true, patientId: "JAV_0001", status: "Occupied", cleaningStatus: "Clean", lastCleaned: new Date(), hasBedrails: true, isElectric: true },
+  { id: "P4_MED_401_2", number: "2", roomId: "P4_MED_401", isOccupied: false, status: "Reserved", cleaningStatus: "Sanitized", lastCleaned: new Date(), hasBedrails: true, isElectric: true },
+  { id: "P4_UCI_402_1", number: "1", roomId: "P4_UCI_402", isOccupied: true, patientId: "MRS_0001", status: "Occupied", cleaningStatus: "Clean", lastCleaned: new Date(), hasBedrails: true, isElectric: true, equipment: ["Monitor", "Ventilador", "Desfibrilador"] },
+  { id: "P4_UCI_402_2", number: "2", roomId: "P4_UCI_402", isOccupied: false, status: "Maintenance", cleaningStatus: "Clean", lastCleaned: new Date(), hasBedrails: true, isElectric: true, equipment: ["Monitor", "Ventilador"] },
+  
+  // Planta 5 - Hospitalización General
+  { id: "P5_HG_501_1", number: "1", roomId: "P5_HG_501", isOccupied: false, status: "Available", cleaningStatus: "Clean", lastCleaned: new Date(), hasBedrails: true, isElectric: false },
+  { id: "P5_HG_501_2", number: "2", roomId: "P5_HG_501", isOccupied: false, status: "Available", cleaningStatus: "Clean", lastCleaned: new Date(), hasBedrails: true, isElectric: false },
+  { id: "P5_HG_502_1", number: "1", roomId: "P5_HG_502", isOccupied: false, status: "Available", cleaningStatus: "In Progress", lastCleaned: new Date('2024-01-12'), hasBedrails: true, isElectric: true }
 ];
+
+// Combinar todas las camas
+export const sqlBeds: Bed[] = [...bedsFromRooms, ...additionalBeds];
 
 // ============================================
 // MEDICAMENTOS (23 registros)
@@ -1969,7 +2071,45 @@ export const sqlAsignacionesProfesionalPaciente: AsignacionProfesionalPaciente[]
   { id: 'ASG021', profesionalId: '8512', pacienteId: 'JAV_0001', tipoAsignacion: 'equipo', fechaInicio: new Date('2014-10-15'), departamento: 'Hospitalización', activo: true },
   
   // Enfermero Miguel Serrano (30123) si actúa como enfermero - María Rodríguez UCI
-  { id: 'ASG022', profesionalId: '30123', pacienteId: 'MRS_0001', tipoAsignacion: 'equipo', fechaInicio: new Date('2022-05-10'), departamento: 'UCI', activo: true }
+  { id: 'ASG022', profesionalId: '30123', pacienteId: 'MRS_0001', tipoAsignacion: 'equipo', fechaInicio: new Date('2022-05-10'), departamento: 'UCI', activo: true },
+  
+  // ============================================
+  // ASIGNACIONES PARA USUARIOS DE DEMOSTRACIÓN
+  // Estos usuarios permiten probar el sistema sin usar datos reales
+  // ============================================
+  
+  // Dr. Demo MED001 (23456789B) - Médico de demostración con varios pacientes asignados
+  { id: 'ASG_DEMO_001', profesionalId: 'MED001', pacienteId: 'IFV_0001', tipoAsignacion: 'responsable', fechaInicio: new Date('2024-01-01'), departamento: 'Medicina General', activo: true, notas: 'Médico de demostración' },
+  { id: 'ASG_DEMO_002', profesionalId: 'MED001', pacienteId: 'PIF_0010', tipoAsignacion: 'responsable', fechaInicio: new Date('2024-01-01'), departamento: 'Medicina General', activo: true, notas: 'Médico de demostración' },
+  { id: 'ASG_DEMO_003', profesionalId: 'MED001', pacienteId: 'MIF_0011', tipoAsignacion: 'responsable', fechaInicio: new Date('2024-01-01'), departamento: 'Medicina General', activo: true, notas: 'Médico de demostración' },
+  { id: 'ASG_DEMO_004', profesionalId: 'MED001', pacienteId: 'JML_0001', tipoAsignacion: 'responsable', fechaInicio: new Date('2024-01-01'), departamento: 'Medicina General', activo: true, notas: 'Médico de demostración' },
+  { id: 'ASG_DEMO_005', profesionalId: 'MED001', pacienteId: 'SVP_0001', tipoAsignacion: 'responsable', fechaInicio: new Date('2024-01-01'), departamento: 'Medicina General', activo: true, notas: 'Médico de demostración' },
+  { id: 'ASG_DEMO_006', profesionalId: 'MED001', pacienteId: 'JAV_0001', tipoAsignacion: 'responsable', fechaInicio: new Date('2024-01-01'), departamento: 'Medicina General', activo: true, notas: 'Médico de demostración' },
+  { id: 'ASG_DEMO_007', profesionalId: 'MED001', pacienteId: 'MRS_0001', tipoAsignacion: 'responsable', fechaInicio: new Date('2024-01-01'), departamento: 'Medicina General', activo: true, notas: 'Médico de demostración' },
+  
+  // Dr. Demo MED002 (34567890C) - Otro médico de demostración
+  { id: 'ASG_DEMO_008', profesionalId: 'MED002', pacienteId: 'IFV_0001', tipoAsignacion: 'equipo', fechaInicio: new Date('2024-01-01'), departamento: 'Medicina General', activo: true, notas: 'Médico de demostración' },
+  { id: 'ASG_DEMO_009', profesionalId: 'MED002', pacienteId: 'JML_0001', tipoAsignacion: 'responsable', fechaInicio: new Date('2024-01-01'), departamento: 'Medicina General', activo: true, notas: 'Médico de demostración' },
+  { id: 'ASG_DEMO_010', profesionalId: 'MED002', pacienteId: 'SVP_0001', tipoAsignacion: 'equipo', fechaInicio: new Date('2024-01-01'), departamento: 'Medicina General', activo: true, notas: 'Médico de demostración' },
+  
+  // Enfermera Demo ENF001 (45678901D) - Enfermera de demostración
+  // Ve los mismos pacientes que el médico MED001 (como equipo de enfermería)
+  { id: 'ASG_DEMO_011', profesionalId: 'ENF001', pacienteId: 'IFV_0001', tipoAsignacion: 'equipo', fechaInicio: new Date('2024-01-01'), departamento: 'Enfermería', activo: true, notas: 'Enfermera de demostración - equipo de MED001' },
+  { id: 'ASG_DEMO_012', profesionalId: 'ENF001', pacienteId: 'PIF_0010', tipoAsignacion: 'equipo', fechaInicio: new Date('2024-01-01'), departamento: 'Enfermería', activo: true, notas: 'Enfermera de demostración - equipo de MED001' },
+  { id: 'ASG_DEMO_013', profesionalId: 'ENF001', pacienteId: 'MIF_0011', tipoAsignacion: 'equipo', fechaInicio: new Date('2024-01-01'), departamento: 'Enfermería', activo: true, notas: 'Enfermera de demostración - equipo de MED001' },
+  { id: 'ASG_DEMO_014', profesionalId: 'ENF001', pacienteId: 'JML_0001', tipoAsignacion: 'equipo', fechaInicio: new Date('2024-01-01'), departamento: 'Enfermería', activo: true, notas: 'Enfermera de demostración - equipo de MED001' },
+  { id: 'ASG_DEMO_015', profesionalId: 'ENF001', pacienteId: 'SVP_0001', tipoAsignacion: 'equipo', fechaInicio: new Date('2024-01-01'), departamento: 'Enfermería', activo: true, notas: 'Enfermera de demostración - equipo de MED001' },
+  { id: 'ASG_DEMO_018', profesionalId: 'ENF001', pacienteId: 'JAV_0001', tipoAsignacion: 'equipo', fechaInicio: new Date('2024-01-01'), departamento: 'Enfermería', activo: true, notas: 'Enfermera de demostración - equipo de MED001' },
+  { id: 'ASG_DEMO_019', profesionalId: 'ENF001', pacienteId: 'MRS_0001', tipoAsignacion: 'equipo', fechaInicio: new Date('2024-01-01'), departamento: 'Enfermería', activo: true, notas: 'Enfermera de demostración - equipo de MED001' },
+  
+  // Enfermera Demo ENF002 (67890123F) - También ve los mismos pacientes que MED001
+  { id: 'ASG_DEMO_016', profesionalId: 'ENF002', pacienteId: 'JAV_0001', tipoAsignacion: 'equipo', fechaInicio: new Date('2024-01-01'), departamento: 'Enfermería', activo: true, notas: 'Enfermera de demostración - equipo de MED001' },
+  { id: 'ASG_DEMO_017', profesionalId: 'ENF002', pacienteId: 'MRS_0001', tipoAsignacion: 'equipo', fechaInicio: new Date('2024-01-01'), departamento: 'Enfermería', activo: true, notas: 'Enfermera de demostración - equipo de MED001' },
+  { id: 'ASG_DEMO_020', profesionalId: 'ENF002', pacienteId: 'IFV_0001', tipoAsignacion: 'equipo', fechaInicio: new Date('2024-01-01'), departamento: 'Enfermería', activo: true, notas: 'Enfermera de demostración - equipo de MED001' },
+  { id: 'ASG_DEMO_021', profesionalId: 'ENF002', pacienteId: 'PIF_0010', tipoAsignacion: 'equipo', fechaInicio: new Date('2024-01-01'), departamento: 'Enfermería', activo: true, notas: 'Enfermera de demostración - equipo de MED001' },
+  { id: 'ASG_DEMO_022', profesionalId: 'ENF002', pacienteId: 'MIF_0011', tipoAsignacion: 'equipo', fechaInicio: new Date('2024-01-01'), departamento: 'Enfermería', activo: true, notas: 'Enfermera de demostración - equipo de MED001' },
+  { id: 'ASG_DEMO_023', profesionalId: 'ENF002', pacienteId: 'JML_0001', tipoAsignacion: 'equipo', fechaInicio: new Date('2024-01-01'), departamento: 'Enfermería', activo: true, notas: 'Enfermera de demostración - equipo de MED001' },
+  { id: 'ASG_DEMO_024', profesionalId: 'ENF002', pacienteId: 'SVP_0001', tipoAsignacion: 'equipo', fechaInicio: new Date('2024-01-01'), departamento: 'Enfermería', activo: true, notas: 'Enfermera de demostración - equipo de MED001' }
 ];
 
 // ============================================

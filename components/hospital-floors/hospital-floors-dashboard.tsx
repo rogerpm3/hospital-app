@@ -11,6 +11,7 @@ import {
   MapPin, Stethoscope, Heart, Baby, User, Shield
 } from 'lucide-react';
 import { useHospital } from '@/lib/hospital-context';
+import { useAuth } from '@/lib/auth-context';
 import { HospitalFloor, HospitalUnit } from '@/lib/types';
 import BedMapView from './bed-map-view';
 import BedListView from './bed-list-view';
@@ -18,6 +19,7 @@ import FloorStatistics from './floor-statistics';
 
 export default function HospitalFloorsDashboard() {
   const { hospitalFloors, beds, patients } = useHospital();
+  const { user } = useAuth();
   const [selectedFloor, setSelectedFloor] = useState<string>('all');
   const [selectedUnit, setSelectedUnit] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
@@ -26,6 +28,9 @@ export default function HospitalFloorsDashboard() {
     bedType: 'all',
     cleaningStatus: 'all'
   });
+
+  // Para limpieza, no mostrar botones de cambio de vista (Vista Mapa/Lista)
+  const isCleaningRole = user?.role === 'cleaning';
 
   const getFloorIcon = (floor: HospitalFloor) => {
     switch (floor.number) {
@@ -74,27 +79,33 @@ export default function HospitalFloorsDashboard() {
         <div>
           <h1 className="text-3xl font-bold">Plantas Hospitalarias</h1>
           <p className="text-muted-foreground">
-            Visualización estructurada de todas las plantas y unidades del hospital
+            {isCleaningRole 
+              ? 'Estado de limpieza de habitaciones y camas del hospital'
+              : 'Visualización estructurada de todas las plantas y unidades del hospital'
+            }
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant={viewMode === 'map' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setViewMode('map')}
-          >
-            <MapPin className="h-4 w-4 mr-2" />
-            Vista Mapa
-          </Button>
-          <Button
-            variant={viewMode === 'list' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setViewMode('list')}
-          >
-            <Building2 className="h-4 w-4 mr-2" />
-            Vista Lista
-          </Button>
-        </div>
+        {/* Ocultar botones Vista Mapa/Lista para rol de limpieza */}
+        {!isCleaningRole && (
+          <div className="flex items-center gap-2">
+            <Button
+              variant={viewMode === 'map' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('map')}
+            >
+              <MapPin className="h-4 w-4 mr-2" />
+              Vista Mapa
+            </Button>
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('list')}
+            >
+              <Building2 className="h-4 w-4 mr-2" />
+              Vista Lista
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Filters */}

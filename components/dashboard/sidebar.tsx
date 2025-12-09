@@ -27,8 +27,10 @@ import {
   Building,
   Bot,
   Lock,
-  X
+  X,
+  Cookie
 } from 'lucide-react';
+import { showCookieConsent } from '@/components/cookie-consent';
 
 interface SidebarProps {
   open: boolean;
@@ -64,7 +66,8 @@ const menuIcons = {
   'bed-overview': Building2,
   'my-schedule': Calendar,
   'patient-status': Users,
-  'visiting-hours': Calendar
+  'visiting-hours': Calendar,
+  'satisfaction-survey': MessageSquare
 };
 
 // Etiquetas para cada sección
@@ -94,7 +97,8 @@ const menuLabels = {
   'bed-overview': 'Vista de Camas',
   'my-schedule': 'Mi Horario',
   'patient-status': 'Estado Paciente',
-  'visiting-hours': 'Horas de Visita'
+  'visiting-hours': 'Horas de Visita',
+  'satisfaction-survey': 'Encuesta de Satisfacción'
 };
 
 export default function Sidebar({ open, setOpen, activeSection, setActiveSection }: SidebarProps) {
@@ -269,6 +273,17 @@ export default function Sidebar({ open, setOpen, activeSection, setActiveSection
             </Button>
           </div>
 
+          {/* Preferencias de cookies */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full justify-start gap-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 mt-2"
+            onClick={() => showCookieConsent()}
+          >
+            <Cookie className="h-4 w-4" />
+            <span className="text-xs">Preferencias de Cookies</span>
+          </Button>
+
           {/* Estado de conexión */}
           <div className="mt-4 pt-4 border-t">
             <div className="flex items-center justify-between text-xs text-gray-500">
@@ -276,7 +291,7 @@ export default function Sidebar({ open, setOpen, activeSection, setActiveSection
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
                 <span>En línea</span>
               </div>
-              <span>v1.0.0</span>
+              <span>v2.0.0</span>
             </div>
           </div>
         </div>

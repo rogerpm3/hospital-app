@@ -38,7 +38,7 @@ import {
 import { VitalSigns } from '@/lib/types';
 
 export default function VitalSignsPanel() {
-  const { patients, vitalSigns, addVitalSigns } = useHospital();
+  const { patients, vitalSigns, addVitalSigns, getFilteredPatients } = useHospital();
   const { user } = useAuth();
   const { toast } = useToast();
   
@@ -57,8 +57,9 @@ export default function VitalSignsPanel() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showAddDialog, setShowAddDialog] = useState(false);
 
-  // Obtener solo pacientes hospitalizados
-  const hospitalizedPatients = patients.filter(p => p.roomId);
+  // Obtener pacientes según rol del usuario - solo hospitalizados (con roomId)
+  const assignedPatients = getFilteredPatients();
+  const hospitalizedPatients = assignedPatients.filter(p => p.roomId);
 
   // Obtener signos vitales recientes
   const recentVitalSigns = vitalSigns

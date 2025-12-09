@@ -101,6 +101,8 @@ function AppContent() {
         <Header 
           onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
           title={getSectionTitle(activeSection)}
+          activeSection={activeSection}
+          onNavigateBack={() => setActiveSection('dashboard')}
         />
         <main className="flex-1 overflow-auto">
           <DashboardContent 
