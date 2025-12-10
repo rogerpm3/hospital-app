@@ -1,28 +1,47 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useHospital } from '@/lib/hospital-context';
+import { useAuth } from '@/lib/auth-context';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Search, Building2, Bed, CheckCircle, AlertCircle, Edit, Eye, Wrench, Sparkles } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Switch } from '@/components/ui/switch';
+import { useToast } from '@/hooks/use-toast';
+import { Search, Building2, Bed, CheckCircle, AlertCircle, Edit, Eye, Wrench, Sparkles, RefreshCw, Save } from 'lucide-react';
+import { Room } from '@/lib/types';
 
 export default function RoomList() {
-  const { rooms, beds, patients, updateBedStatus, updateBedCleaning } = useHospital();
+  const { rooms, beds, patients, updateBedStatus, updateBedCleaning, updateRoom, staff } = useHospital();
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [departmentFilter, setDepartmentFilter] = useState<string>('all');
+  const [refreshKey, setRefreshKey] = useState(0);
   
   // Estados para diálogos
   const [showRoomDialog, setShowRoomDialog] = useState(false);
-  const [selectedRoom, setSelectedRoom] = useState<any>(null);
-  const [showBedDialog, setShowBedDialog] = useState(false);
-  const [selectedBed, setSelectedBed] = useState<any>(null);
+  const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
+  const [showEditRoomDialog, setShowEditRoomDialog] = useState(false);
+  const [editingRoom, setEditingRoom] = useState<Partial<Room>>({});
+  
+  // Personal de limpieza
+  const cleaningStaff = staff.filter(s => s.role === 'cleaning');
+
+  // Refresco automático cada 30 segundos
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setRefreshKey(prev => prev + 1);
+    }, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const filteredRooms = rooms.filter(room => {
     const matchesSearch = searchTerm === '' || 
@@ -61,8 +80,65 @@ export default function RoomList() {
       .filter(Boolean);
   };
 
+  // Abrir diálogo de edición
+  const handleEditRoom = (room: Room) => {
+    setEditingRoom({ ...room });
+    setShowEditRoomDialog(true);
+  };
+
+  // Guardar cambios de habitación
+  const handleSaveRoom = () => {
+    if (!editingRoom.id) return;
+    
+    updateRoom(editingRoom.id, {
+      isOccupied: editingRoom.isOccupied,
+      status: editingRoom.status,
+      cleaningStatus: editingRoom.cleaningStatus,
+      type: editingRoom.type,
+      dailyRate: editingRoom.dailyRate
+    });
+    
+    toast({
+      title: "Habitación actualizada",
+      description: `Los cambios en la habitación ${editingRoom.number} han sido guardados`,
+    });
+    
+    setShowEditRoomDialog(false);
+    setEditingRoom({});
+    setRefreshKey(prev => prev + 1);
+  };
+
+  // Manejar cambio de estado de cama con limpieza
+  const handleBedStatusChange = (bedId: string, newStatus: string) => {
+    updateBedStatus(bedId, newStatus as any);
+    
+    // Si cambia a "Cleaning Required", también actualizar cleaningStatus
+    if (newStatus === 'Cleaning Required') {
+      updateBedCleaning(bedId, 'Cleaning Required');
+    }
+    
+    toast({
+      title: "Estado actualizado",
+      description: "El estado de la cama ha sido actualizado correctamente",
+    });
+    
+    setRefreshKey(prev => prev + 1);
+  };
+
+  // Manejar cambio de limpieza
+  const handleBedCleaningChange = (bedId: string, cleaningStatus: string, cleanerName?: string) => {
+    updateBedCleaning(bedId, cleaningStatus as any, cleanerName);
+    
+    toast({
+      title: "Limpieza actualizada",
+      description: `Estado de limpieza actualizado${cleanerName ? ` - Asignado a ${cleanerName}` : ''}`,
+    });
+    
+    setRefreshKey(prev => prev + 1);
+  };
+
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6" key={refreshKey}>
       <div className="flex flex-col space-y-2 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Gestión de Habitaciones</h1>
@@ -70,6 +146,15 @@ export default function RoomList() {
             Administra las habitaciones y su disponibilidad
           </p>
         </div>
+        <Button 
+          variant="outline" 
+          size="sm"
+          onClick={() => setRefreshKey(prev => prev + 1)}
+          className="flex items-center gap-2"
+        >
+          <RefreshCw className="w-4 h-4" />
+          Actualizar
+        </Button>
       </div>
 
       {/* Estadísticas */}
@@ -186,7 +271,7 @@ export default function RoomList() {
       <Card>
         <CardHeader>
           <CardTitle>Habitaciones ({filteredRooms.length})</CardTitle>
-          <CardDescription>Haz clic en "Ver/Editar" para gestionar las camas de cada habitación</CardDescription>
+          <CardDescription>Haz clic en "Ver" para gestionar las camas o en "Editar" para modificar la habitación</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
@@ -206,6 +291,11 @@ export default function RoomList() {
               {filteredRooms.map(room => {
                 const roomBeds = getRoomBeds(room.id);
                 const roomPatients = getRoomPatients(room.id);
+                const needsCleaning = roomBeds.some(b => 
+                  b.cleaningStatus === 'Cleaning Required' || 
+                  b.cleaningStatus === 'In Progress' ||
+                  b.status === 'Cleaning Required'
+                );
                 
                 return (
                   <TableRow key={room.id}>
@@ -222,15 +312,23 @@ export default function RoomList() {
                     </TableCell>
                     <TableCell>{room.department}</TableCell>
                     <TableCell>
-                      <Badge variant={room.isOccupied ? "destructive" : "default"}>
-                        {room.isOccupied ? "Ocupada" : "Disponible"}
-                      </Badge>
+                      <div className="flex flex-col gap-1">
+                        <Badge variant={room.isOccupied ? "destructive" : "default"}>
+                          {room.isOccupied ? "Ocupada" : "Disponible"}
+                        </Badge>
+                        {needsCleaning && (
+                          <Badge variant="outline" className="border-yellow-500 text-yellow-700">
+                            <Sparkles className="w-3 h-3 mr-1" />
+                            Req. Limpieza
+                          </Badge>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <div className="text-sm">
                         <div>{roomBeds.length} camas total</div>
                         <div className="text-muted-foreground">
-                          {roomBeds.filter(bed => bed.isOccupied).length} ocupadas
+                          {roomBeds.filter(bed => bed.status === 'Occupied').length} ocupadas
                         </div>
                       </div>
                     </TableCell>
@@ -248,20 +346,32 @@ export default function RoomList() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="font-medium">€{room.dailyRate.toFixed(2)}</div>
+                      <div className="font-medium">€{room.dailyRate?.toFixed(2) || '0.00'}</div>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setSelectedRoom(room);
-                          setShowRoomDialog(true);
-                        }}
-                      >
-                        <Eye className="h-4 w-4 mr-1" />
-                        Ver/Editar
-                      </Button>
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedRoom(room);
+                            setShowRoomDialog(true);
+                          }}
+                        >
+                          <Eye className="h-4 w-4 mr-1" />
+                          Ver
+                        </Button>
+                        {(user?.role === 'admin' || user?.role === 'nurse') && (
+                          <Button
+                            size="sm"
+                            variant="default"
+                            onClick={() => handleEditRoom(room)}
+                          >
+                            <Edit className="h-4 w-4 mr-1" />
+                            Editar
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
@@ -355,14 +465,21 @@ export default function RoomList() {
                                 variant="outline"
                                 className={
                                   bed.cleaningStatus === 'Clean' ? 'border-green-500 text-green-700' :
-                                  bed.cleaningStatus === 'Dirty' ? 'border-red-500 text-red-700' :
+                                  bed.cleaningStatus === 'Sanitized' ? 'border-emerald-500 text-emerald-700' :
+                                  bed.cleaningStatus === 'Cleaning Required' ? 'border-red-500 text-red-700' :
                                   'border-yellow-500 text-yellow-700'
                                 }
                               >
                                 {bed.cleaningStatus === 'Clean' && '✓ Limpia'}
-                                {bed.cleaningStatus === 'Dirty' && '✗ Sucia'}
+                                {bed.cleaningStatus === 'Sanitized' && '✓ Desinfectada'}
+                                {bed.cleaningStatus === 'Cleaning Required' && '✗ Requiere limpieza'}
                                 {bed.cleaningStatus === 'In Progress' && '⟳ Limpiando'}
                               </Badge>
+                              {bed.cleanedBy && (
+                                <div className="text-xs text-muted-foreground mt-1">
+                                  Por: {bed.cleanedBy}
+                                </div>
+                              )}
                             </TableCell>
                             <TableCell>
                               {patient ? (
@@ -372,12 +489,10 @@ export default function RoomList() {
                               )}
                             </TableCell>
                             <TableCell className="text-right">
-                              <div className="flex justify-end gap-2">
+                              <div className="flex flex-col gap-2">
                                 <Select 
                                   value={bed.status}
-                                  onValueChange={(value) => {
-                                    updateBedStatus(bed.id, value as any);
-                                  }}
+                                  onValueChange={(value) => handleBedStatusChange(bed.id, value)}
                                 >
                                   <SelectTrigger className="w-[140px] h-8">
                                     <SelectValue />
@@ -393,16 +508,23 @@ export default function RoomList() {
                                 <Select 
                                   value={bed.cleaningStatus}
                                   onValueChange={(value) => {
-                                    updateBedCleaning(bed.id, value as any);
+                                    // Si selecciona "In Progress", permitir asignar limpiador
+                                    if (value === 'In Progress' && cleaningStaff.length > 0) {
+                                      const cleaner = cleaningStaff[0];
+                                      handleBedCleaningChange(bed.id, value, `${cleaner.firstName} ${cleaner.lastName}`);
+                                    } else {
+                                      handleBedCleaningChange(bed.id, value);
+                                    }
                                   }}
                                 >
-                                  <SelectTrigger className="w-[120px] h-8">
+                                  <SelectTrigger className="w-[140px] h-8">
                                     <SelectValue />
                                   </SelectTrigger>
                                   <SelectContent>
                                     <SelectItem value="Clean">Limpia</SelectItem>
-                                    <SelectItem value="Dirty">Sucia</SelectItem>
+                                    <SelectItem value="Sanitized">Desinfectada</SelectItem>
                                     <SelectItem value="In Progress">En proceso</SelectItem>
+                                    <SelectItem value="Cleaning Required">Req. Limpieza</SelectItem>
                                   </SelectContent>
                                 </Select>
                               </div>
@@ -422,13 +544,111 @@ export default function RoomList() {
                 </CardContent>
               </Card>
 
-              <div className="flex justify-end">
+              <div className="flex justify-end gap-2">
+                {(user?.role === 'admin' || user?.role === 'nurse') && (
+                  <Button onClick={() => handleEditRoom(selectedRoom)}>
+                    <Edit className="h-4 w-4 mr-1" />
+                    Editar Habitación
+                  </Button>
+                )}
                 <Button variant="outline" onClick={() => setShowRoomDialog(false)}>
                   Cerrar
                 </Button>
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Diálogo de edición de habitación */}
+      <Dialog open={showEditRoomDialog} onOpenChange={setShowEditRoomDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar Habitación {editingRoom.number}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="roomType">Tipo de Habitación</Label>
+              <Select 
+                value={editingRoom.type} 
+                onValueChange={(value) => setEditingRoom({...editingRoom, type: value as any})}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Single">Individual</SelectItem>
+                  <SelectItem value="Double">Doble</SelectItem>
+                  <SelectItem value="ICU">UCI</SelectItem>
+                  <SelectItem value="CCU">UCC</SelectItem>
+                  <SelectItem value="Emergency">Emergencia</SelectItem>
+                  <SelectItem value="Surgery">Cirugía</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="dailyRate">Tarifa Diaria (€)</Label>
+              <Input
+                id="dailyRate"
+                type="number"
+                value={editingRoom.dailyRate || ''}
+                onChange={(e) => setEditingRoom({...editingRoom, dailyRate: parseFloat(e.target.value) || 0})}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <Label htmlFor="isOccupied">Marcar como ocupada</Label>
+              <Switch
+                id="isOccupied"
+                checked={editingRoom.isOccupied || false}
+                onCheckedChange={(checked) => setEditingRoom({...editingRoom, isOccupied: checked})}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="status">Estado General</Label>
+              <Select 
+                value={editingRoom.status || 'Active'} 
+                onValueChange={(value) => setEditingRoom({...editingRoom, status: value as any})}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar estado" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Active">Activa</SelectItem>
+                  <SelectItem value="Maintenance">Mantenimiento</SelectItem>
+                  <SelectItem value="Closed">Cerrada</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="cleaningStatus">Estado de Limpieza</Label>
+              <Select 
+                value={editingRoom.cleaningStatus || 'Clean'} 
+                onValueChange={(value) => setEditingRoom({...editingRoom, cleaningStatus: value as any})}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar estado" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Clean">Limpia</SelectItem>
+                  <SelectItem value="In Progress">En proceso de limpieza</SelectItem>
+                  <SelectItem value="Pending">Pendiente</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter className="flex gap-2">
+            <Button variant="outline" onClick={() => setShowEditRoomDialog(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSaveRoom}>
+              <Save className="h-4 w-4 mr-1" />
+              Guardar Cambios
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

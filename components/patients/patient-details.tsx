@@ -110,6 +110,169 @@ export default function PatientDetails({ patientId }: PatientDetailsProps) {
     );
   }
 
+  // Para ADMISIONES, mostrar solo información administrativa (sin datos clínicos)
+  if (user?.role === 'admission') {
+    return (
+      <div className="space-y-6 max-h-[70vh] overflow-y-auto">
+        <Card className="bg-pink-50 border-pink-200">
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-3">
+              <Shield className="h-5 w-5 text-pink-600" />
+              <div>
+                <p className="font-medium text-pink-900">Vista de Admisiones</p>
+                <p className="text-sm text-pink-700">
+                  Acceso a información administrativa. Los datos clínicos están restringidos.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        {/* Información Personal Básica */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-gray-900">
+              <User className="h-5 w-5" />
+              Información Personal
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-3">
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Nombre completo:</label>
+                  <p className="text-gray-900 font-semibold">{patient.firstName} {patient.lastName}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-600">DNI:</label>
+                  <p className="text-gray-900 font-mono">{patient.dni}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Fecha de nacimiento:</label>
+                  <p className="text-gray-900">{patient.dateOfBirth.toLocaleDateString()} ({age} años)</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Género:</label>
+                  <p className="text-gray-900">{patient.gender === 'M' ? 'Masculino' : patient.gender === 'F' ? 'Femenino' : 'Otro'}</p>
+                </div>
+              </div>
+              <div className="space-y-3">
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Teléfono:</label>
+                  <p className="text-gray-900">{patient.phone}</p>
+                </div>
+                {patient.email && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Email:</label>
+                    <p className="text-gray-900">{patient.email}</p>
+                  </div>
+                )}
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Dirección:</label>
+                  <p className="text-gray-900">{patient.address.street}, {patient.address.city} {patient.address.postalCode}</p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Estado de hospitalización */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-gray-900">Estado de Hospitalización</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-3">
+              <div>
+                <label className="text-sm font-medium text-gray-600">Estado:</label>
+                <div className="mt-1">
+                  <Badge variant={patient.roomId ? "default" : "secondary"}>
+                    {patient.roomId ? "Hospitalizado" : "Ambulatorio"}
+                  </Badge>
+                </div>
+              </div>
+              {patient.roomId && (
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Habitación:</label>
+                  <p className="text-gray-900">Habitación {patient.roomId}</p>
+                </div>
+              )}
+              {patient.attendingPhysician && (
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Médico responsable:</label>
+                  <p className="text-gray-900">{patient.attendingPhysician}</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Contacto de emergencia */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-gray-900">Contacto de Emergencia</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-3">
+              <div>
+                <label className="text-sm font-medium text-gray-600">Nombre:</label>
+                <p className="text-gray-900">{patient.emergencyContact.name}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-600">Relación:</label>
+                <p className="text-gray-900">{patient.emergencyContact.relationship}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-600">Teléfono:</label>
+                <p className="text-gray-900">{patient.emergencyContact.phone}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Información de seguro (datos financieros) */}
+        {patient.insuranceInfo && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-gray-900">Información de Seguro</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-3">
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Aseguradora:</label>
+                  <p className="text-gray-900">{patient.insuranceInfo.provider}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Número de póliza:</label>
+                  <p className="text-gray-900 font-mono">{patient.insuranceInfo.policyNumber}</p>
+                </div>
+                {patient.insuranceInfo.expirationDate && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Vencimiento:</label>
+                    <p className="text-gray-900">{patient.insuranceInfo.expirationDate.toLocaleDateString()}</p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Aviso de restricción */}
+        <Card className="bg-gray-50 border-gray-200">
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-3 text-gray-600">
+              <Lock className="h-5 w-5" />
+              <p className="text-sm">
+                Los datos clínicos (historial médico, diagnósticos, alergias, medicaciones, signos vitales) 
+                están restringidos para el personal de admisiones. Contacte con el personal médico para consultas clínicas.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 max-h-[70vh] overflow-y-auto">
       {/* Banner para paciente viendo su propio perfil */}

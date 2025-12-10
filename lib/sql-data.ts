@@ -1736,7 +1736,38 @@ export const sqlAsignacionesProfesionalPaciente: AsignacionProfesionalPaciente[]
   { id: 'ASG_DEMO_021', profesionalId: 'ENF002', pacienteId: 'PIF_0010', tipoAsignacion: 'equipo', fechaInicio: new Date('2024-01-01'), departamento: 'Enfermería', activo: true, notas: 'Enfermera de demostración - equipo de MED001' },
   { id: 'ASG_DEMO_022', profesionalId: 'ENF002', pacienteId: 'MIF_0011', tipoAsignacion: 'equipo', fechaInicio: new Date('2024-01-01'), departamento: 'Enfermería', activo: true, notas: 'Enfermera de demostración - equipo de MED001' },
   { id: 'ASG_DEMO_023', profesionalId: 'ENF002', pacienteId: 'JML_0001', tipoAsignacion: 'equipo', fechaInicio: new Date('2024-01-01'), departamento: 'Enfermería', activo: true, notas: 'Enfermera de demostración - equipo de MED001' },
-  { id: 'ASG_DEMO_024', profesionalId: 'ENF002', pacienteId: 'SVP_0001', tipoAsignacion: 'equipo', fechaInicio: new Date('2024-01-01'), departamento: 'Enfermería', activo: true, notas: 'Enfermera de demostración - equipo de MED001' }
+  { id: 'ASG_DEMO_024', profesionalId: 'ENF002', pacienteId: 'SVP_0001', tipoAsignacion: 'equipo', fechaInicio: new Date('2024-01-01'), departamento: 'Enfermería', activo: true, notas: 'Enfermera de demostración - equipo de MED001' },
+
+  // ========================================
+  // PACIENTES MOCK adicionales (patient-1, patient-2, patient-3, patient-4, PAC-001, PAC-002, PAC-003)
+  // Asignados a médicos y enfermeras de demostración
+  // ========================================
+  
+  // Dr. MED001 - Pacientes Mock del sistema
+  { id: 'ASG_MOCK_001', profesionalId: 'MED001', pacienteId: 'patient-1', tipoAsignacion: 'responsable', fechaInicio: new Date('2024-01-01'), departamento: 'Medicina General', activo: true, notas: 'Paciente de demostración - Juan Pérez González' },
+  { id: 'ASG_MOCK_002', profesionalId: 'MED001', pacienteId: 'patient-2', tipoAsignacion: 'responsable', fechaInicio: new Date('2024-01-01'), departamento: 'Medicina General', activo: true, notas: 'Paciente de demostración - María García Rodríguez' },
+  { id: 'ASG_MOCK_003', profesionalId: 'MED001', pacienteId: 'patient-3', tipoAsignacion: 'responsable', fechaInicio: new Date('2024-01-01'), departamento: 'Medicina General', activo: true, notas: 'Paciente de demostración - Antonio López Martín' },
+  { id: 'ASG_MOCK_004', profesionalId: 'MED001', pacienteId: 'patient-4', tipoAsignacion: 'responsable', fechaInicio: new Date('2024-01-01'), departamento: 'Medicina General', activo: true, notas: 'Paciente de demostración - Carmen Jiménez López' },
+  { id: 'ASG_MOCK_005', profesionalId: 'MED001', pacienteId: 'PAC-001', tipoAsignacion: 'responsable', fechaInicio: new Date('2024-01-01'), departamento: 'Medicina General', activo: true, notas: 'Paciente Demo - Juan García López' },
+  { id: 'ASG_MOCK_006', profesionalId: 'MED001', pacienteId: 'PAC-002', tipoAsignacion: 'responsable', fechaInicio: new Date('2024-01-01'), departamento: 'Medicina General', activo: true, notas: 'Paciente Demo - María Rodríguez Pérez' },
+  
+  // Dr. MED002 - Pacientes Mock adicionales
+  { id: 'ASG_MOCK_007', profesionalId: 'MED002', pacienteId: 'patient-1', tipoAsignacion: 'equipo', fechaInicio: new Date('2024-01-01'), departamento: 'Medicina General', activo: true, notas: 'Interconsulta' },
+  { id: 'ASG_MOCK_008', profesionalId: 'MED002', pacienteId: 'patient-3', tipoAsignacion: 'responsable', fechaInicio: new Date('2024-01-01'), departamento: 'Medicina General', activo: true, notas: 'Paciente de demostración' },
+  { id: 'ASG_MOCK_009', profesionalId: 'MED002', pacienteId: 'PAC-003', tipoAsignacion: 'responsable', fechaInicio: new Date('2024-01-01'), departamento: 'Medicina General', activo: true, notas: 'Paciente Demo - Carlos Martínez Sánchez' },
+  
+  // Enfermera ENF001 - Pacientes Mock
+  { id: 'ASG_MOCK_010', profesionalId: 'ENF001', pacienteId: 'patient-1', tipoAsignacion: 'equipo', fechaInicio: new Date('2024-01-01'), departamento: 'Enfermería', activo: true, notas: 'Cuidados de enfermería' },
+  { id: 'ASG_MOCK_011', profesionalId: 'ENF001', pacienteId: 'patient-2', tipoAsignacion: 'equipo', fechaInicio: new Date('2024-01-01'), departamento: 'Enfermería', activo: true, notas: 'Cuidados de enfermería' },
+  { id: 'ASG_MOCK_012', profesionalId: 'ENF001', pacienteId: 'patient-3', tipoAsignacion: 'equipo', fechaInicio: new Date('2024-01-01'), departamento: 'Enfermería', activo: true, notas: 'Cuidados de enfermería' },
+  { id: 'ASG_MOCK_013', profesionalId: 'ENF001', pacienteId: 'patient-4', tipoAsignacion: 'equipo', fechaInicio: new Date('2024-01-01'), departamento: 'Enfermería', activo: true, notas: 'Cuidados de enfermería' },
+  { id: 'ASG_MOCK_014', profesionalId: 'ENF001', pacienteId: 'PAC-001', tipoAsignacion: 'equipo', fechaInicio: new Date('2024-01-01'), departamento: 'Enfermería', activo: true, notas: 'Cuidados de enfermería' },
+  { id: 'ASG_MOCK_015', profesionalId: 'ENF001', pacienteId: 'PAC-002', tipoAsignacion: 'equipo', fechaInicio: new Date('2024-01-01'), departamento: 'Enfermería', activo: true, notas: 'Cuidados de enfermería' },
+  
+  // Enfermera ENF002 - Pacientes Mock adicionales
+  { id: 'ASG_MOCK_016', profesionalId: 'ENF002', pacienteId: 'patient-1', tipoAsignacion: 'equipo', fechaInicio: new Date('2024-01-01'), departamento: 'Enfermería', activo: true, notas: 'Cuidados de enfermería' },
+  { id: 'ASG_MOCK_017', profesionalId: 'ENF002', pacienteId: 'patient-3', tipoAsignacion: 'equipo', fechaInicio: new Date('2024-01-01'), departamento: 'Enfermería', activo: true, notas: 'Cuidados de enfermería' },
+  { id: 'ASG_MOCK_018', profesionalId: 'ENF002', pacienteId: 'PAC-003', tipoAsignacion: 'equipo', fechaInicio: new Date('2024-01-01'), departamento: 'Enfermería', activo: true, notas: 'Cuidados de enfermería' }
 ];
 
 // ============================================

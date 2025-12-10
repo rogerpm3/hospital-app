@@ -150,19 +150,39 @@ export default function AIAssistantDashboard() {
         category = 'search-help';
       }
     }
+    // === LISTAR TODOS LOS PACIENTES ===
+    else if (lowerQuery.includes('lista de paciente') || lowerQuery.includes('listar paciente') || lowerQuery.includes('todos los paciente') || lowerQuery.includes('ver paciente') || lowerQuery.includes('mostrar paciente')) {
+      const patientList = patients.slice(0, 10).map((p, i) => {
+        const bed = beds.find(b => b.patientId === p.id);
+        const status = p.riskLevel === 'Critical' ? '🔴' : p.riskLevel === 'High' ? '🟠' : '🟢';
+        return `${i+1}. ${status} **${p.firstName} ${p.lastName}**\n   └ ID: ${p.id} | DNI: ${p.dni || 'N/A'} | ${bed ? `Hab. ${bed.roomId}` : 'Ambulatorio'}`;
+      }).join('\n\n');
+      
+      response = `📋 **Lista de pacientes (${Math.min(10, patients.length)} de ${patients.length}):**\n\n${patientList}\n\n` +
+        `${patients.length > 10 ? `... y ${patients.length - 10} pacientes más.\n\n` : ''}` +
+        `💡 Para ver detalles: "buscar [nombre o ID del paciente]"`;
+      category = 'patient-list';
+    }
     // === INFORMACIÓN DE PACIENTES ===
-    else if (lowerQuery.includes('paciente') || lowerQuery.includes('patient')) {
+    else if (lowerQuery.includes('paciente') || lowerQuery.includes('patient') || lowerQuery.includes('cuantos paciente')) {
       const hospitalized = patients.filter(p => p.roomId).length;
       const critical = patients.filter(p => p.riskLevel === 'Critical' || p.currentCondition === 'Critical').length;
-      const stable = patients.filter(p => p.currentCondition === 'Stable').length;
+      const high = patients.filter(p => p.riskLevel === 'High').length;
+      const medium = patients.filter(p => p.riskLevel === 'Medium').length;
+      const stable = patients.filter(p => p.currentCondition === 'Stable' || p.currentCondition === 'Good').length;
       
       response = `👥 **Resumen de pacientes:**\n\n` +
         `• Total registrados: **${patients.length}**\n` +
         `• 🏥 Hospitalizados: **${hospitalized}**\n` +
-        `• 🔴 Estado crítico: **${critical}**\n` +
-        `• ✅ Estables: **${stable}**\n\n` +
-        `**Pacientes recientes:**\n${patients.slice(0, 3).map(p => `• ${p.firstName} ${p.lastName} (${p.id})`).join('\n')}\n\n` +
-        `Para buscar un paciente específico, escribe "buscar [nombre]"`;
+        `• 🚶 Ambulatorios: **${patients.length - hospitalized}**\n\n` +
+        `**Por nivel de riesgo:**\n` +
+        `• 🔴 Crítico: **${critical}**\n` +
+        `• 🟠 Alto: **${high}**\n` +
+        `• 🟡 Medio: **${medium}**\n` +
+        `• 🟢 Estable: **${stable}**\n\n` +
+        `**Pacientes recientes:**\n${patients.slice(0, 5).map(p => `• ${p.firstName} ${p.lastName} (${p.id})`).join('\n')}\n\n` +
+        `💡 Escribe "listar pacientes" para ver la lista completa\n` +
+        `💡 Escribe "buscar [nombre]" para buscar uno específico`;
       category = 'patient-info';
     }
     // === CITAS ===
@@ -298,13 +318,14 @@ export default function AIAssistantDashboard() {
   };
 
   const quickSuggestions = [
+    'Listar todos los pacientes',
+    '¿Cuántos pacientes hay?',
     '¿Cuántas camas disponibles hay?',
-    'Estado de UCI',
+    'Buscar paciente Juan García',
     'Pacientes críticos',
     'Citas de hoy',
-    'Buscar paciente Isabel Flores',
+    'Estado de UCI',
     'Resumen del hospital',
-    'Alertas activas',
     'Ayuda'
   ];
 

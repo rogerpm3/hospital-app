@@ -49,7 +49,8 @@ import {
   mockFutureAppointments,
   mockFollowUpAlerts,
   mockPrivacySettings,
-  mockAppointmentSummaries
+  mockAppointmentSummaries,
+  mockPatients
 } from './mock-data';
 
 // ============================================
@@ -238,6 +239,9 @@ interface HospitalContextType {
   cancelAppointment: (appointmentId: string, reason: string) => void;
   deleteAppointment: (appointmentId: string) => void;
 
+  // Funciones para habitaciones
+  updateRoom: (roomId: string, updates: Partial<Room>) => void;
+
   // Funciones para camas
   updateBedStatus: (bedId: string, status: Bed['status'], patientId?: string) => void;
   updateBedCleaning: (bedId: string, cleaningStatus: Bed['cleaningStatus'], cleanedBy?: string) => void;
@@ -291,31 +295,73 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
   const [permisosAreaClinica] = useState<PermisoAreaClinica[]>(sqlPermisosAreaClinica);
   
   // ============================================
-  // ESTADOS PRINCIPALES - Datos SQL predeterminados
+  // ESTADOS PRINCIPALES - Datos SQL predeterminados combinados con mock
   // ============================================
-  const [patients, setPatients] = useState<Patient[]>(sqlPatients);
-  const [rooms, setRooms] = useState<Room[]>(sqlRooms);
+  // Combinar pacientes de SQL con pacientes mock (evitando duplicados por ID)
+  const allPatientsData = React.useMemo(() => {
+    const sqlIds = new Set(sqlPatients.map(p => p.id));
+    const uniqueMockPatients = mockPatients.filter(p => !sqlIds.has(p.id));
+    return [...sqlPatients, ...uniqueMockPatients];
+  }, []);
   
-  // Inicializar beds aplicando asignaciones de pacientes desde localStorage
-  const [beds, setBeds] = useState<Bed[]>(() => {
+  const [patients, setPatients] = useState<Patient[]>(allPatientsData);
+  
+  // Inicializar rooms con persistencia desde localStorage
+  const [rooms, setRooms] = useState<Room[]>(() => {
     if (typeof window !== 'undefined') {
-      const savedAssignments = localStorage.getItem('bedPatientAssignments');
-      if (savedAssignments) {
-        const assignments = JSON.parse(savedAssignments) as Record<string, { patientId?: string; status?: string }>;
-        return sqlBeds.map(bed => {
-          const savedBed = assignments[bed.id];
-          // Si hay una entrada guardada para esta cama, usar sus valores
-          // (incluso si patientId es undefined - significa que se desasignó)
-          if (savedBed !== undefined) {
-            return {
-              ...bed,
-              patientId: savedBed.patientId, // puede ser undefined si se desasignó
-              status: (savedBed.status as Bed['status']) || bed.status
-            };
+      const savedRooms = localStorage.getItem('roomsState');
+      if (savedRooms) {
+        const roomUpdates = JSON.parse(savedRooms) as Record<string, Partial<Room>>;
+        return sqlRooms.map(room => {
+          const updates = roomUpdates[room.id];
+          if (updates) {
+            return { ...room, ...updates };
           }
-          return bed;
+          return room;
         });
       }
+    }
+    return sqlRooms;
+  });
+  
+  // Inicializar beds aplicando asignaciones de pacientes y estado de limpieza desde localStorage
+  const [beds, setBeds] = useState<Bed[]>(() => {
+    if (typeof window !== 'undefined') {
+      // Leer asignaciones de pacientes
+      const savedPatientAssignments = localStorage.getItem('bedPatientAssignments');
+      const patientAssignments = savedPatientAssignments 
+        ? JSON.parse(savedPatientAssignments) as Record<string, { patientId?: string; status?: string }>
+        : {};
+      
+      // Leer estados de limpieza
+      const savedBedAssignments = localStorage.getItem('bedAssignments');
+      const bedAssignments = savedBedAssignments 
+        ? JSON.parse(savedBedAssignments) as Record<string, { 
+            patientId?: string; 
+            status?: string; 
+            cleaningStatus?: string;
+            cleanedBy?: string;
+            lastCleaned?: string;
+          }>
+        : {};
+      
+      return sqlBeds.map(bed => {
+        const savedPatient = patientAssignments[bed.id];
+        const savedBed = bedAssignments[bed.id];
+        
+        // Combinar datos de ambas fuentes
+        return {
+          ...bed,
+          // Prioridad: bedAssignments > patientAssignments > bed original
+          patientId: savedBed?.patientId !== undefined ? savedBed.patientId 
+                   : savedPatient?.patientId !== undefined ? savedPatient.patientId 
+                   : bed.patientId,
+          status: (savedBed?.status as Bed['status']) || (savedPatient?.status as Bed['status']) || bed.status,
+          cleaningStatus: (savedBed?.cleaningStatus as Bed['cleaningStatus']) || bed.cleaningStatus,
+          cleanedBy: savedBed?.cleanedBy || bed.cleanedBy,
+          lastCleaned: savedBed?.lastCleaned ? new Date(savedBed.lastCleaned) : bed.lastCleaned
+        };
+      });
     }
     return sqlBeds;
   });
@@ -436,11 +482,17 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
         // Actualizar estados - usar SQLite si tiene más datos que los estáticos
         // Si SQLite tiene muy pocos datos, usar los datos estáticos de sql-data.ts
         
-        // Pacientes: usar SQLite solo si tiene más pacientes que los estáticos
-        if (patientsData?.length >= sqlPatients.length) {
-          setPatients(parsePatientDates(patientsData));
-        } else {
-          console.log('⚠️ SQLite tiene menos pacientes, usando datos estáticos');
+        // Pacientes: combinar SQLite con datos estáticos y mock
+        const basePatients = patientsData?.length >= sqlPatients.length 
+          ? parsePatientDates(patientsData) 
+          : sqlPatients;
+        // Añadir pacientes mock que no existan en los datos base
+        const existingIds = new Set(basePatients.map((p: Patient) => p.id));
+        const uniqueMockPatients = mockPatients.filter(p => !existingIds.has(p.id));
+        setPatients([...basePatients, ...uniqueMockPatients]);
+        
+        if (patientsData?.length < sqlPatients.length) {
+          console.log('⚠️ SQLite tiene menos pacientes, combinando con datos estáticos y mock');
         }
         
         // Staff: usar SQLite solo si tiene más personal que los estáticos
@@ -593,7 +645,14 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
       ]);
       
       // Actualizar estados - convertir strings de fechas a objetos Date
-      setPatients(patientsData?.length > 0 ? parsePatientDates(patientsData) : sqlPatients);
+      // Combinar pacientes de SQLite/SQL con mock
+      const combinedPatients = (() => {
+        const basePatients = patientsData?.length > 0 ? parsePatientDates(patientsData) : sqlPatients;
+        const sqlIds = new Set(basePatients.map((p: Patient) => p.id));
+        const uniqueMock = mockPatients.filter(p => !sqlIds.has(p.id));
+        return [...basePatients, ...uniqueMock];
+      })();
+      setPatients(combinedPatients);
       setStaff(staffData?.length > 0 ? staffData : sqlStaff as User[]);
       setRooms(roomsBedsData?.rooms?.length > 0 ? parseRoomDates(roomsBedsData.rooms) : sqlRooms);
       
@@ -631,8 +690,10 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
       console.log('✅ Datos recargados desde SQLite');
     } catch (error) {
       console.error('❌ Error recargando datos:', error);
-      // En caso de error, usar datos estáticos
-      setPatients(sqlPatients);
+      // En caso de error, usar datos estáticos combinados con mock
+      const sqlIds = new Set(sqlPatients.map(p => p.id));
+      const combinedPatients = [...sqlPatients, ...mockPatients.filter(p => !sqlIds.has(p.id))];
+      setPatients(combinedPatients);
       setStaff(sqlStaff as User[]);
       setRooms(sqlRooms);
       setBeds(sqlBeds);
@@ -863,6 +924,34 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // Función para actualizar habitaciones - CON PERSISTENCIA
+  const updateRoom = useCallback((roomId: string, updates: Partial<Room>) => {
+    setRooms(prev => {
+      const updated = prev.map(room => 
+        room.id === roomId ? { ...room, ...updates } : room
+      );
+      
+      // Persistir en localStorage
+      if (typeof window !== 'undefined') {
+        const savedRooms = localStorage.getItem('roomsState');
+        const roomsState = savedRooms ? JSON.parse(savedRooms) : {};
+        roomsState[roomId] = { ...roomsState[roomId], ...updates };
+        localStorage.setItem('roomsState', JSON.stringify(roomsState));
+        console.log('💾 Estado de habitación persistido:', roomId, updates);
+      }
+      
+      return updated;
+    });
+
+    // Log de auditoría
+    addAuditLog({
+      action: 'UPDATE',
+      resource: 'room',
+      resourceId: roomId,
+      details: `Habitación actualizada: ${JSON.stringify(updates)}`
+    });
+  }, [addAuditLog]);
+
   // Funciones para camas - CON PERSISTENCIA SQLite y localStorage
   const updateBedStatus = useCallback(async (bedId: string, status: Bed['status'], patientId?: string) => {
     const bed = beds.find(b => b.id === bedId);
@@ -919,19 +1008,48 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
 
   const updateBedCleaning = useCallback(async (bedId: string, cleaningStatus: Bed['cleaningStatus'], cleanedBy?: string) => {
     // Actualizar estado local inmediatamente
-    setBeds(prev => prev.map(bed => 
-      bed.id === bedId 
-        ? { 
-            ...bed, 
-            cleaningStatus,
-            lastCleaned: cleaningStatus === 'Clean' || cleaningStatus === 'Sanitized' ? new Date() : bed.lastCleaned,
-            cleanedBy: cleanedBy || bed.cleanedBy
-          }
-        : bed
-    ));
+    setBeds(prev => {
+      const updated = prev.map(bed => 
+        bed.id === bedId 
+          ? { 
+              ...bed, 
+              cleaningStatus,
+              lastCleaned: cleaningStatus === 'Clean' || cleaningStatus === 'Sanitized' ? new Date() : bed.lastCleaned,
+              cleanedBy: cleanedBy || bed.cleanedBy,
+              // Si se marca como limpio, cambiar estado a disponible
+              status: cleaningStatus === 'Clean' || cleaningStatus === 'Sanitized' 
+                ? 'Available' as const 
+                : cleaningStatus === 'Cleaning Required' 
+                  ? 'Cleaning Required' as const 
+                  : bed.status
+            }
+          : bed
+      );
+      
+      // Persistir en localStorage para que se refleje en todas las secciones
+      if (typeof window !== 'undefined') {
+        const savedBeds = localStorage.getItem('bedAssignments');
+        const bedAssignments = savedBeds ? JSON.parse(savedBeds) : {};
+        const updatedBed = updated.find(b => b.id === bedId);
+        if (updatedBed) {
+          bedAssignments[bedId] = {
+            ...bedAssignments[bedId],
+            patientId: updatedBed.patientId,
+            status: updatedBed.status,
+            cleaningStatus: updatedBed.cleaningStatus,
+            cleanedBy: updatedBed.cleanedBy,
+            lastCleaned: updatedBed.lastCleaned?.toISOString()
+          };
+          localStorage.setItem('bedAssignments', JSON.stringify(bedAssignments));
+        }
+      }
+      
+      return updated;
+    });
     
     // Persistir en SQLite
-    const status = cleaningStatus === 'Cleaning Required' ? 'Cleaning Required' : 'Available';
+    const status = cleaningStatus === 'Cleaning Required' ? 'Cleaning Required' : 
+                   cleaningStatus === 'Clean' || cleaningStatus === 'Sanitized' ? 'Available' : 'Maintenance';
     const result = await postToSQLite('update-bed-status', { bedId, status });
     if (result.success) {
       console.log('✅ Limpieza de cama actualizada en SQLite');
@@ -1428,6 +1546,22 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
       });
     }
     
+    // ADMISIONES: Solo ver mensajes dirigidos a su rol o a ellos específicamente
+    // NO deben ver comunicaciones clínicas entre médicos y enfermeros
+    if (user.role === 'admission') {
+      return chatMessages.filter(msg => {
+        // Mensajes enviados por el usuario
+        if (msg.senderId === user.id) return true;
+        // Mensajes dirigidos específicamente al usuario
+        if (msg.recipientId === user.id) return true;
+        // Mensajes dirigidos al rol de admisiones
+        if (msg.recipientRole === 'admission') return true;
+        // Mensajes broadcast para todo el hospital (no clínicos)
+        if (msg.recipientRole === 'all' && !clinicalRoles.includes(msg.senderRole || '')) return true;
+        return false;
+      });
+    }
+    
     
     
     // Para el resto del personal clínico (doctor, nurse, auxiliary): filtrar normalmente
@@ -1646,6 +1780,7 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
     updateAppointment,
     cancelAppointment,
     deleteAppointment,
+    updateRoom,
     updateBedStatus,
     updateBedCleaning,
     reserveBed,

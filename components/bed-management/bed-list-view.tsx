@@ -571,8 +571,8 @@ export default function BedListView() {
                           </SelectContent>
                         </Select>
                         
-                        {/* Botón Reservar - solo para camas disponibles */}
-                        {bed.status === 'Available' && (
+                        {/* Botón Reservar - solo para camas disponibles (no para admisiones) */}
+                        {bed.status === 'Available' && user?.role !== 'admission' && (
                           <Button
                             variant="outline"
                             size="icon"

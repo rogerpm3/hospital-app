@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useEffect, useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -16,114 +16,168 @@ import {
   MapPin,
   ClipboardList,
   Timer,
-  Target
+  Target,
+  RefreshCw
 } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { useHospital } from "@/lib/hospital-context"
 
+interface CleaningTask {
+  id: string;
+  bedId?: string;
+  room: string;
+  bedNumber?: string;
+  floor: number;
+  type: string;
+  status: string;
+  priority: string;
+  estimatedTime: string;
+  assignedTo: string;
+  lastCleaned: Date | null;
+  notes: string;
+  isFromSystem: boolean;
+}
+
 export default function CleaningDashboard() {
   const { user } = useAuth()
-  const { rooms, beds, hospitalFloors } = useHospital()
+  const { rooms, beds, hospitalFloors, updateBedCleaning, staff } = useHospital()
   const [activeTab, setActiveTab] = useState("tasks")
+  const [refreshKey, setRefreshKey] = useState(0)
 
-  // Datos por defecto de tareas
-  const defaultTasks = [
+  // Obtener personal de limpieza de demo
+  const cleaningStaff = staff.filter(s => s.role === 'cleaning');
+  const currentCleanerName = user?.firstName + " " + user?.lastName;
+
+  // Datos por defecto de tareas (tareas adicionales estáticas)
+  const defaultTasks: CleaningTask[] = [
     {
-      id: "1",
+      id: "static-1",
       room: "101",
       floor: 1,
       type: "Limpieza Terminal",
       status: "pending",
       priority: "high",
       estimatedTime: "45 min",
-      assignedTo: user?.firstName + " " + user?.lastName,
-      lastCleaned: null as Date | null,
-      notes: "Paciente con alta médica. Desinfección completa requerida."
+      assignedTo: currentCleanerName,
+      lastCleaned: null,
+      notes: "Paciente con alta médica. Desinfección completa requerida.",
+      isFromSystem: false
     },
     {
-      id: "2", 
+      id: "static-2", 
       room: "205",
       floor: 2,
       type: "Limpieza Diaria",
       status: "in_progress",
       priority: "normal", 
       estimatedTime: "30 min",
-      assignedTo: user?.firstName + " " + user?.lastName,
+      assignedTo: currentCleanerName,
       lastCleaned: new Date(Date.now() - 2 * 60 * 60 * 1000),
-      notes: "Paciente ambulatorio. Limpieza de rutina."
-    },
-    {
-      id: "3",
-      room: "102", 
-      floor: 1,
-      type: "Desinfección",
-      status: "completed",
-      priority: "urgent",
-      estimatedTime: "60 min",
-      assignedTo: user?.firstName + " " + user?.lastName,
-      lastCleaned: new Date(Date.now() - 1 * 60 * 60 * 1000),
-      notes: "Protocolo COVID-19 aplicado completamente."
-    },
-    {
-      id: "4",
-      room: "304",
-      floor: 3,
-      type: "Limpieza Diaria", 
-      status: "pending",
-      priority: "normal",
-      estimatedTime: "25 min",
-      assignedTo: user?.firstName + " " + user?.lastName,
-      lastCleaned: new Date(Date.now() - 24 * 60 * 60 * 1000),
-      notes: ""
+      notes: "Paciente ambulatorio. Limpieza de rutina.",
+      isFromSystem: false
     }
   ];
 
-  // Estado de tareas de limpieza - con persistencia en localStorage
-  const [cleaningTasks, setCleaningTasks] = useState(() => {
+  // Convertir camas que necesitan limpieza a tareas
+  const bedsNeedingCleaning = useMemo(() => {
+    return beds
+      .filter(bed => 
+        bed.cleaningStatus === 'In Progress' || 
+        bed.cleaningStatus === 'Cleaning Required' ||
+        bed.status === 'Cleaning Required'
+      )
+      .map(bed => {
+        const room = rooms.find(r => r.id === bed.roomId);
+        return {
+          id: `bed-${bed.id}`,
+          bedId: bed.id,
+          room: room?.number || bed.roomId,
+          bedNumber: bed.number,
+          floor: room?.floor || 1,
+          type: bed.cleaningStatus === 'Cleaning Required' ? 'Desinfección' : 'Limpieza en Proceso',
+          status: bed.cleaningStatus === 'In Progress' ? 'in_progress' : 'pending',
+          priority: bed.cleaningStatus === 'Cleaning Required' ? 'high' : 'normal',
+          estimatedTime: '30 min',
+          assignedTo: bed.cleanedBy || currentCleanerName,
+          lastCleaned: bed.lastCleaned || null,
+          notes: `Habitación ${room?.number || 'N/A'} - Cama ${bed.number}. ${bed.cleaningStatus === 'Cleaning Required' ? 'Requiere limpieza urgente.' : 'En proceso de limpieza.'}`,
+          isFromSystem: true
+        } as CleaningTask;
+      });
+  }, [beds, rooms, currentCleanerName]);
+
+  // Combinar tareas del sistema con tareas estáticas
+  const [localTaskStatuses, setLocalTaskStatuses] = useState<Record<string, { status: string; lastCleaned: string | null }>>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('cleaningTasksStatus');
-      if (saved) {
-        const savedStatuses = JSON.parse(saved) as Record<string, { status: string; lastCleaned: string | null }>;
-        return defaultTasks.map(task => ({
-          ...task,
-          status: savedStatuses[task.id]?.status || task.status,
-          lastCleaned: savedStatuses[task.id]?.lastCleaned 
-            ? new Date(savedStatuses[task.id].lastCleaned) 
-            : task.lastCleaned
-        }));
+      return saved ? JSON.parse(saved) : {};
+    }
+    return {};
+  });
+
+  // Todas las tareas combinadas
+  const allTasks = useMemo(() => {
+    // Tareas del sistema (camas)
+    const systemTasks = bedsNeedingCleaning;
+    
+    // Tareas estáticas con estado local
+    const staticTasksWithStatus = defaultTasks.map(task => ({
+      ...task,
+      status: localTaskStatuses[task.id]?.status || task.status,
+      lastCleaned: localTaskStatuses[task.id]?.lastCleaned 
+        ? new Date(localTaskStatuses[task.id].lastCleaned!) 
+        : task.lastCleaned
+    }));
+    
+    return [...systemTasks, ...staticTasksWithStatus];
+  }, [bedsNeedingCleaning, localTaskStatuses, defaultTasks]);
+
+  // Función para actualizar el estado de una tarea
+  const updateTaskStatus = (taskId: string, newStatus: string) => {
+    const task = allTasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    // Si es una tarea del sistema (cama real)
+    if (task.isFromSystem && task.bedId) {
+      let cleaningStatus: 'Clean' | 'In Progress' | 'Cleaning Required' | 'Sanitized';
+      
+      switch (newStatus) {
+        case 'completed':
+          cleaningStatus = 'Clean';
+          break;
+        case 'in_progress':
+          cleaningStatus = 'In Progress';
+          break;
+        default:
+          cleaningStatus = 'Cleaning Required';
+      }
+      
+      updateBedCleaning(task.bedId, cleaningStatus, currentCleanerName);
+      
+      // Forzar refresco
+      setRefreshKey(prev => prev + 1);
+    } else {
+      // Tarea estática - guardar en localStorage
+      const newStatuses = { ...localTaskStatuses };
+      newStatuses[taskId] = {
+        status: newStatus,
+        lastCleaned: newStatus === 'completed' ? new Date().toISOString() : localTaskStatuses[taskId]?.lastCleaned || null
+      };
+      setLocalTaskStatuses(newStatuses);
+      
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('cleaningTasksStatus', JSON.stringify(newStatuses));
       }
     }
-    return defaultTasks;
-  })
-
-  // Función para cambiar el estado de una tarea - con persistencia
-  const updateTaskStatus = (taskId: string, newStatus: string) => {
-    setCleaningTasks(prevTasks => {
-      const updatedTasks = prevTasks.map(task => 
-        task.id === taskId 
-          ? { 
-              ...task, 
-              status: newStatus,
-              lastCleaned: newStatus === 'completed' ? new Date() : task.lastCleaned
-            }
-          : task
-      );
-      
-      // Persistir en localStorage
-      if (typeof window !== 'undefined') {
-        const statusesToSave: Record<string, { status: string; lastCleaned: string | null }> = {};
-        updatedTasks.forEach(task => {
-          statusesToSave[task.id] = {
-            status: task.status,
-            lastCleaned: task.lastCleaned ? task.lastCleaned.toISOString() : null
-          };
-        });
-        localStorage.setItem('cleaningTasksStatus', JSON.stringify(statusesToSave));
-      }
-      
-      return updatedTasks;
-    });
   }
+
+  // Refresco automático cada 30 segundos
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setRefreshKey(prev => prev + 1);
+    }, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -164,15 +218,20 @@ export default function CleaningDashboard() {
     }
   }
 
-  const completedTasks = cleaningTasks.filter(task => task.status === "completed").length
-  const totalTasks = cleaningTasks.length
-  const completionRate = Math.round((completedTasks / totalTasks) * 100)
+  // Estadísticas
+  const completedTasks = allTasks.filter(task => task.status === "completed").length
+  const totalTasks = allTasks.length
+  const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0
 
-  const pendingTasks = cleaningTasks.filter(task => task.status === "pending")
-  const inProgressTasks = cleaningTasks.filter(task => task.status === "in_progress")
+  const pendingTasks = allTasks.filter(task => task.status === "pending")
+  const inProgressTasks = allTasks.filter(task => task.status === "in_progress")
+
+  // Camas limpias vs sucias
+  const cleanBeds = beds.filter(bed => bed.cleaningStatus === 'Clean' || bed.cleaningStatus === 'Sanitized').length;
+  const dirtyBeds = beds.filter(bed => bed.cleaningStatus === 'Cleaning Required' || bed.cleaningStatus === 'In Progress').length;
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6 p-6" key={refreshKey}>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -181,16 +240,27 @@ export default function CleaningDashboard() {
             Gestión de tareas de limpieza y desinfección hospitalaria
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-blue-600" />
-          <span className="text-sm text-muted-foreground">
-            {user?.firstName} {user?.lastName}
-          </span>
+        <div className="flex items-center gap-4">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => setRefreshKey(prev => prev + 1)}
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Actualizar
+          </Button>
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-blue-600" />
+            <span className="text-sm text-muted-foreground">
+              {user?.firstName} {user?.lastName}
+            </span>
+          </div>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Tareas Completadas</CardTitle>
@@ -233,6 +303,19 @@ export default function CleaningDashboard() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Camas Limpias</CardTitle>
+            <Sparkles className="h-4 w-4 text-emerald-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-emerald-600">{cleanBeds}</div>
+            <p className="text-xs text-muted-foreground">
+              de {beds.length} camas
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Eficiencia</CardTitle>
             <Target className="h-4 w-4 text-purple-600" />
           </CardHeader>
@@ -250,7 +333,7 @@ export default function CleaningDashboard() {
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="tasks" className="flex items-center gap-2">
             <ClipboardList className="h-4 w-4" />
-            Mis Tareas
+            Mis Tareas ({allTasks.filter(t => t.status !== 'completed').length})
           </TabsTrigger>
           <TabsTrigger value="floors" className="flex items-center gap-2">
             <MapPin className="h-4 w-4" />
@@ -267,169 +350,160 @@ export default function CleaningDashboard() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <ClipboardList className="w-5 h-5" />
-                Lista de Tareas
+                Tareas Asignadas
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {cleaningTasks.map((task) => (
-                  <Card key={task.id} className="border-l-4 border-l-blue-500">
-                    <CardContent className="pt-4">
+              {allTasks.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Sparkles className="w-12 h-12 mx-auto mb-4 text-green-500" />
+                  <p className="text-lg font-medium">¡Todo limpio!</p>
+                  <p>No hay tareas de limpieza pendientes</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {allTasks.map((task) => (
+                    <div 
+                      key={task.id}
+                      className={`p-4 rounded-lg border ${
+                        task.status === 'completed' ? 'bg-green-50 border-green-200' :
+                        task.status === 'in_progress' ? 'bg-blue-50 border-blue-200' :
+                        'bg-white'
+                      }`}
+                    >
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
-                            <div className="flex items-center gap-2">
-                              {getStatusIcon(task.status)}
-                              <h3 className="font-semibold">Habitación {task.room}</h3>
-                            </div>
-                            <Badge className={getStatusColor(task.status)}>
-                              {task.status === "pending" ? "Pendiente" : 
-                               task.status === "in_progress" ? "En Progreso" : "Completado"}
-                            </Badge>
-                            <Badge className={getPriorityColor(task.priority)}>
-                              {task.priority === "urgent" ? "Urgente" :
-                               task.priority === "high" ? "Alta" : "Normal"}
-                            </Badge>
+                            {getStatusIcon(task.status)}
+                            <span className="font-semibold">
+                              Habitación {task.room}
+                              {task.bedNumber && ` - Cama ${task.bedNumber}`}
+                            </span>
+                            {task.isFromSystem && (
+                              <Badge variant="outline" className="text-xs">
+                                Sistema
+                              </Badge>
+                            )}
                           </div>
-                          
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                            <div>
-                              <span className="text-muted-foreground">Tipo:</span>
-                              <span className="ml-2 font-medium">{task.type}</span>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground">Tiempo estimado:</span>
-                              <span className="ml-2 font-medium">{task.estimatedTime}</span>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground">Asignado a:</span>
-                              <span className="ml-2 font-medium">{task.assignedTo}</span>
-                            </div>
+                          <div className="flex flex-wrap gap-2 mb-2">
+                            <Badge variant="outline" className={getStatusColor(task.status)}>
+                              {task.status === 'pending' ? 'Pendiente' :
+                               task.status === 'in_progress' ? 'En Progreso' : 'Completada'}
+                            </Badge>
+                            <Badge variant="outline" className={getPriorityColor(task.priority)}>
+                              {task.priority === 'urgent' ? 'Urgente' :
+                               task.priority === 'high' ? 'Alta' : 'Normal'}
+                            </Badge>
+                            <Badge variant="secondary">{task.type}</Badge>
+                            <Badge variant="outline">Planta {task.floor}</Badge>
                           </div>
-
-                          {task.lastCleaned && (
-                            <div className="mt-2 text-sm">
-                              <span className="text-muted-foreground">Última limpieza:</span>
-                              <span className="ml-2">{task.lastCleaned.toLocaleString()}</span>
-                            </div>
-                          )}
-
-                          {task.notes && (
-                            <div className="mt-3 p-3 bg-gray-50 rounded-md">
-                              <p className="text-sm">{task.notes}</p>
-                            </div>
-                          )}
+                          <p className="text-sm text-muted-foreground">{task.notes}</p>
+                          <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              {task.estimatedTime}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <User className="w-3 h-3" />
+                              {task.assignedTo}
+                            </span>
+                            {task.lastCleaned && (
+                              <span>
+                                Última limpieza: {task.lastCleaned.toLocaleString('es-ES')}
+                              </span>
+                            )}
+                          </div>
                         </div>
-
-                        <div className="flex gap-2">
-                          {task.status === "pending" && (
+                        
+                        {/* Botones de acción */}
+                        <div className="flex gap-2 ml-4">
+                          {task.status === 'pending' && (
                             <Button 
-                              size="sm" 
-                              className="bg-blue-600 hover:bg-blue-700"
-                              onClick={() => updateTaskStatus(task.id, "in_progress")}
+                              size="sm"
+                              onClick={() => updateTaskStatus(task.id, 'in_progress')}
                             >
-                              Iniciar Tarea
+                              Iniciar
                             </Button>
                           )}
-                          {task.status === "in_progress" && (
+                          {task.status === 'in_progress' && (
                             <Button 
-                              size="sm" 
+                              size="sm"
+                              variant="default"
                               className="bg-green-600 hover:bg-green-700"
-                              onClick={() => updateTaskStatus(task.id, "completed")}
+                              onClick={() => updateTaskStatus(task.id, 'completed')}
                             >
-                              Finalizar
+                              Completar
                             </Button>
                           )}
-                          {task.status === "completed" && (
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
-                              className="text-green-600"
-                              onClick={() => updateTaskStatus(task.id, "pending")}
-                            >
-                              ✓ Completado
-                            </Button>
+                          {task.status === 'completed' && (
+                            <Badge className="bg-green-600">
+                              <CheckCircle className="w-3 h-3 mr-1" />
+                              Completada
+                            </Badge>
                           )}
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
 
         <TabsContent value="floors" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MapPin className="w-5 h-5" />
-                Estado de Limpieza por Plantas
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {[1, 2, 3, 4, 5].map(floor => {
-                  const floorTasks = cleaningTasks.filter(t => t.floor === floor)
-                  const floorCompleted = floorTasks.filter(t => t.status === 'completed').length
-                  const floorPending = floorTasks.filter(t => t.status === 'pending').length
-                  const floorInProgress = floorTasks.filter(t => t.status === 'in_progress').length
-                  const floorTotal = floorTasks.length
-                  const floorProgress = floorTotal > 0 ? Math.round((floorCompleted / floorTotal) * 100) : 100
-                  
-                  return (
-                    <Card key={floor} className="border-2">
-                      <CardHeader className="pb-2">
-                        <div className="flex items-center justify-between">
-                          <CardTitle className="text-lg">Planta {floor}</CardTitle>
-                          <Badge className={floorProgress === 100 ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}>
-                            {floorProgress}%
-                          </Badge>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <Progress value={floorProgress} className="h-2 mb-4" />
-                        <div className="grid grid-cols-3 gap-2 text-center text-sm">
-                          <div className="p-2 bg-yellow-50 rounded">
-                            <div className="font-bold text-yellow-600">{floorPending}</div>
-                            <div className="text-xs text-gray-600">Pendientes</div>
-                          </div>
-                          <div className="p-2 bg-blue-50 rounded">
-                            <div className="font-bold text-blue-600">{floorInProgress}</div>
-                            <div className="text-xs text-gray-600">En curso</div>
-                          </div>
-                          <div className="p-2 bg-green-50 rounded">
-                            <div className="font-bold text-green-600">{floorCompleted}</div>
-                            <div className="text-xs text-gray-600">Completas</div>
-                          </div>
-                        </div>
-                        {floorTasks.length > 0 && (
-                          <div className="mt-4 space-y-2">
-                            <p className="text-xs font-medium text-gray-500 uppercase">Habitaciones:</p>
-                            <div className="flex flex-wrap gap-1">
-                              {floorTasks.map(task => (
-                                <Badge 
-                                  key={task.id}
-                                  className={
-                                    task.status === 'completed' ? 'bg-green-100 text-green-700' :
-                                    task.status === 'in_progress' ? 'bg-blue-100 text-blue-700' :
-                                    'bg-yellow-100 text-yellow-700'
-                                  }
-                                >
-                                  {task.room}
-                                </Badge>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  )
-                })}
-              </div>
-            </CardContent>
-          </Card>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {hospitalFloors.map((floor) => {
+              const floorRooms = rooms.filter(r => r.floor === floor.number);
+              const floorBeds = beds.filter(b => {
+                const room = rooms.find(r => r.id === b.roomId);
+                return room?.floor === floor.number;
+              });
+              const cleanFloorBeds = floorBeds.filter(b => b.cleaningStatus === 'Clean' || b.cleaningStatus === 'Sanitized').length;
+              const dirtyFloorBeds = floorBeds.filter(b => b.cleaningStatus === 'Cleaning Required' || b.cleaningStatus === 'In Progress').length;
+              
+              return (
+                <Card key={floor.id}>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="flex items-center justify-between">
+                      <span>{floor.name}</span>
+                      <Badge variant="outline">Planta {floor.number}</Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div className="flex justify-between text-sm">
+                        <span>Habitaciones:</span>
+                        <span className="font-medium">{floorRooms.length}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span>Camas totales:</span>
+                        <span className="font-medium">{floorBeds.length}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="flex items-center gap-1">
+                          <CheckCircle className="w-3 h-3 text-green-600" />
+                          Limpias:
+                        </span>
+                        <span className="font-medium text-green-600">{cleanFloorBeds}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="flex items-center gap-1">
+                          <AlertTriangle className="w-3 h-3 text-yellow-600" />
+                          Requieren limpieza:
+                        </span>
+                        <span className="font-medium text-yellow-600">{dirtyFloorBeds}</span>
+                      </div>
+                      <Progress 
+                        value={floorBeds.length > 0 ? (cleanFloorBeds / floorBeds.length) * 100 : 100} 
+                        className="h-2 mt-2"
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
         </TabsContent>
 
         <TabsContent value="schedule" className="space-y-4">
@@ -441,68 +515,33 @@ export default function CleaningDashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-6">
-                {/* Horario del día */}
-                <div>
-                  <h3 className="font-semibold mb-3">Horario de Hoy</h3>
-                  <div className="grid gap-3">
-                    <div className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <Clock className="w-4 h-4 text-blue-600" />
-                        <div>
-                          <p className="font-medium">08:00 - 10:00</p>
-                          <p className="text-sm text-muted-foreground">Limpieza Terminal - Hab. 101</p>
-                        </div>
-                      </div>
-                      <Badge className="bg-yellow-100 text-yellow-800">Programado</Badge>
-                    </div>
-                    
-                    <div className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <Timer className="w-4 h-4 text-green-600" />
-                        <div>
-                          <p className="font-medium">10:30 - 11:00</p>
-                          <p className="text-sm text-muted-foreground">Limpieza Diaria - Hab. 205</p>
-                        </div>
-                      </div>
-                      <Badge className="bg-blue-100 text-blue-800">En Progreso</Badge>
-                    </div>
-                    
-                    <div className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <CheckCircle className="w-4 h-4 text-green-600" />
-                        <div>
-                          <p className="font-medium">11:15 - 12:00</p>
-                          <p className="text-sm text-muted-foreground">Desinfección - Hab. 102</p>
-                        </div>
-                      </div>
-                      <Badge className="bg-green-100 text-green-800">Completado</Badge>
-                    </div>
-                  </div>
+              <div className="space-y-4">
+                <div className="border rounded-lg p-4">
+                  <h4 className="font-semibold mb-2">Turno Mañana (07:00 - 15:00)</h4>
+                  <ul className="text-sm text-muted-foreground space-y-1">
+                    <li>• Limpieza diaria de todas las habitaciones ocupadas</li>
+                    <li>• Desinfección de áreas comunes</li>
+                    <li>• Reposición de material sanitario</li>
+                  </ul>
                 </div>
-
-                {/* Próximas tareas */}
-                <div>
-                  <h3 className="font-semibold mb-3 text-gray-900">Próximas Tareas</h3>
-                  <div className="grid gap-3">
-                    {pendingTasks.map((task, index) => (
-                      <div key={task.id} className="flex items-center justify-between p-3 border rounded-lg bg-amber-50">
-                        <div className="flex items-center gap-3">
-                          <MapPin className="w-4 h-4 text-amber-600" />
-                          <div>
-                            <p className="font-medium text-gray-900">Habitación {task.room} - Planta {task.floor}</p>
-                            <p className="text-sm text-gray-600">{task.type} • {task.estimatedTime}</p>
-                          </div>
-                        </div>
-                        {index === 0 && <Badge className="bg-amber-100 text-amber-800">Siguiente</Badge>}
-                      </div>
-                    ))}
-                    {pendingTasks.length === 0 && (
-                      <div className="p-4 text-center text-gray-500">
-                        No hay tareas pendientes
-                      </div>
-                    )}
-                  </div>
+                <div className="border rounded-lg p-4">
+                  <h4 className="font-semibold mb-2">Turno Tarde (15:00 - 23:00)</h4>
+                  <ul className="text-sm text-muted-foreground space-y-1">
+                    <li>• Limpieza terminal de habitaciones con altas</li>
+                    <li>• Desinfección de quirófanos</li>
+                    <li>• Limpieza de emergencias según demanda</li>
+                  </ul>
+                </div>
+                <div className="border rounded-lg p-4 bg-blue-50">
+                  <h4 className="font-semibold mb-2 flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-blue-600" />
+                    Protocolo COVID-19
+                  </h4>
+                  <ul className="text-sm text-muted-foreground space-y-1">
+                    <li>• Desinfección cada 2 horas en áreas de alto tránsito</li>
+                    <li>• Uso obligatorio de EPP completo</li>
+                    <li>• Registro de todas las actividades de limpieza</li>
+                  </ul>
                 </div>
               </div>
             </CardContent>
