@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useHospital } from '@/lib/hospital-context';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,34 +13,31 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/lib/auth-context';
 import { 
-  LineChart, 
-  Line, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  BarChart,
-  Bar
-} from 'recharts';
-import { 
   Plus, 
-  Heart, 
-  Thermometer, 
-  Activity, 
-  Droplets,
-  AlertTriangle,
-  TrendingUp,
-  TrendingDown,
-  Minus,
-  Eye
+  ChevronDown,
+  ChevronRight,
+  Database,
+  FileText
 } from 'lucide-react';
 import { VitalSigns } from '@/lib/types';
+import { 
+  sqlDetailVitalSigns, 
+  sqlVitalSignParameters, 
+  getVitalSignParameterName,
+  getVitalSignParameterUnit 
+} from '@/lib/sql-data';
 
 export default function VitalSignsPanel() {
-  const { patients, vitalSigns, addVitalSigns, getFilteredPatients } = useHospital();
+  const { patients, addVitalSigns, getFilteredPatients, rooms } = useHospital();
   const { user } = useAuth();
   const { toast } = useToast();
+  
+  // Helper para obtener el número de habitación
+  const getRoomNumber = (roomId: string | undefined): string => {
+    if (!roomId) return '';
+    const room = rooms.find(r => r.id === roomId);
+    return room?.number || roomId.replace('room-', '').replace(/^P\d+_\w+_/, '');
+  };
   
   const [selectedPatient, setSelectedPatient] = useState('');
   const [newVitalSigns, setNewVitalSigns] = useState({
@@ -61,10 +58,66 @@ export default function VitalSignsPanel() {
   const assignedPatients = getFilteredPatients();
   const hospitalizedPatients = assignedPatients.filter(p => p.roomId);
 
-  // Obtener signos vitales recientes
-  const recentVitalSigns = vitalSigns
-    .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
-    .slice(0, 20);
+  // Estado para los desplegables de signos vitales del SQL
+  const [expandedPatients, setExpandedPatients] = useState<Set<string>>(new Set());
+  
+  // Obtener IDs de pacientes asignados
+  const myPatientIds = useMemo(() => {
+    return assignedPatients.map(p => p.id);
+  }, [assignedPatients]);
+  
+  // Filtrar signos vitales del SQL según rol
+  const filteredSqlVitalSigns = useMemo(() => {
+    if (user?.role === 'admin') {
+      return sqlDetailVitalSigns;
+    }
+    // Enfermeras solo ven los de sus pacientes asignados
+    return sqlDetailVitalSigns.filter(sv => myPatientIds.includes(sv.patientId));
+  }, [user?.role, myPatientIds]);
+  
+  // Agrupar por paciente
+  const sqlVitalSignsByPatient = useMemo(() => {
+    const grouped = new Map<string, typeof sqlDetailVitalSigns>();
+    
+    for (const sign of filteredSqlVitalSigns) {
+      const existing = grouped.get(sign.patientId) || [];
+      existing.push(sign);
+      grouped.set(sign.patientId, existing);
+    }
+    
+    return grouped;
+  }, [filteredSqlVitalSigns]);
+  
+  // Agrupar por registro dentro de cada paciente
+  const getSignsGroupedByRegister = (patientId: string) => {
+    const signs = sqlVitalSignsByPatient.get(patientId) || [];
+    const grouped = new Map<string, typeof sqlDetailVitalSigns>();
+    
+    for (const sign of signs) {
+      const existing = grouped.get(sign.registerId) || [];
+      existing.push(sign);
+      grouped.set(sign.registerId, existing);
+    }
+    
+    // Ordenar por fecha descendente
+    return Array.from(grouped.entries()).sort((a, b) => {
+      const dateA = a[1][0]?.timestamp?.getTime() || 0;
+      const dateB = b[1][0]?.timestamp?.getTime() || 0;
+      return dateB - dateA;
+    });
+  };
+  
+  const togglePatientExpanded = (patientId: string) => {
+    setExpandedPatients(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(patientId)) {
+        newSet.delete(patientId);
+      } else {
+        newSet.add(patientId);
+      }
+      return newSet;
+    });
+  };
 
   // Función para determinar si un valor está fuera de rango normal
   const isAbnormal = (type: string, value: number) => {
@@ -86,14 +139,6 @@ export default function VitalSignsPanel() {
       default:
         return false;
     }
-  };
-
-  // Obtener tendencia de signos vitales para un paciente
-  const getPatientVitalsTrend = (patientId: string) => {
-    return vitalSigns
-      .filter(vs => vs.patientId === patientId)
-      .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
-      .slice(-10); // Últimos 10 registros
   };
 
   // Manejar envío de nuevos signos vitales
@@ -187,11 +232,6 @@ export default function VitalSignsPanel() {
     }
   };
 
-  // Obtener color para el valor según si es normal o no
-  const getValueColor = (type: string, value: number) => {
-    return isAbnormal(type, value) ? 'text-red-600' : 'text-green-600';
-  };
-
   return (
     <div className="space-y-6">
       {/* Header con botón de agregar */}
@@ -229,7 +269,7 @@ export default function VitalSignsPanel() {
                     ) : (
                       hospitalizedPatients.map(patient => (
                         <SelectItem key={patient.id} value={patient.id}>
-                          {patient.firstName} {patient.lastName} - Hab. {patient.roomId}{patient.bedNumber ? ` - Cama ${patient.bedNumber}` : ''}
+                          {patient.firstName} {patient.lastName} - Hab. {getRoomNumber(patient.roomId)}{patient.bedNumber ? ` - Cama ${patient.bedNumber}` : ''}
                         </SelectItem>
                       ))
                     )}
@@ -390,199 +430,128 @@ export default function VitalSignsPanel() {
         </Dialog>
       </div>
 
-      {/* Lista de signos vitales recientes */}
+      {/* Sección de Signos Vitales del SQL - Desplegable por paciente */}
       <Card>
         <CardHeader>
-          <CardTitle>Signos Vitales Recientes</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Database className="h-5 w-5" />
+            Historial Detallado de Signos Vitales
+          </CardTitle>
+          <CardDescription>
+            {user?.role === 'admin' 
+              ? `Todos los registros del sistema (${filteredSqlVitalSigns.length} mediciones)`
+              : `Registros de tus pacientes asignados (${filteredSqlVitalSigns.length} mediciones)`
+            }
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {recentVitalSigns.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                No hay signos vitales registrados.
-              </div>
-            ) : (
-              recentVitalSigns.map(vital => {
-                const patient = patients.find(p => p.id === vital.patientId);
-                const hasAlerts = vital.alerts && vital.alerts.length > 0;
+          {sqlVitalSignsByPatient.size === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>No hay registros de signos vitales disponibles</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {Array.from(sqlVitalSignsByPatient.entries()).map(([patientId, signs]) => {
+                const patient = patients.find(p => p.id === patientId);
+                const isExpanded = expandedPatients.has(patientId);
+                const registersGrouped = getSignsGroupedByRegister(patientId);
                 
                 return (
-                  <Card key={vital.id} className={`${hasAlerts ? 'border-red-200 bg-red-50' : ''}`}>
-                    <CardContent className="pt-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <div>
-                          <h4 className="font-semibold">
-                            {patient?.firstName} {patient?.lastName}
-                          </h4>
-                          <p className="text-sm text-muted-foreground">
-                            {patient?.roomId ? `Habitación ${patient.roomId}${patient.bedNumber ? ` - Cama ${patient.bedNumber}` : ''}` : 'Sin habitación'} • {vital.timestamp.toLocaleString()} • {vital.recordedBy}
-                          </p>
+                  <Card key={patientId} className="border">
+                    <CardHeader 
+                      className="cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() => togglePatientExpanded(patientId)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          {isExpanded ? (
+                            <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                          ) : (
+                            <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                          )}
+                          <div>
+                            <CardTitle className="text-base">
+                              {patient?.firstName} {patient?.lastName}
+                            </CardTitle>
+                            <CardDescription>
+                              ID: {patientId} • {registersGrouped.length} registro(s) • {signs.length} mediciones
+                            </CardDescription>
+                          </div>
                         </div>
-                        {hasAlerts && (
-                          <Badge variant="destructive" className="flex items-center gap-1">
-                            <AlertTriangle className="h-3 w-3" />
-                            {vital.alerts?.length} Alerta(s)
-                          </Badge>
-                        )}
+                        <Badge variant="secondary">
+                          {signs.length} valores
+                        </Badge>
                       </div>
-
-                      <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-6">
-                        <div className="flex items-center gap-2">
-                          <Heart className="h-4 w-4 text-red-500" />
-                          <div>
-                            <div className="text-xs text-muted-foreground">Presión</div>
-                            <div className={`font-medium ${
-                              isAbnormal('systolic', vital.bloodPressure.systolic) || 
-                              isAbnormal('diastolic', vital.bloodPressure.diastolic) 
-                                ? 'text-red-600' : 'text-green-600'
-                            }`}>
-                              {vital.bloodPressure.systolic}/{vital.bloodPressure.diastolic}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <Heart className="h-4 w-4 text-red-500" />
-                          <div>
-                            <div className="text-xs text-muted-foreground">FC</div>
-                            <div className={`font-medium ${getValueColor('heartRate', vital.heartRate)}`}>
-                              {vital.heartRate} bpm
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <Thermometer className="h-4 w-4 text-blue-500" />
-                          <div>
-                            <div className="text-xs text-muted-foreground">Temp</div>
-                            <div className={`font-medium ${getValueColor('temperature', vital.temperature)}`}>
-                              {vital.temperature}°C
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <Activity className="h-4 w-4 text-purple-500" />
-                          <div>
-                            <div className="text-xs text-muted-foreground">FR</div>
-                            <div className={`font-medium ${getValueColor('respiratoryRate', vital.respiratoryRate)}`}>
-                              {vital.respiratoryRate} rpm
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <Activity className="h-4 w-4 text-green-500" />
-                          <div>
-                            <div className="text-xs text-muted-foreground">SpO₂</div>
-                            <div className={`font-medium ${getValueColor('oxygenSaturation', vital.oxygenSaturation)}`}>
-                              {vital.oxygenSaturation}%
-                            </div>
-                          </div>
-                        </div>
-
-                        {vital.painLevel !== undefined && (
-                          <div className="flex items-center gap-2">
-                            <Minus className="h-4 w-4 text-orange-500" />
-                            <div>
-                              <div className="text-xs text-muted-foreground">Dolor</div>
-                              <div className={`font-medium ${getValueColor('painLevel', vital.painLevel)}`}>
-                                {vital.painLevel}/10
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {vital.alerts && vital.alerts.length > 0 && (
-                        <div className="mt-3 p-2 bg-red-100 border border-red-200 rounded">
-                          <h5 className="font-medium text-red-800 text-sm mb-1">Alertas:</h5>
-                          <ul className="text-sm text-red-700 space-y-1">
-                            {vital.alerts.map((alert, index) => (
-                              <li key={index} className="flex items-center gap-1">
-                                <AlertTriangle className="h-3 w-3" />
-                                {alert}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-
-                      {vital.notes && (
-                        <div className="mt-3 p-2 bg-blue-50 border border-blue-100 rounded text-sm">
-                          <span className="font-medium text-blue-900">Observaciones:</span>{" "}
-                          <span className="text-blue-800">{vital.notes}</span>
-                        </div>
-                      )}
-
-                      <div className="mt-3 flex gap-2">
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button size="sm" variant="outline" className="flex items-center gap-2">
-                              <Eye className="h-3 w-3" />
-                              Ver Tendencia
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="max-w-4xl">
-                            <DialogHeader>
-                              <DialogTitle>
-                                Tendencia de Signos Vitales - {patient?.firstName} {patient?.lastName}
-                              </DialogTitle>
-                            </DialogHeader>
-                            <div className="space-y-4">
-                              {(() => {
-                                const trendData = getPatientVitalsTrend(vital.patientId).map(vs => ({
-                                  time: vs.timestamp.toLocaleTimeString(),
-                                  systolic: vs.bloodPressure.systolic,
-                                  diastolic: vs.bloodPressure.diastolic,
-                                  heartRate: vs.heartRate,
-                                  temperature: vs.temperature,
-                                  oxygenSaturation: vs.oxygenSaturation
-                                }));
-
-                                return (
-                                  <div className="grid gap-4 md:grid-cols-2">
-                                    <div>
-                                      <h4 className="font-medium mb-2">Presión Arterial y Frecuencia Cardíaca</h4>
-                                      <ResponsiveContainer width="100%" height={200}>
-                                        <LineChart data={trendData}>
-                                          <CartesianGrid strokeDasharray="3 3" />
-                                          <XAxis dataKey="time" />
-                                          <YAxis />
-                                          <Tooltip />
-                                          <Line type="monotone" dataKey="systolic" stroke="#ef4444" name="Sistólica" />
-                                          <Line type="monotone" dataKey="diastolic" stroke="#f97316" name="Diastólica" />
-                                          <Line type="monotone" dataKey="heartRate" stroke="#ec4899" name="FC" />
-                                        </LineChart>
-                                      </ResponsiveContainer>
-                                    </div>
-
-                                    <div>
-                                      <h4 className="font-medium mb-2">Temperatura y Saturación O₂</h4>
-                                      <ResponsiveContainer width="100%" height={200}>
-                                        <LineChart data={trendData}>
-                                          <CartesianGrid strokeDasharray="3 3" />
-                                          <XAxis dataKey="time" />
-                                          <YAxis />
-                                          <Tooltip />
-                                          <Line type="monotone" dataKey="temperature" stroke="#3b82f6" name="Temperatura" />
-                                          <Line type="monotone" dataKey="oxygenSaturation" stroke="#22c55e" name="SpO₂" />
-                                        </LineChart>
-                                      </ResponsiveContainer>
-                                    </div>
+                    </CardHeader>
+                    
+                    {isExpanded && (
+                      <CardContent className="pt-0">
+                        <div className="space-y-4">
+                          {registersGrouped.map(([registerId, registerSigns]) => {
+                            const timestamp = registerSigns[0]?.timestamp;
+                            return (
+                              <div key={registerId} className="border rounded-lg p-4 bg-muted/30">
+                                <div className="flex items-center justify-between mb-3">
+                                  <div className="flex items-center gap-2">
+                                    <Badge variant="outline" className="font-mono text-xs">
+                                      {registerId}
+                                    </Badge>
                                   </div>
-                                );
-                              })()}
-                            </div>
-                          </DialogContent>
-                        </Dialog>
-                      </div>
-                    </CardContent>
+                                  {timestamp && (
+                                    <span className="text-sm text-muted-foreground">
+                                      {timestamp.toLocaleDateString('es-ES', {
+                                        day: '2-digit',
+                                        month: '2-digit',
+                                        year: 'numeric',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                      })}
+                                    </span>
+                                  )}
+                                </div>
+                                
+                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                                  {registerSigns.map((sign, idx) => {
+                                    const paramName = getVitalSignParameterName(sign.parameterId);
+                                    const paramUnit = getVitalSignParameterUnit(sign.parameterId);
+                                    const param = sqlVitalSignParameters.find(p => p.id === sign.parameterId);
+                                    
+                                    // Determinar color según categoría
+                                    const categoryColors: Record<string, string> = {
+                                      'vital': 'bg-red-50 border-red-200 dark:bg-red-950 dark:border-red-800',
+                                      'lab': 'bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800',
+                                      'blood': 'bg-purple-50 border-purple-200 dark:bg-purple-950 dark:border-purple-800'
+                                    };
+                                    
+                                    const colorClass = param?.category 
+                                      ? categoryColors[param.category] 
+                                      : 'bg-gray-50 border-gray-200';
+                                    
+                                    return (
+                                      <div 
+                                        key={`${sign.registerId}-${sign.parameterId}-${idx}`}
+                                        className={`p-2 rounded border ${colorClass}`}
+                                      >
+                                        <p className="text-xs text-muted-foreground">{paramName}</p>
+                                        <p className="font-semibold">
+                                          {sign.value} <span className="text-xs font-normal">{paramUnit}</span>
+                                        </p>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </CardContent>
+                    )}
                   </Card>
                 );
-              })
-            )}
-          </div>
+              })}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

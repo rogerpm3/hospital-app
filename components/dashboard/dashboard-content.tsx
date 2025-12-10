@@ -522,13 +522,7 @@ export default function DashboardContent({ activeSection, setActiveSection }: Da
                       <div className="text-center py-6 text-gray-500">
                         <Calendar className="h-12 w-12 mx-auto mb-3 text-gray-300" />
                         <p>No tienes citas programadas próximamente</p>
-                        <Button 
-                          variant="outline" 
-                          className="mt-3"
-                          onClick={() => setActiveSection('appointments')}
-                        >
-                          Solicitar una cita
-                        </Button>
+                        <p className="text-sm mt-2">Contacta con tu médico para programar una cita</p>
                       </div>
                     );
                   }
@@ -803,20 +797,6 @@ export default function DashboardContent({ activeSection, setActiveSection }: Da
 
     case 'audit':
       return <AuditLogList />;
-
-    case 'settings':
-      return (
-        <div className="p-6">
-          <h2 className="text-2xl font-bold mb-4">Configuración del Sistema</h2>
-          <Card>
-            <CardContent className="pt-6">
-              <p className="text-muted-foreground">
-                Panel de configuración en desarrollo...
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      );
 
     case 'cleaning':
       return <CleaningDashboard />;

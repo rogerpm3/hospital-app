@@ -114,17 +114,6 @@ export const mockUsers: User[] = [
     isActive: true
   },
   {
-    id: '9',
-    dni: '90123456I',
-    firstName: 'Isabel',
-    lastName: 'Moreno',
-    email: 'isabel.moreno@hospital.com',
-    phone: '+34 600 000 009',
-    role: 'admission',
-    department: 'Admisiones',
-    isActive: true
-  },
-  {
     id: '10',
     dni: '01234567J',
     firstName: 'Francisco',
@@ -135,77 +124,46 @@ export const mockUsers: User[] = [
     department: 'Trabajo Social',
     isActive: true
   },
-  // Usuarios de Admisiones adicionales
+  // Usuarios Pacientes del SQL (datos reales)
   {
-    id: '11',
-    dni: 'ADM001001',
-    firstName: 'Patricia',
-    lastName: 'Gómez Serrano',
-    email: 'patricia.gomez@hospital.com',
-    phone: '+34 600 000 011',
-    role: 'admission',
-    department: 'Admisiones',
-    professionalId: 'ADM-001',
-    isActive: true,
-    anonymousId: 'ADM-011',
-    failedLoginAttempts: 0,
-    isLocked: false
-  },
-  {
-    id: '12',
-    dni: 'ADM001002',
-    firstName: 'Miguel',
-    lastName: 'Torres Vega',
-    email: 'miguel.torres@hospital.com',
-    phone: '+34 600 000 012',
-    role: 'admission',
-    department: 'Admisiones',
-    professionalId: 'ADM-002',
-    isActive: true,
-    anonymousId: 'ADM-012',
-    failedLoginAttempts: 0,
-    isLocked: false
-  },
-  // Usuarios Pacientes
-  {
-    id: '13',
-    dni: 'PAC001001',
-    firstName: 'Antonio',
-    lastName: 'Pérez Martín',
-    email: 'antonio.perez@email.com',
-    phone: '+34 600 000 013',
+    id: 'IFV_0001',
+    dni: '80111345H',
+    firstName: 'Isabel',
+    lastName: 'Flores Viñales',
+    email: 'isafloresviñales@gmail.com',
+    phone: '673 245 910',
     role: 'patient',
-    professionalId: 'PAC-001',
+    professionalId: 'IFV_0001',
     isActive: true,
-    anonymousId: 'PAC-013',
+    anonymousId: 'PAT-IFV001',
     failedLoginAttempts: 0,
     isLocked: false
   },
   {
-    id: '14',
-    dni: 'PAC001002',
-    firstName: 'Rosa',
-    lastName: 'Hernández López',
-    email: 'rosa.hernandez@email.com',
-    phone: '+34 600 000 014',
+    id: 'PIF_0010',
+    dni: '71403289D',
+    firstName: 'Paula',
+    lastName: 'Imbernón Flores',
+    email: 'paula.imbernon@hospital.com',
+    phone: '673 245 910',
     role: 'patient',
-    professionalId: 'PAC-002',
+    professionalId: 'PIF_0010',
     isActive: true,
-    anonymousId: 'PAC-014',
+    anonymousId: 'PAT-PIF010',
     failedLoginAttempts: 0,
     isLocked: false
   },
   {
-    id: '15',
-    dni: 'PAC001003',
-    firstName: 'José',
-    lastName: 'Sánchez Ruiz',
-    email: 'jose.sanchez@email.com',
-    phone: '+34 600 000 015',
+    id: 'MIF_0011',
+    dni: '71403312E',
+    firstName: 'Martín',
+    lastName: 'Imbernón Flores',
+    email: 'martin.imbernon@hospital.com',
+    phone: '673 245 910',
     role: 'patient',
-    professionalId: 'PAC-003',
+    professionalId: 'MIF_0011',
     isActive: true,
-    anonymousId: 'PAC-015',
+    anonymousId: 'PAT-MIF011',
     failedLoginAttempts: 0,
     isLocked: false
   },
@@ -673,104 +631,134 @@ export const mockMedicalRecords: MedicalRecord[] = [
   }
 ];
 
-// Signos vitales mock
+// Signos vitales mock - usando IDs de pacientes reales del SQL
 export const mockVitalSigns: VitalSigns[] = [
+  // Isabel Flores Viñales (IFV_0001)
   {
     id: 'vs-1',
-    patientId: 'patient-1',
-    timestamp: new Date('2024-01-15T08:00:00Z'),
-    recordedBy: 'Luis Martínez',
-    bloodPressure: { systolic: 140, diastolic: 90 },
+    patientId: 'IFV_0001',
+    timestamp: new Date('2014-03-20T10:00:00Z'),
+    recordedBy: 'Montserrat Valls Blanco',
+    bloodPressure: { systolic: 143, diastolic: 73 },
     heartRate: 78,
     temperature: 36.5,
     respiratoryRate: 16,
     oxygenSaturation: 98,
     painLevel: 2,
-    glucoseLevel: 110,
-    weight: 75.5,
-    notes: 'Paciente estable, dolor controlado',
+    glucoseLevel: 102,
+    weight: 58,
+    notes: 'Control prenatal - signos estables',
     alerts: []
   },
+  // Javier Martinez Lopez (JML_0001)
   {
     id: 'vs-2',
-    patientId: 'patient-2',
-    timestamp: new Date('2024-01-15T08:15:00Z'),
-    recordedBy: 'Javier Sánchez',
+    patientId: 'JML_0001',
+    timestamp: new Date('2022-09-10T19:00:00Z'),
+    recordedBy: 'Lucía Cabañes Mata',
     bloodPressure: { systolic: 120, diastolic: 80 },
     heartRate: 95,
     temperature: 36.8,
     respiratoryRate: 22,
     oxygenSaturation: 94,
-    painLevel: 0,
-    notes: 'Mejoría respiratoria gradual',
-    alerts: ['Saturación O2 límite']
+    painLevel: 6,
+    notes: 'Ingreso por accidente - dolor en pierna derecha',
+    alerts: ['Dolor elevado: 6/10']
+  },
+  // Samuel Vallbé Picornell (SVP_0001)
+  {
+    id: 'vs-3',
+    patientId: 'SVP_0001',
+    timestamp: new Date('2015-09-14T14:31:00Z'),
+    recordedBy: 'Lucía Cabañes Mata',
+    bloodPressure: { systolic: 87, diastolic: 20 },
+    heartRate: 118,
+    temperature: 38.3,
+    respiratoryRate: 64,
+    oxygenSaturation: 92,
+    painLevel: 8,
+    notes: 'Dolor abdominal agudo - sospecha apendicitis',
+    alerts: ['Fiebre', 'Taquicardia', 'Dolor severo']
+  },
+  // María Rodríguez Sánchez (MRS_0001)
+  {
+    id: 'vs-4',
+    patientId: 'MRS_0001',
+    timestamp: new Date('2022-05-10T10:00:00Z'),
+    recordedBy: 'Miguel Serrano',
+    bloodPressure: { systolic: 140, diastolic: 90 },
+    heartRate: 110,
+    temperature: 38.5,
+    respiratoryRate: 28,
+    oxygenSaturation: 88,
+    painLevel: 4,
+    notes: 'Ingreso UCI - neumonía severa',
+    alerts: ['Saturación O2 baja: 88%', 'Fiebre', 'Taquipnea']
+  },
+  // Juan Agudells Vilaseca (JAV_0001)
+  {
+    id: 'vs-5',
+    patientId: 'JAV_0001',
+    timestamp: new Date('2014-10-14T10:01:00Z'),
+    recordedBy: 'Nuria Bòria Vila',
+    bloodPressure: { systolic: 150, diastolic: 90 },
+    heartRate: 90,
+    temperature: 39.5,
+    respiratoryRate: 31,
+    oxygenSaturation: 89,
+    painLevel: 5,
+    notes: 'Ingreso por EPOC reagudizado',
+    alerts: ['Fiebre alta', 'Saturación O2 baja', 'Taquipnea']
   }
 ];
 
-// Medicamentos mock
+// Medicamentos mock - usando IDs de pacientes reales
 export const mockMedications: Medication[] = [
   {
     id: 'med-1',
-    name: 'Aspirina',
-    genericName: 'Ácido acetilsalicílico',
-    dosage: '100mg',
+    name: 'Pluriamín',
+    genericName: 'Vitaminas prenatales',
+    dosage: '1 comprimido',
     frequency: 'Una vez al día',
     route: 'Oral',
-    startDate: new Date('2024-01-14'),
-    prescribedBy: 'Dr. Ana García',
-    patientId: 'patient-1',
-    instructions: 'Tomar después de las comidas',
-    sideEffects: ['Malestar gástrico', 'Sangrado'],
-    cost: 5.50,
+    startDate: new Date('2014-01-02'),
+    prescribedBy: 'Dr. Josep Blanch Alsina',
+    patientId: 'IFV_0001',
+    instructions: 'Tomar con el desayuno',
+    sideEffects: ['Náuseas leves'],
+    cost: 12.50,
     status: 'Active'
   },
   {
     id: 'med-2',
-    name: 'Clopidogrel',
-    dosage: '75mg',
-    frequency: 'Una vez al día',
+    name: 'Paracetamol',
+    dosage: '1g',
+    frequency: 'Cada 8 horas',
     route: 'Oral',
-    startDate: new Date('2024-01-14'),
-    endDate: new Date('2024-04-14'),
-    prescribedBy: 'Dr. Ana García',
-    patientId: 'patient-1',
-    instructions: 'Tomar a la misma hora todos los días',
+    startDate: new Date('2022-09-10'),
+    endDate: new Date('2022-09-14'),
+    prescribedBy: 'Dra. Laura Martinez',
+    patientId: 'JML_0001',
+    instructions: 'Tomar para control del dolor',
+    status: 'Completed'
+  },
+  {
+    id: 'med-3',
+    name: 'Antibiótico IV',
+    dosage: '1g',
+    frequency: 'Cada 8 horas',
+    route: 'IV',
+    startDate: new Date('2022-05-10'),
+    prescribedBy: 'Dr. Miguel Serrano',
+    patientId: 'MRS_0001',
+    instructions: 'Administración hospitalaria UCI',
     status: 'Active'
   }
 ];
 
-// Órdenes médicas mock
-export const mockMedicalOrders: MedicalOrder[] = [
-  {
-    id: 'order-1',
-    patientId: 'patient-1',
-    physicianId: '2',
-    physicianName: 'Dr. Ana García',
-    orderDate: new Date('2024-01-14T11:30:00Z'),
-    type: 'Lab',
-    category: 'Stat',
-    description: 'Troponinas seriadas cada 6 horas x 3',
-    instructions: 'Extraer muestra cada 6 horas durante 18 horas',
-    status: 'In Progress',
-    scheduledDateTime: new Date('2024-01-14T12:00:00Z'),
-    cost: 45.00,
-    requiresConsent: false
-  },
-  {
-    id: 'order-2',
-    patientId: 'patient-1',
-    physicianId: '2',
-    physicianName: 'Dr. Ana García',
-    orderDate: new Date('2024-01-14T11:35:00Z'),
-    type: 'Medication',
-    category: 'Stat',
-    description: 'Aspirina 300mg vía oral STAT, luego 100mg/día',
-    instructions: 'Primera dosis inmediata, continuar con 100mg diarios',
-    status: 'Completed',
-    completedDateTime: new Date('2024-01-14T12:00:00Z'),
-    completedBy: 'Luis Martínez'
-  }
-];
+// Órdenes médicas mock - usando IDs de pacientes reales
+// Nota: Las órdenes principales están en sqlMedicalOrders en sql-data.ts
+export const mockMedicalOrders: MedicalOrder[] = [];
 
 // Notas de enfermería mock
 export const mockNursingNotes: NursingNote[] = [

@@ -16,7 +16,19 @@ import {
   sqlAsignacionesProfesionalPaciente,
   sqlPermisosAreaClinica,
   getPacientesAsignadosPorProfesional,
-  profesionalTieneAccesoAPaciente
+  profesionalTieneAccesoAPaciente,
+  getEpisodiosPorPaciente,
+  getDiagnosticoActivoPaciente,
+  getAlergiasPorPaciente,
+  getDetalleAlergiasPaciente,
+  sqlEpisodiosClinico,
+  sqlAlergias,
+  sqlAsignacionesAlergia,
+  sqlDiagnosticos,
+  type EpisodioClinico,
+  type Alergia,
+  type AsignacionAlergia,
+  type Diagnostico
 } from './sql-data';
 
 // Importaciones de mock-data para datos que no están en SQL
@@ -202,6 +214,12 @@ interface HospitalContextType {
   canAccessPatient: (patientId: string) => boolean;
   getPatientVisibilityFilter: () => DataVisibilityFilter | null;
   getMyAssignedPatients: () => Patient[];
+  
+  // Funciones para diagnósticos y alergias
+  getPatientDiagnosis: (patientId: string) => string | null;
+  getPatientEpisodes: (patientId: string) => EpisodioClinico[];
+  getPatientAllergies: (patientId: string) => Alergia[];
+  getPatientAllergiesDetail: (patientId: string) => (AsignacionAlergia & { alergia: Alergia })[];
   getAssignmentType: (patientId: string) => string | null;
 
   // Funciones para pacientes
@@ -221,9 +239,10 @@ interface HospitalContextType {
   deleteAppointment: (appointmentId: string) => void;
 
   // Funciones para camas
-  updateBedStatus: (bedId: string, status: Bed['status']) => void;
+  updateBedStatus: (bedId: string, status: Bed['status'], patientId?: string) => void;
   updateBedCleaning: (bedId: string, cleaningStatus: Bed['cleaningStatus'], cleanedBy?: string) => void;
-  reserveBed: (bedId: string, expirationDate: Date, notes?: string) => void;
+  reserveBed: (bedId: string, expirationDate: Date, notes?: string, patientId?: string) => void;
+  unassignPatientFromBed: (bedId: string) => void;
 
   // Funciones para signos vitales
   addVitalSigns: (vitalSigns: Omit<VitalSigns, 'id'>) => void;
@@ -236,6 +255,10 @@ interface HospitalContextType {
   // Funciones para notas de enfermería
   addNursingNote: (note: Omit<NursingNote, 'id'>) => void;
   updateNursingNote: (noteId: string, updates: Partial<NursingNote>) => void;
+
+  // Funciones para evaluaciones clínicas
+  addClinicalScale: (scale: Omit<ClinicalScale, 'id'>) => void;
+  addWoundAssessment: (assessment: Omit<WoundAssessment, 'id'>) => void;
 
   // Funciones para plan de alta
   addDischargePlan: (plan: Omit<DischargeChecklist, 'id'>) => void;
@@ -272,11 +295,48 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
   // ============================================
   const [patients, setPatients] = useState<Patient[]>(sqlPatients);
   const [rooms, setRooms] = useState<Room[]>(sqlRooms);
-  const [beds, setBeds] = useState<Bed[]>(sqlBeds);
+  
+  // Inicializar beds aplicando asignaciones de pacientes desde localStorage
+  const [beds, setBeds] = useState<Bed[]>(() => {
+    if (typeof window !== 'undefined') {
+      const savedAssignments = localStorage.getItem('bedPatientAssignments');
+      if (savedAssignments) {
+        const assignments = JSON.parse(savedAssignments) as Record<string, { patientId?: string; status?: string }>;
+        return sqlBeds.map(bed => {
+          const savedBed = assignments[bed.id];
+          // Si hay una entrada guardada para esta cama, usar sus valores
+          // (incluso si patientId es undefined - significa que se desasignó)
+          if (savedBed !== undefined) {
+            return {
+              ...bed,
+              patientId: savedBed.patientId, // puede ser undefined si se desasignó
+              status: (savedBed.status as Bed['status']) || bed.status
+            };
+          }
+          return bed;
+        });
+      }
+    }
+    return sqlBeds;
+  });
   const [medications, setMedications] = useState<Medication[]>(sqlMedications);
   const [services, setServices] = useState<Service[]>(sqlServices);
   const [admissions, setAdmissions] = useState<Admission[]>(sqlAdmissions);
-  const [medicalOrders, setMedicalOrders] = useState<MedicalOrder[]>(sqlMedicalOrders);
+  
+  // Inicializar medicalOrders aplicando estados guardados desde localStorage
+  const [medicalOrders, setMedicalOrders] = useState<MedicalOrder[]>(() => {
+    if (typeof window !== 'undefined') {
+      const savedOrderStatuses = localStorage.getItem('medicalOrderStatuses');
+      if (savedOrderStatuses) {
+        const statuses = JSON.parse(savedOrderStatuses) as Record<string, string>;
+        return sqlMedicalOrders.map(order => ({
+          ...order,
+          status: (statuses[order.id] as MedicalOrder['status']) || order.status
+        }));
+      }
+    }
+    return sqlMedicalOrders;
+  });
   const [staff, setStaff] = useState<User[]>(sqlStaff as User[]);
   
   // Estados con datos mock (no disponibles en SQL)
@@ -284,13 +344,56 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
   const [medicalRecords, setMedicalRecords] = useState<MedicalRecord[]>(mockMedicalRecords);
   const [vitalSigns, setVitalSigns] = useState<VitalSigns[]>(mockVitalSigns);
   const [nursingNotes, setNursingNotes] = useState<NursingNote[]>(mockNursingNotes);
-  const [clinicalScales] = useState<ClinicalScale[]>(mockClinicalScales);
-  const [fluidBalance] = useState<FluidBalance[]>(mockFluidBalance);
-  const [woundAssessments] = useState<WoundAssessment[]>(mockWoundAssessments);
+  
+  // Inicializar clinicalScales con datos de localStorage
+  const [clinicalScales, setClinicalScales] = useState<ClinicalScale[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('clinicalScales');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return [...mockClinicalScales, ...parsed.map((s: any) => ({
+          ...s,
+          timestamp: new Date(s.timestamp)
+        }))];
+      }
+    }
+    return mockClinicalScales;
+  });
+  
+  const [fluidBalance, setFluidBalance] = useState<FluidBalance[]>(mockFluidBalance);
+  
+  // Inicializar woundAssessments con datos de localStorage
+  const [woundAssessments, setWoundAssessments] = useState<WoundAssessment[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('woundAssessments');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return [...mockWoundAssessments, ...parsed.map((w: any) => ({
+          ...w,
+          assessmentDate: new Date(w.assessmentDate)
+        }))];
+      }
+    }
+    return mockWoundAssessments;
+  });
   const [medicalEvolutions, setMedicalEvolutions] = useState<MedicalEvolution[]>(mockMedicalEvolutions);
   const [dischargeChecklists, setDischargeChecklists] = useState<DischargeChecklist[]>(mockDischargeChecklists);
   const [systemNotifications] = useState<SystemNotification[]>(mockSystemNotifications);
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>(mockChatMessages);
+  
+  // Inicializar chatMessages aplicando los mensajes leídos desde localStorage
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>(() => {
+    if (typeof window !== 'undefined') {
+      const readMessageIds = localStorage.getItem('readMessageIds');
+      if (readMessageIds) {
+        const ids = JSON.parse(readMessageIds) as string[];
+        return mockChatMessages.map(msg => ({
+          ...msg,
+          isRead: ids.includes(msg.id) ? true : msg.isRead
+        }));
+      }
+    }
+    return mockChatMessages;
+  });
   
   // Estados para funcionalidades avanzadas
   const [hospitalFloors] = useState<HospitalFloor[]>(mockHospitalFloors);
@@ -352,7 +455,32 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
           setRooms(parseRoomDates(roomsBedsData.rooms));
         }
         if (roomsBedsData?.beds?.length >= sqlBeds.length) {
-          setBeds(parseBedDates(roomsBedsData.beds));
+          // Obtener asignaciones de localStorage como fallback
+          const savedAssignments = typeof window !== 'undefined' 
+            ? localStorage.getItem('bedPatientAssignments') 
+            : null;
+          const localAssignments: Record<string, { patientId?: string; status?: string }> = 
+            savedAssignments ? JSON.parse(savedAssignments) : {};
+          
+          // Combinar datos de SQLite con localStorage (priorizar SQLite, fallback a localStorage)
+          const bedsWithAssignments = parseBedDates(roomsBedsData.beds).map(bed => {
+            // Si SQLite tiene datos de paciente, usar esos
+            if (bed.patientId) {
+              return bed;
+            }
+            // Si no, verificar si localStorage tiene una asignación guardada
+            const localData = localAssignments[bed.id];
+            if (localData !== undefined) {
+              return {
+                ...bed,
+                patientId: localData.patientId,
+                status: (localData.status as Bed['status']) || bed.status
+              };
+            }
+            return bed;
+          });
+          
+          setBeds(bedsWithAssignments);
         }
         
         // Medicamentos
@@ -370,10 +498,10 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
           setAdmissions(parseAdmissionDates(admissionsData));
         }
         
-        // Órdenes médicas
-        if (ordersData?.length >= sqlMedicalOrders.length) {
-          setMedicalOrders(parseOrderDates(ordersData));
-        }
+        // Órdenes médicas - siempre usar las de sql-data.ts ya que están correctamente mapeadas
+        // El adaptador SQLite no mapea correctamente episodio -> paciente
+        // Las órdenes de sqlMedicalOrders ya tienen el patientId correcto
+        console.log('📋 Usando órdenes de sql-data.ts:', sqlMedicalOrders.length);
         
         // Signos vitales - solo de SQLite si hay datos
         if (vitalsData?.length > 0) {
@@ -468,11 +596,36 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
       setPatients(patientsData?.length > 0 ? parsePatientDates(patientsData) : sqlPatients);
       setStaff(staffData?.length > 0 ? staffData : sqlStaff as User[]);
       setRooms(roomsBedsData?.rooms?.length > 0 ? parseRoomDates(roomsBedsData.rooms) : sqlRooms);
-      setBeds(roomsBedsData?.beds?.length > 0 ? parseBedDates(roomsBedsData.beds) : sqlBeds);
+      
+      // Camas: combinar SQLite con localStorage
+      if (roomsBedsData?.beds?.length > 0) {
+        const savedAssignments = typeof window !== 'undefined' 
+          ? localStorage.getItem('bedPatientAssignments') 
+          : null;
+        const localAssignments: Record<string, { patientId?: string; status?: string }> = 
+          savedAssignments ? JSON.parse(savedAssignments) : {};
+        
+        const bedsWithAssignments = parseBedDates(roomsBedsData.beds).map(bed => {
+          if (bed.patientId) return bed;
+          const localData = localAssignments[bed.id];
+          if (localData !== undefined) {
+            return {
+              ...bed,
+              patientId: localData.patientId,
+              status: (localData.status as Bed['status']) || bed.status
+            };
+          }
+          return bed;
+        });
+        setBeds(bedsWithAssignments);
+      } else {
+        setBeds(sqlBeds);
+      }
       setMedications(medicationsData?.length > 0 ? parseMedicationDates(medicationsData) : sqlMedications);
       setServices(servicesData?.length > 0 ? servicesData : sqlServices);
       setAdmissions(admissionsData?.length > 0 ? parseAdmissionDates(admissionsData) : sqlAdmissions);
-      setMedicalOrders(ordersData?.length > 0 ? parseOrderDates(ordersData) : sqlMedicalOrders);
+      // Siempre usar las órdenes de sql-data.ts (están correctamente mapeadas con episodio -> paciente)
+      setMedicalOrders(sqlMedicalOrders);
       if (vitalsData?.length > 0) setVitalSigns(parseVitalSignDates(vitalsData));
       
       console.log('✅ Datos recargados desde SQLite');
@@ -683,17 +836,75 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
     });
   }, [addAuditLog]);
 
-  // Funciones para camas - CON PERSISTENCIA SQLite
-  const updateBedStatus = useCallback(async (bedId: string, status: Bed['status']) => {
+  // Función helper para persistir asignaciones de cama en localStorage
+  const persistBedAssignments = useCallback((updatedBeds: Bed[]) => {
+    if (typeof window !== 'undefined') {
+      // Cargar asignaciones existentes para mantener el historial
+      const existingSaved = localStorage.getItem('bedPatientAssignments');
+      const existingAssignments: Record<string, { patientId?: string; status?: string }> = 
+        existingSaved ? JSON.parse(existingSaved) : {};
+      
+      // Actualizar/añadir las camas modificadas
+      updatedBeds.forEach(bed => {
+        // Guardar TODAS las camas que tienen un estado diferente a Available O que tuvieron un paciente antes
+        // Importante: también guardar cuando patientId es undefined (desasignación)
+        const hadPreviousAssignment = existingAssignments[bed.id] !== undefined;
+        
+        if (bed.patientId || bed.status !== 'Available' || hadPreviousAssignment) {
+          existingAssignments[bed.id] = { 
+            patientId: bed.patientId, // será undefined si se desasignó
+            status: bed.status 
+          };
+        }
+      });
+      
+      localStorage.setItem('bedPatientAssignments', JSON.stringify(existingAssignments));
+      console.log('💾 Asignaciones de camas persistidas:', existingAssignments);
+    }
+  }, []);
+
+  // Funciones para camas - CON PERSISTENCIA SQLite y localStorage
+  const updateBedStatus = useCallback(async (bedId: string, status: Bed['status'], patientId?: string) => {
+    const bed = beds.find(b => b.id === bedId);
+    
     // Actualizar estado local inmediatamente
-    setBeds(prev => prev.map(bed => 
-      bed.id === bedId ? { ...bed, status } : bed
-    ));
+    setBeds(prev => {
+      const updated = prev.map(b => 
+        b.id === bedId 
+          ? { 
+              ...b, 
+              status,
+              patientId: patientId !== undefined ? patientId : b.patientId 
+            } 
+          : b
+      );
+      // Persistir en localStorage
+      persistBedAssignments(updated);
+      return updated;
+    });
+    
+    // Si se asignó un paciente, actualizar también el paciente
+    if (patientId && bed) {
+      setPatients(prev => prev.map(p => 
+        p.id === patientId 
+          ? { ...p, roomId: bed.roomId, bedNumber: bed.number }
+          : p
+      ));
+      
+      // Persistir cambio del paciente en SQLite
+      await postToSQLite('update-patient', { 
+        id: patientId, 
+        updates: {
+          roomId: bed.roomId, 
+          bedNumber: bed.number 
+        }
+      });
+    }
     
     // Persistir en SQLite
-    const result = await postToSQLite('update-bed-status', { bedId, status });
+    const result = await postToSQLite('update-bed-status', { bedId, status, patientId });
     if (result.success) {
-      console.log('✅ Estado de cama actualizado en SQLite');
+      console.log('✅ Estado de cama actualizado en SQLite y localStorage');
     } else {
       console.error('❌ Error actualizando cama en SQLite:', result.error);
     }
@@ -702,9 +913,9 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
       action: 'UPDATE',
       resource: 'bed',
       resourceId: bedId,
-      details: { newStatus: status }
+      details: { newStatus: status, patientId }
     });
-  }, [addAuditLog]);
+  }, [addAuditLog, beds, persistBedAssignments]);
 
   const updateBedCleaning = useCallback(async (bedId: string, cleaningStatus: Bed['cleaningStatus'], cleanedBy?: string) => {
     // Actualizar estado local inmediatamente
@@ -736,23 +947,41 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
     });
   }, [addAuditLog]);
 
-  const reserveBed = useCallback(async (bedId: string, expirationDate: Date, notes?: string) => {
+  const reserveBed = useCallback(async (bedId: string, expirationDate: Date, notes?: string, patientId?: string) => {
     // Actualizar estado local inmediatamente
-    setBeds(prev => prev.map(bed => 
-      bed.id === bedId 
-        ? { 
-            ...bed, 
-            status: 'Reserved' as const,
-            reservationExpires: expirationDate,
-            notes: notes || bed.notes
-          }
-        : bed
-    ));
+    setBeds(prev => {
+      const updated = prev.map(bed => 
+        bed.id === bedId 
+          ? { 
+              ...bed, 
+              status: 'Reserved' as const,
+              reservationExpires: expirationDate,
+              notes: notes || bed.notes,
+              patientId: patientId || bed.patientId
+            }
+          : bed
+      );
+      // Persistir en localStorage
+      persistBedAssignments(updated);
+      return updated;
+    });
+    
+    // Si se asignó un paciente, actualizar también el paciente con la habitación y cama
+    if (patientId) {
+      const bed = beds.find(b => b.id === bedId);
+      if (bed) {
+        setPatients(prev => prev.map(p => 
+          p.id === patientId 
+            ? { ...p, roomId: bed.roomId, bedNumber: bed.number }
+            : p
+        ));
+      }
+    }
     
     // Persistir en SQLite
-    const result = await postToSQLite('update-bed-status', { bedId, status: 'Reserved' });
+    const result = await postToSQLite('update-bed-status', { bedId, status: 'Reserved', patientId });
     if (result.success) {
-      console.log('✅ Reserva de cama guardada en SQLite');
+      console.log('✅ Reserva de cama guardada en SQLite y localStorage');
     } else {
       console.error('❌ Error reservando cama en SQLite:', result.error);
     }
@@ -761,9 +990,73 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
       action: 'RESERVE',
       resource: 'bed',
       resourceId: bedId,
-      details: { expirationDate: expirationDate.toISOString(), notes }
+      details: { expirationDate: expirationDate.toISOString(), notes, patientId }
     });
-  }, [addAuditLog]);
+  }, [addAuditLog, beds, persistBedAssignments]);
+
+  // Función para desasignar paciente de una cama - CON PERSISTENCIA SQLite y localStorage
+  const unassignPatientFromBed = useCallback(async (bedId: string) => {
+    const bed = beds.find(b => b.id === bedId);
+    if (!bed) return;
+    
+    const previousPatientId = bed.patientId;
+    
+    // Actualizar estado de la cama - quitar paciente y marcar como disponible
+    setBeds(prev => {
+      const updated = prev.map(b => 
+        b.id === bedId 
+          ? { 
+              ...b, 
+              status: 'Cleaning Required' as const,
+              patientId: undefined,
+              reservationExpires: undefined,
+              notes: `Paciente dado de alta/trasladado - ${new Date().toLocaleString()}`
+            }
+          : b
+      );
+      // Persistir en localStorage
+      persistBedAssignments(updated);
+      return updated;
+    });
+    
+    // Actualizar el paciente - quitar habitación y cama
+    if (previousPatientId) {
+      setPatients(prev => prev.map(p => 
+        p.id === previousPatientId 
+          ? { ...p, roomId: undefined, bedNumber: undefined }
+          : p
+      ));
+      
+      // Persistir cambio en paciente en SQLite
+      await postToSQLite('update-patient', { 
+        id: previousPatientId, 
+        updates: {
+          roomId: null, 
+          bedNumber: null 
+        }
+      });
+    }
+    
+    // Persistir cambio de cama en SQLite
+    const result = await postToSQLite('update-bed-status', { 
+      bedId, 
+      status: 'Cleaning Required',
+      patientId: null 
+    });
+    
+    if (result.success) {
+      console.log('✅ Paciente desasignado de cama en SQLite y localStorage');
+    } else {
+      console.error('❌ Error desasignando paciente de cama:', result.error);
+    }
+    
+    addAuditLog({
+      action: 'UNASSIGN',
+      resource: 'bed',
+      resourceId: bedId,
+      details: { previousPatientId, action: 'patient_unassigned' }
+    });
+  }, [addAuditLog, beds, persistBedAssignments]);
 
   // Funciones para signos vitales - CON PERSISTENCIA SQLite
   const addVitalSigns = useCallback(async (vitalSignsData: Omit<VitalSigns, 'id'>) => {
@@ -838,8 +1131,15 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
       order.id === orderId ? { ...order, ...updates } : order
     ));
     
-    // Para órdenes médicas, los cambios de estado son importantes
-    console.log('📝 Orden médica actualizada localmente');
+    // Persistir estado en localStorage
+    if (typeof window !== 'undefined' && updates.status) {
+      const savedOrderStatuses = localStorage.getItem('medicalOrderStatuses');
+      const statuses = savedOrderStatuses ? JSON.parse(savedOrderStatuses) as Record<string, string> : {};
+      statuses[orderId] = updates.status;
+      localStorage.setItem('medicalOrderStatuses', JSON.stringify(statuses));
+    }
+    
+    console.log('📝 Orden médica actualizada y persistida');
     
     addAuditLog({
       action: 'UPDATE',
@@ -910,6 +1210,73 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
     });
   }, [addAuditLog]);
 
+  // Funciones para evaluaciones clínicas
+  const addClinicalScale = useCallback((scaleData: Omit<ClinicalScale, 'id'>) => {
+    const newScale: ClinicalScale = {
+      ...scaleData,
+      id: `cs-${Date.now()}`
+    };
+    
+    setClinicalScales(prev => {
+      const updated = [...prev, newScale];
+      // Persistir en localStorage (solo las nuevas, no las mock)
+      if (typeof window !== 'undefined') {
+        const toSave = updated.filter(s => s.id.startsWith('cs-'));
+        localStorage.setItem('clinicalScales', JSON.stringify(toSave.map(s => ({
+          ...s,
+          timestamp: s.timestamp.toISOString()
+        }))));
+      }
+      return updated;
+    });
+    
+    addAuditLog({
+      action: 'CREATE',
+      resource: 'clinical-scale',
+      resourceId: newScale.id,
+      details: { 
+        patientId: newScale.patientId,
+        scaleType: newScale.scaleType,
+        score: newScale.score
+      }
+    });
+    
+    console.log('✅ Escala clínica guardada');
+  }, [addAuditLog]);
+
+  const addWoundAssessment = useCallback((assessmentData: Omit<WoundAssessment, 'id'>) => {
+    const newAssessment: WoundAssessment = {
+      ...assessmentData,
+      id: `wa-${Date.now()}`
+    };
+    
+    setWoundAssessments(prev => {
+      const updated = [...prev, newAssessment];
+      // Persistir en localStorage (solo las nuevas, no las mock)
+      if (typeof window !== 'undefined') {
+        const toSave = updated.filter(w => w.id.startsWith('wa-'));
+        localStorage.setItem('woundAssessments', JSON.stringify(toSave.map(w => ({
+          ...w,
+          assessmentDate: w.assessmentDate.toISOString()
+        }))));
+      }
+      return updated;
+    });
+    
+    addAuditLog({
+      action: 'CREATE',
+      resource: 'wound-assessment',
+      resourceId: newAssessment.id,
+      details: { 
+        patientId: newAssessment.patientId,
+        woundType: newAssessment.woundType,
+        woundLocation: newAssessment.woundLocation
+      }
+    });
+    
+    console.log('✅ Evaluación de herida guardada');
+  }, [addAuditLog]);
+
   // Funciones para plan de alta
   const addDischargePlan = useCallback((planData: Omit<DischargeChecklist, 'id'>) => {
     const newPlan: DischargeChecklist = {
@@ -966,6 +1333,16 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
       msg.id === messageId ? { ...msg, isRead: true } : msg
     ));
     
+    // Persistir en localStorage
+    if (typeof window !== 'undefined') {
+      const readMessageIds = localStorage.getItem('readMessageIds');
+      const ids = readMessageIds ? JSON.parse(readMessageIds) as string[] : [];
+      if (!ids.includes(messageId)) {
+        ids.push(messageId);
+        localStorage.setItem('readMessageIds', JSON.stringify(ids));
+      }
+    }
+    
     addAuditLog({
       action: 'UPDATE',
       resource: 'message',
@@ -978,6 +1355,8 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
   const markAllMessagesAsRead = useCallback(() => {
     if (!user) return;
     
+    const markedIds: string[] = [];
+    
     setChatMessages(prev => prev.map(msg => {
       // Solo marcar como leído si el mensaje es para el usuario actual
       const isRecipient = 
@@ -986,10 +1365,19 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
         msg.recipientRole === user.role;
       
       if (isRecipient && !msg.isRead) {
+        markedIds.push(msg.id);
         return { ...msg, isRead: true };
       }
       return msg;
     }));
+    
+    // Persistir en localStorage
+    if (typeof window !== 'undefined' && markedIds.length > 0) {
+      const readMessageIds = localStorage.getItem('readMessageIds');
+      const ids = readMessageIds ? JSON.parse(readMessageIds) as string[] : [];
+      const newIds = [...new Set([...ids, ...markedIds])];
+      localStorage.setItem('readMessageIds', JSON.stringify(newIds));
+    }
     
     addAuditLog({
       action: 'UPDATE',
@@ -1040,21 +1428,6 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
       });
     }
     
-    // ADMISIONES: Solo ver mensajes dirigidos a su rol o a ellos
-    // NO deben ver comunicaciones internas clínicas entre médicos/enfermeros
-    if (user.role === 'admission') {
-      return chatMessages.filter(msg => {
-        // Mensajes enviados por el usuario
-        if (msg.senderId === user.id) return true;
-        // Mensajes dirigidos específicamente al usuario
-        if (msg.recipientId === user.id) return true;
-        // Mensajes dirigidos al rol de admisiones
-        if (msg.recipientRole === 'admission') return true;
-        // Mensajes broadcast
-        if (msg.recipientRole === 'all') return true;
-        return false;
-      });
-    }
     
     
     // Para el resto del personal clínico (doctor, nurse, auxiliary): filtrar normalmente
@@ -1194,6 +1567,25 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
     return asignacion?.tipoAsignacion || null;
   }, [user, asignacionesProfesionalPaciente]);
 
+  /**
+   * Funciones para obtener diagnósticos y alergias
+   */
+  const getPatientDiagnosis = useCallback((patientId: string): string | null => {
+    return getDiagnosticoActivoPaciente(patientId);
+  }, []);
+
+  const getPatientEpisodes = useCallback((patientId: string): EpisodioClinico[] => {
+    return getEpisodiosPorPaciente(patientId);
+  }, []);
+
+  const getPatientAllergies = useCallback((patientId: string): Alergia[] => {
+    return getAlergiasPorPaciente(patientId);
+  }, []);
+
+  const getPatientAllergiesDetail = useCallback((patientId: string): (AsignacionAlergia & { alergia: Alergia })[] => {
+    return getDetalleAlergiasPaciente(patientId);
+  }, []);
+
   const value: HospitalContextType = {
     // Estados
     patients,
@@ -1236,6 +1628,12 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
     getPatientVisibilityFilter,
     getMyAssignedPatients,
     getAssignmentType,
+    
+    // Funciones para diagnósticos y alergias
+    getPatientDiagnosis,
+    getPatientEpisodes,
+    getPatientAllergies,
+    getPatientAllergiesDetail,
 
     // Funciones
     addPatient,
@@ -1251,12 +1649,15 @@ export function HospitalProvider({ children }: { children: React.ReactNode }) {
     updateBedStatus,
     updateBedCleaning,
     reserveBed,
+    unassignPatientFromBed,
     addVitalSigns,
     addMedicalOrder,
     updateMedicalOrder,
     deleteMedicalOrder,
     addNursingNote,
     updateNursingNote,
+    addClinicalScale,
+    addWoundAssessment,
     addDischargePlan,
     updateDischargePlan,
     addChatMessage,

@@ -7,7 +7,6 @@ export type UserRole =
   | 'auxiliary' 
   | 'cleaning' 
   | 'radiology' 
-  | 'admission' 
   | 'social_work' 
   | 'patient' 
   | 'family';
@@ -339,6 +338,18 @@ export interface NursingNote {
   followUpRequired?: boolean;
   flaggedForPhysician?: boolean;
   tags?: string[];
+}
+
+// Documentos de enfermería del SQL (formato más estructurado)
+export interface NursingDocument {
+  id: string;
+  episodeId: string;
+  patientId: string;
+  professionalId: string;
+  professionalName: string;
+  dateTime: Date;
+  documentType: 'Progress' | 'High education' | 'Recommendation' | 'Initial assessment' | 'Hospital Admission Note';
+  text: string;
 }
 
 export interface ClinicalScale {
@@ -730,17 +741,6 @@ export const roleDataVisibility: Record<UserRole, DataVisibilityFilter> = {
     mostrarContactosEmergencia: false,
     usarIdentificadorAnonimo: false
   },
-  admission: {
-    mostrarNombreCompleto: true,
-    mostrarDNI: true,
-    mostrarHistorialMedico: false,
-    mostrarDiagnosticos: false,
-    mostrarMedicaciones: false,
-    mostrarNotasClinicas: false,
-    mostrarDatosFinancieros: true,
-    mostrarContactosEmergencia: true,
-    usarIdentificadorAnonimo: false
-  },
   social_work: {
     mostrarNombreCompleto: true,
     mostrarDNI: true,
@@ -826,13 +826,6 @@ export const rolePermissions: Record<UserRole, string[]> = {
     'view_imaging_orders', 'manage_imaging_results', 'view_patients', 'view_communication',
     'schedule_imaging', 'upload_images'
   ],
-  admission: [
-    'manage_admissions', 'manage_appointments', 'view_patients', 'view_all_patients',
-    'manage_bed_assignments', 'manage_rooms', 'view_room_availability', 'view_communication', 
-    'patient_registration', 'view_hospital_floors', 'create_patient_profiles', 'verify_identity', 
-    'manage_insurance', 'manage_waiting_list', 'initial_bed_assignment', 'manage_transfers', 
-    'view_hospital_status', 'view_full_patient_data', 'manage_staff_limited'
-  ],
   social_work: [
     'view_patients', 'manage_discharge_planning', 'coordinate_home_care', 
     'view_communication', 'assess_social_needs'
@@ -851,8 +844,8 @@ export const rolePermissions: Record<UserRole, string[]> = {
 export const roleMenuItems: Record<UserRole, string[]> = {
   admin: [
     'dashboard', 'hospital-floors', 'patients', 'staff', 'user-management', 'rooms', 'bed-management', 
-    'appointments', 'admissions', 'medical-orders', 'rounds', 'discharge', 
-    'analytics', 'communication', 'audit', 'access-logs', 'privacy-settings', 'ai-assistant', 'settings'
+    'appointments', 'admissions', 'medical-orders', 'rounds', 'discharge', 'nursing',
+    'analytics', 'communication', 'audit', 'access-logs', 'privacy-settings', 'ai-assistant'
   ],
   doctor: [
     'dashboard', 'patients', 'appointments', 'medical-orders', 'rounds', 
@@ -870,10 +863,6 @@ export const roleMenuItems: Record<UserRole, string[]> = {
   ],
   radiology: [
     'dashboard', 'patients', 'medical-orders', 'communication'
-  ],
-  admission: [
-    'dashboard', 'hospital-floors', 'patients', 'admissions', 'appointments', 
-    'rooms', 'communication'
   ],
   social_work: [
     'dashboard', 'patients', 'discharge', 'communication'

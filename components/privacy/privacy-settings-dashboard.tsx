@@ -184,7 +184,6 @@ export default function PrivacySettingsDashboard() {
       auxiliary: 'Auxiliar',
       cleaning: 'Personal de Limpieza',
       radiology: 'Radiología',
-      admission: 'Admisión',
       social_work: 'Trabajo Social',
       patient: 'Paciente',
       family: 'Familia'

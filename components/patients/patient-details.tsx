@@ -5,14 +5,24 @@ import { useAuth } from '@/lib/auth-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { User, Phone, Mail, MapPin, Heart, Calendar, AlertTriangle, Shield, Lock } from 'lucide-react';
+import { User, Phone, Mail, MapPin, Heart, Calendar, AlertTriangle, Shield, Lock, Stethoscope, FileText } from 'lucide-react';
 
 interface PatientDetailsProps {
   patientId: string;
 }
 
 export default function PatientDetails({ patientId }: PatientDetailsProps) {
-  const { patients, vitalSigns, medications, medicalRecords, getPatientVisibilityFilter } = useHospital();
+  const { 
+    patients, 
+    vitalSigns, 
+    medications, 
+    medicalRecords, 
+    getPatientVisibilityFilter,
+    getPatientDiagnosis,
+    getPatientEpisodes,
+    getPatientAllergies,
+    getPatientAllergiesDetail
+  } = useHospital();
   const { user } = useAuth();
   
   // Obtener filtro de visibilidad según el rol
@@ -24,6 +34,11 @@ export default function PatientDetails({ patientId }: PatientDetailsProps) {
   const patientVitals = vitalSigns.filter(vs => vs.patientId === patientId);
   const patientMedications = medications.filter(med => med.patientId === patientId);
   const patientRecords = medicalRecords.filter(record => record.patientId === patientId);
+  
+  // Obtener diagnóstico y alergias desde las tablas transaccionales
+  const diagnosticoActivo = getPatientDiagnosis(patientId);
+  const episodios = getPatientEpisodes(patientId);
+  const alergiasBD = getPatientAllergiesDetail(patientId);
 
   if (!patient) {
     return <div className="text-gray-900">Paciente no encontrado</div>;
@@ -226,23 +241,113 @@ export default function PatientDetails({ patientId }: PatientDetailsProps) {
         </Card>
       )}
 
-      {/* Alergias */}
-      {patient.allergies.length > 0 && (
-        <Card>
+      {/* Diagnóstico Activo - desde EpisodioClinico */}
+      {diagnosticoActivo && (
+        <Card className="border-blue-200 bg-blue-50/50">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-red-600">
-              <AlertTriangle className="h-5 w-5" />
-              Alergias
+            <CardTitle className="flex items-center gap-2 text-blue-700">
+              <Stethoscope className="h-5 w-5" />
+              Diagnóstico Activo
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-wrap gap-2">
-              {patient.allergies.map((allergy, index) => (
-                <Badge key={index} variant="destructive" className="text-sm">
-                  {allergy}
-                </Badge>
+            <p className="text-lg font-medium text-blue-900">{diagnosticoActivo}</p>
+          </CardContent>
+        </Card>
+      )}
+      
+      {/* Historial de Episodios Clínicos */}
+      {episodios.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-gray-900">
+              <FileText className="h-5 w-5" />
+              Historial Clínico
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {episodios.slice(0, 5).map((episodio) => (
+                <div key={episodio.id} className="p-3 border rounded-lg bg-gray-50">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-medium text-gray-900">{episodio.motivoPrincipal}</span>
+                    <Badge variant={episodio.activo ? 'default' : 'secondary'}>
+                      {episodio.activo ? 'Activo' : 'Cerrado'}
+                    </Badge>
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    <span>Inicio: {episodio.fechaInicio.toLocaleDateString()}</span>
+                    {episodio.fechaFin && (
+                      <span className="ml-3">Fin: {episodio.fechaFin.toLocaleDateString()}</span>
+                    )}
+                  </div>
+                </div>
               ))}
+              {episodios.length > 5 && (
+                <p className="text-sm text-gray-500 text-center">
+                  Y {episodios.length - 5} episodios más...
+                </p>
+              )}
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Alergias - desde AsignacionAlergia */}
+      {(alergiasBD.length > 0 || patient.allergies.length > 0) && (
+        <Card className="border-red-200 bg-red-50/30">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-red-600">
+              <AlertTriangle className="h-5 w-5" />
+              Alergias Registradas
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {alergiasBD.length > 0 ? (
+              <div className="space-y-2">
+                {alergiasBD.map((asig, index) => (
+                  <div key={index} className="flex items-center justify-between p-2 bg-white rounded-lg border border-red-100">
+                    <div>
+                      <span className="font-medium text-red-800">{asig.alergia.nombre}</span>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge variant="outline" className="text-xs capitalize">
+                          {asig.alergia.tipo}
+                        </Badge>
+                        {asig.alergia.severidad && (
+                          <Badge 
+                            variant={asig.alergia.severidad === 'grave' ? 'destructive' : 'secondary'}
+                            className="text-xs capitalize"
+                          >
+                            {asig.alergia.severidad}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                    {asig.fechaDeteccion && (
+                      <span className="text-xs text-gray-500">
+                        Detectada: {asig.fechaDeteccion.toLocaleDateString()}
+                      </span>
+                    )}
+                  </div>
+                ))}
+                {alergiasBD.some(a => a.notas) && (
+                  <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-sm">
+                    <strong className="text-yellow-800">Notas:</strong>
+                    {alergiasBD.filter(a => a.notas).map((a, i) => (
+                      <p key={i} className="text-yellow-700 mt-1">• {a.notas}</p>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {patient.allergies.map((allergy, index) => (
+                  <Badge key={index} variant="destructive" className="text-sm">
+                    {allergy}
+                  </Badge>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       )}

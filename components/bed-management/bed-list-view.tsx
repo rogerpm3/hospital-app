@@ -38,7 +38,7 @@ import {
 import { Bed as BedType } from '@/lib/types';
 
 export default function BedListView() {
-  const { rooms, beds, patients, staff, updateBedStatus, updateBedCleaning, reserveBed, updatePatient } = useHospital();
+  const { rooms, beds, patients, staff, updateBedStatus, updateBedCleaning, reserveBed, updatePatient, unassignPatientFromBed } = useHospital();
   const { user } = useAuth();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
@@ -53,7 +53,9 @@ export default function BedListView() {
   // Estados para diálogos de asignación
   const [showAssignPatientDialog, setShowAssignPatientDialog] = useState(false);
   const [showAssignCleanerDialog, setShowAssignCleanerDialog] = useState(false);
+  const [showUnassignDialog, setShowUnassignDialog] = useState(false);
   const [bedForAssignment, setBedForAssignment] = useState<BedType | null>(null);
+  const [bedToUnassign, setBedToUnassign] = useState<BedType | null>(null);
   const [selectedPatientId, setSelectedPatientId] = useState('');
   const [selectedCleanerId, setSelectedCleanerId] = useState('');
   const [pendingBedStatus, setPendingBedStatus] = useState<string>('');
@@ -182,8 +184,8 @@ export default function BedListView() {
     
     const room = rooms.find(r => r.id === bedForAssignment.roomId);
     
-    // Actualizar estado de la cama
-    updateBedStatus(bedForAssignment.id, pendingBedStatus as any);
+    // Actualizar estado de la cama CON el patientId
+    updateBedStatus(bedForAssignment.id, pendingBedStatus as any, selectedPatientId);
     
     // Asignar paciente a la habitación/cama
     updatePatient(selectedPatientId, {
@@ -228,6 +230,27 @@ export default function BedListView() {
     setBedForAssignment(null);
     setSelectedCleanerId('');
     setPendingBedStatus('');
+  };
+
+  // Función para desasignar paciente de la cama
+  const handleUnassignPatient = () => {
+    if (!bedToUnassign) return;
+    
+    const patient = bedToUnassign.patientId ? patients.find(p => p.id === bedToUnassign.patientId) : null;
+    const room = rooms.find(r => r.id === bedToUnassign.roomId);
+    
+    unassignPatientFromBed(bedToUnassign.id);
+    
+    toast({
+      title: "Paciente desasignado",
+      description: patient 
+        ? `${patient.firstName} ${patient.lastName} ha sido dado de alta de Hab. ${room?.number} - Cama ${bedToUnassign.number}`
+        : `La cama ${bedToUnassign.number} ha sido liberada`,
+    });
+    
+    // Limpiar estado
+    setShowUnassignDialog(false);
+    setBedToUnassign(null);
   };
 
   return (
@@ -563,6 +586,22 @@ export default function BedListView() {
                             <CalendarClock className="h-3 w-3" />
                           </Button>
                         )}
+                        
+                        {/* Botón Desasignar Paciente - solo para camas ocupadas o reservadas con paciente */}
+                        {bed.patientId && (bed.status === 'Occupied' || bed.status === 'Reserved') && (
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                            title="Dar de alta / Desasignar paciente"
+                            onClick={() => {
+                              setBedToUnassign(bed);
+                              setShowUnassignDialog(true);
+                            }}
+                          >
+                            <Users className="h-3 w-3" />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -692,6 +731,70 @@ export default function BedListView() {
             <Button onClick={handleAssignCleaner}>
               <Sparkles className="h-4 w-4 mr-2" />
               Confirmar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Diálogo de confirmación para desasignar paciente */}
+      <Dialog open={showUnassignDialog} onOpenChange={(open) => {
+        setShowUnassignDialog(open);
+        if (!open) setBedToUnassign(null);
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <AlertCircle className="h-5 w-5" />
+              Dar de Alta / Desasignar Paciente
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {bedToUnassign && (() => {
+              const patient = bedToUnassign.patientId ? patients.find(p => p.id === bedToUnassign.patientId) : null;
+              const room = rooms.find(r => r.id === bedToUnassign.roomId);
+              return (
+                <>
+                  <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-sm text-red-800 font-medium">
+                      ¿Está seguro de que desea dar de alta al paciente de esta cama?
+                    </p>
+                    <p className="text-sm text-red-600 mt-1">
+                      Esta acción liberará la cama y marcará al paciente como dado de alta.
+                    </p>
+                  </div>
+                  <div className="p-4 bg-gray-50 border rounded-lg space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Habitación:</span>
+                      <span className="font-medium">{room?.number || 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Cama:</span>
+                      <span className="font-medium">{bedToUnassign.number}</span>
+                    </div>
+                    {patient && (
+                      <>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">Paciente:</span>
+                          <span className="font-medium">{patient.firstName} {patient.lastName}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">DNI:</span>
+                          <span className="font-medium">{patient.dni}</span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowUnassignDialog(false)}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={handleUnassignPatient}>
+              <Users className="h-4 w-4 mr-2" />
+              Confirmar Alta
             </Button>
           </DialogFooter>
         </DialogContent>

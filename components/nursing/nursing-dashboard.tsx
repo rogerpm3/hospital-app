@@ -35,7 +35,7 @@ import {
 
 export default function NursingDashboard() {
   const { user } = useAuth();
-  const { patients, vitalSigns, medications, nursingNotes, getFilteredPatients } = useHospital();
+  const { patients, vitalSigns, medications, nursingNotes, getFilteredPatients, clinicalScales, woundAssessments, addClinicalScale, addWoundAssessment } = useHospital();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('overview');
   
@@ -44,6 +44,20 @@ export default function NursingDashboard() {
   const [showScaleDialog, setShowScaleDialog] = useState(false);
   const [showWoundDialog, setShowWoundDialog] = useState(false);
   const [selectedPatientForEval, setSelectedPatientForEval] = useState('');
+  
+  // Estados para formulario de escala clínica
+  const [scaleType, setScaleType] = useState('');
+  const [scaleScore, setScaleScore] = useState('');
+  const [scaleNotes, setScaleNotes] = useState('');
+  
+  // Estados para formulario de evaluación de heridas
+  const [woundType, setWoundType] = useState('');
+  const [woundLocation, setWoundLocation] = useState('');
+  const [woundLength, setWoundLength] = useState('');
+  const [woundWidth, setWoundWidth] = useState('');
+  const [woundDepth, setWoundDepth] = useState('');
+  const [woundState, setWoundState] = useState('');
+  const [woundNotes, setWoundNotes] = useState('');
 
   // Obtener pacientes filtrados según rol del usuario (asignados a enfermería)
   const filteredPatients = getFilteredPatients();
@@ -463,27 +477,27 @@ export default function NursingDashboard() {
                         </div>
                         <div>
                           <Label className="text-gray-900">Tipo de Escala *</Label>
-                          <Select>
+                          <Select value={scaleType} onValueChange={setScaleType}>
                             <SelectTrigger>
                               <SelectValue placeholder="Seleccionar escala" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="glasgow">Escala de Glasgow (Conciencia)</SelectItem>
-                              <SelectItem value="braden">Escala de Braden (Úlceras por presión)</SelectItem>
-                              <SelectItem value="morse">Escala de Morse (Riesgo de caídas)</SelectItem>
-                              <SelectItem value="eva">Escala EVA (Dolor)</SelectItem>
-                              <SelectItem value="barthel">Índice de Barthel (Dependencia)</SelectItem>
-                              <SelectItem value="norton">Escala de Norton (Úlceras)</SelectItem>
+                              <SelectItem value="Glasgow Coma Scale">Escala de Glasgow (Conciencia)</SelectItem>
+                              <SelectItem value="Braden Scale">Escala de Braden (Úlceras por presión)</SelectItem>
+                              <SelectItem value="Morse Fall Scale">Escala de Morse (Riesgo de caídas)</SelectItem>
+                              <SelectItem value="Pain Scale">Escala EVA (Dolor)</SelectItem>
+                              <SelectItem value="Delirium Scale">Escala de Delirium</SelectItem>
+                              <SelectItem value="Depression Scale">Escala de Depresión</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
                         <div>
                           <Label className="text-gray-900">Puntuación *</Label>
-                          <Input type="number" placeholder="Ej: 15" />
+                          <Input type="number" placeholder="Ej: 15" value={scaleScore} onChange={(e) => setScaleScore(e.target.value)} />
                         </div>
                         <div>
                           <Label className="text-gray-900">Observaciones</Label>
-                          <Textarea placeholder="Detalles de la evaluación..." rows={3} />
+                          <Textarea placeholder="Detalles de la evaluación..." rows={3} value={scaleNotes} onChange={(e) => setScaleNotes(e.target.value)} />
                         </div>
                       </div>
                       <DialogFooter>
@@ -491,13 +505,50 @@ export default function NursingDashboard() {
                           Cancelar
                         </Button>
                         <Button onClick={() => {
-                          if (!selectedPatientForEval) {
-                            toast({ title: "Error", description: "Seleccione un paciente", variant: "destructive" });
+                          if (!selectedPatientForEval || !scaleType || !scaleScore) {
+                            toast({ title: "Error", description: "Complete todos los campos obligatorios", variant: "destructive" });
                             return;
                           }
+                          
+                          const scaleMaxScores: Record<string, number> = {
+                            'Glasgow Coma Scale': 15,
+                            'Braden Scale': 23,
+                            'Morse Fall Scale': 125,
+                            'Pain Scale': 10,
+                            'Delirium Scale': 7,
+                            'Depression Scale': 27
+                          };
+                          
+                          const score = parseInt(scaleScore);
+                          const maxScore = scaleMaxScores[scaleType] || 100;
+                          let riskLevel: 'Low' | 'Medium' | 'High' | 'Critical' = 'Low';
+                          const ratio = score / maxScore;
+                          
+                          if (scaleType === 'Glasgow Coma Scale') {
+                            riskLevel = score <= 8 ? 'Critical' : score <= 12 ? 'High' : score <= 14 ? 'Medium' : 'Low';
+                          } else {
+                            riskLevel = ratio >= 0.75 ? 'Critical' : ratio >= 0.5 ? 'High' : ratio >= 0.25 ? 'Medium' : 'Low';
+                          }
+                          
+                          addClinicalScale({
+                            patientId: selectedPatientForEval,
+                            assessorId: user?.professionalId || user?.id || '',
+                            assessorName: `${user?.firstName} ${user?.lastName}`,
+                            timestamp: new Date(),
+                            scaleType: scaleType as any,
+                            score: score,
+                            maxScore: maxScore,
+                            interpretation: `Puntuación ${score}/${maxScore}`,
+                            riskLevel: riskLevel,
+                            notes: scaleNotes || undefined
+                          });
+                          
                           toast({ title: "Evaluación registrada", description: "Escala clínica guardada correctamente" });
                           setShowScaleDialog(false);
                           setSelectedPatientForEval('');
+                          setScaleType('');
+                          setScaleScore('');
+                          setScaleNotes('');
                         }}>
                           Guardar Evaluación
                         </Button>
@@ -551,56 +602,55 @@ export default function NursingDashboard() {
                         </div>
                         <div>
                           <Label className="text-gray-900">Tipo de Herida *</Label>
-                          <Select>
+                          <Select value={woundType} onValueChange={setWoundType}>
                             <SelectTrigger>
                               <SelectValue placeholder="Seleccionar tipo" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="surgical">Herida Quirúrgica</SelectItem>
-                              <SelectItem value="pressure">Úlcera por Presión</SelectItem>
-                              <SelectItem value="vascular">Úlcera Vascular</SelectItem>
-                              <SelectItem value="diabetic">Pie Diabético</SelectItem>
-                              <SelectItem value="traumatic">Herida Traumática</SelectItem>
-                              <SelectItem value="other">Otra</SelectItem>
+                              <SelectItem value="Surgical">Herida Quirúrgica</SelectItem>
+                              <SelectItem value="Pressure">Úlcera por Presión</SelectItem>
+                              <SelectItem value="Diabetic">Pie Diabético</SelectItem>
+                              <SelectItem value="Traumatic">Herida Traumática</SelectItem>
+                              <SelectItem value="Burn">Quemadura</SelectItem>
+                              <SelectItem value="Other">Otra</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
                         <div>
                           <Label className="text-gray-900">Localización *</Label>
-                          <Input placeholder="Ej: Región sacra, Talón derecho..." />
+                          <Input placeholder="Ej: Región sacra, Talón derecho..." value={woundLocation} onChange={(e) => setWoundLocation(e.target.value)} />
                         </div>
                         <div className="grid grid-cols-3 gap-2">
                           <div>
                             <Label className="text-gray-900">Largo (cm)</Label>
-                            <Input type="number" step="0.1" placeholder="0" />
+                            <Input type="number" step="0.1" placeholder="0" value={woundLength} onChange={(e) => setWoundLength(e.target.value)} />
                           </div>
                           <div>
                             <Label className="text-gray-900">Ancho (cm)</Label>
-                            <Input type="number" step="0.1" placeholder="0" />
+                            <Input type="number" step="0.1" placeholder="0" value={woundWidth} onChange={(e) => setWoundWidth(e.target.value)} />
                           </div>
                           <div>
                             <Label className="text-gray-900">Profundidad (cm)</Label>
-                            <Input type="number" step="0.1" placeholder="0" />
+                            <Input type="number" step="0.1" placeholder="0" value={woundDepth} onChange={(e) => setWoundDepth(e.target.value)} />
                           </div>
                         </div>
                         <div>
                           <Label className="text-gray-900">Estado de la Herida</Label>
-                          <Select>
+                          <Select value={woundState} onValueChange={setWoundState}>
                             <SelectTrigger>
                               <SelectValue placeholder="Seleccionar estado" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="granulating">Granulando</SelectItem>
-                              <SelectItem value="epithelializing">Epitelizando</SelectItem>
-                              <SelectItem value="necrotic">Necrótica</SelectItem>
-                              <SelectItem value="infected">Infectada</SelectItem>
-                              <SelectItem value="sloughy">Con Esfacelos</SelectItem>
+                              <SelectItem value="Granulation">Granulando</SelectItem>
+                              <SelectItem value="Epithelial">Epitelizando</SelectItem>
+                              <SelectItem value="Necrotic">Necrótica</SelectItem>
+                              <SelectItem value="Slough">Con Esfacelos</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
                         <div>
                           <Label className="text-gray-900">Observaciones</Label>
-                          <Textarea placeholder="Descripción del exudado, bordes, piel perilesional..." rows={2} />
+                          <Textarea placeholder="Descripción del exudado, bordes, piel perilesional..." rows={2} value={woundNotes} onChange={(e) => setWoundNotes(e.target.value)} />
                         </div>
                       </div>
                       <DialogFooter>
@@ -608,19 +658,132 @@ export default function NursingDashboard() {
                           Cancelar
                         </Button>
                         <Button onClick={() => {
-                          if (!selectedPatientForEval) {
-                            toast({ title: "Error", description: "Seleccione un paciente", variant: "destructive" });
+                          if (!selectedPatientForEval || !woundType || !woundLocation) {
+                            toast({ title: "Error", description: "Complete todos los campos obligatorios", variant: "destructive" });
                             return;
                           }
+                          
+                          addWoundAssessment({
+                            patientId: selectedPatientForEval,
+                            nurseId: user?.professionalId || user?.id || '',
+                            nurseName: `${user?.firstName} ${user?.lastName}`,
+                            assessmentDate: new Date(),
+                            woundLocation: woundLocation,
+                            woundType: woundType as any,
+                            length: parseFloat(woundLength) || 0,
+                            width: parseFloat(woundWidth) || 0,
+                            depth: parseFloat(woundDepth) || 0,
+                            drainageAmount: 'Minimal',
+                            drainageType: 'Serous',
+                            tissueType: woundState as any || 'Granulation',
+                            painLevel: 3,
+                            treatment: 'Cura estándar',
+                            dressing: 'Apósito estéril',
+                            healingStage: 'Proliferative',
+                            notes: woundNotes || undefined
+                          });
+                          
                           toast({ title: "Evaluación registrada", description: "Evaluación de herida guardada correctamente" });
                           setShowWoundDialog(false);
                           setSelectedPatientForEval('');
+                          setWoundType('');
+                          setWoundLocation('');
+                          setWoundLength('');
+                          setWoundWidth('');
+                          setWoundDepth('');
+                          setWoundState('');
+                          setWoundNotes('');
                         }}>
                           Guardar Evaluación
                         </Button>
                       </DialogFooter>
                     </DialogContent>
                   </Dialog>
+                </Card>
+              </div>
+              
+              {/* Historial de Evaluaciones */}
+              <div className="mt-6 grid gap-4 md:grid-cols-2">
+                {/* Historial de Escalas Clínicas */}
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Scale className="h-5 w-5 text-purple-600" />
+                      Historial de Escalas Clínicas
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {clinicalScales.length === 0 ? (
+                      <p className="text-sm text-gray-500">No hay evaluaciones registradas</p>
+                    ) : (
+                      <div className="space-y-2 max-h-60 overflow-y-auto">
+                        {clinicalScales.slice(-10).reverse().map(scale => {
+                          const patient = patients.find(p => p.id === scale.patientId);
+                          return (
+                            <div key={scale.id} className="p-2 border rounded-lg bg-gray-50">
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <p className="font-medium text-sm">{scale.scaleType}</p>
+                                  <p className="text-xs text-gray-600">
+                                    {patient?.firstName} {patient?.lastName}
+                                  </p>
+                                </div>
+                                <Badge variant={
+                                  scale.riskLevel === 'Critical' ? 'destructive' :
+                                  scale.riskLevel === 'High' ? 'default' :
+                                  scale.riskLevel === 'Medium' ? 'outline' : 'secondary'
+                                }>
+                                  {scale.score}/{scale.maxScore}
+                                </Badge>
+                              </div>
+                              <p className="text-xs text-gray-500 mt-1">
+                                {scale.timestamp.toLocaleString()} - {scale.assessorName}
+                              </p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+                
+                {/* Historial de Evaluaciones de Heridas */}
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Bandage className="h-5 w-5 text-orange-600" />
+                      Historial de Heridas
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {woundAssessments.length === 0 ? (
+                      <p className="text-sm text-gray-500">No hay evaluaciones registradas</p>
+                    ) : (
+                      <div className="space-y-2 max-h-60 overflow-y-auto">
+                        {woundAssessments.slice(-10).reverse().map(wound => {
+                          const patient = patients.find(p => p.id === wound.patientId);
+                          return (
+                            <div key={wound.id} className="p-2 border rounded-lg bg-gray-50">
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <p className="font-medium text-sm">{wound.woundType} - {wound.woundLocation}</p>
+                                  <p className="text-xs text-gray-600">
+                                    {patient?.firstName} {patient?.lastName}
+                                  </p>
+                                </div>
+                                <Badge variant="outline">
+                                  {wound.length}x{wound.width}x{wound.depth} cm
+                                </Badge>
+                              </div>
+                              <p className="text-xs text-gray-500 mt-1">
+                                {wound.assessmentDate.toLocaleString()} - {wound.nurseName}
+                              </p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </CardContent>
                 </Card>
               </div>
             </CardContent>

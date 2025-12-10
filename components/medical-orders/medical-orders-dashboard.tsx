@@ -15,7 +15,7 @@ import { Plus, Stethoscope, AlertTriangle, CheckCircle, Clock, Search, User, Fil
 import { useToast } from '@/hooks/use-toast';
 
 export default function MedicalOrdersDashboard() {
-  const { medicalOrders, patients, getFilteredPatients, addMedicalOrder } = useHospital();
+  const { medicalOrders, patients, getFilteredPatients, addMedicalOrder, updateMedicalOrder } = useHospital();
   const { user } = useAuth();
   const { toast } = useToast();
   const [showNewOrderDialog, setShowNewOrderDialog] = useState(false);
@@ -139,6 +139,19 @@ export default function MedicalOrdersDashboard() {
     { value: 'PRN', label: 'PRN (Si necesario)' }
   ];
 
+  // Función para cambiar el estado de una orden
+  const handleStatusChange = (orderId: string, newStatus: string) => {
+    updateMedicalOrder(orderId, { status: newStatus as any });
+    toast({
+      title: "Estado actualizado",
+      description: `La orden médica ha sido actualizada a: ${
+        newStatus === 'Completed' ? 'Completada' :
+        newStatus === 'In Progress' ? 'En Progreso' :
+        newStatus === 'Cancelled' ? 'Cancelada' : 'Pendiente'
+      }`,
+    });
+  };
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -148,7 +161,7 @@ export default function MedicalOrdersDashboard() {
             {isAdmin 
               ? 'Sistema de prescripción electrónica - Todas las órdenes'
               : isNurse 
-                ? 'Órdenes médicas de pacientes asignados (solo lectura)'
+                ? 'Órdenes médicas de pacientes asignados - Puede actualizar el estado'
                 : `Órdenes médicas de mis pacientes asignados`
             }
           </p>
@@ -361,10 +374,13 @@ export default function MedicalOrdersDashboard() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Órdenes Médicas ({filteredOrders.length})</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            Órdenes Médicas ({filteredOrders.length} de {medicalOrders.length} totales)
+          </CardTitle>
           <CardDescription>
             {isAdmin 
-              ? 'Todas las órdenes del sistema'
+              ? 'Todas las órdenes médicas del sistema'
               : 'Órdenes de mis pacientes asignados'
             }
           </CardDescription>
@@ -375,53 +391,115 @@ export default function MedicalOrdersDashboard() {
               <Stethoscope className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg font-medium">No hay órdenes médicas</h3>
               <p className="text-muted-foreground">
-                {myOrders.length === 0 
-                  ? 'No tiene órdenes médicas para sus pacientes asignados'
-                  : 'No se encontraron órdenes con los filtros aplicados'
+                {medicalOrders.length === 0 
+                  ? 'No hay órdenes médicas en el sistema'
+                  : myOrders.length === 0 
+                    ? 'No tiene órdenes médicas para sus pacientes asignados'
+                    : 'No se encontraron órdenes con los filtros aplicados'
                 }
               </p>
+              {medicalOrders.length > 0 && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  Total en sistema: {medicalOrders.length} órdenes
+                </p>
+              )}
             </div>
           ) : (
-            <div className="space-y-4">
-              {filteredOrders.slice(0, 20).map(order => {
-                const patient = patients.find(p => p.id === order.patientId);
-                return (
-                  <div key={order.id} className="p-4 border rounded-lg hover:bg-gray-50 transition-colors">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <Badge variant={
-                          order.category === 'STAT' ? 'destructive' :
-                          order.category === 'Urgent' ? 'default' : 'secondary'
-                        }>
-                          {order.category}
-                        </Badge>
-                        <Badge variant="outline">{order.type}</Badge>
-                      </div>
-                      <Badge variant={
-                        order.status === 'Completed' ? 'default' :
-                        order.status === 'In Progress' ? 'outline' : 
-                        order.status === 'Cancelled' ? 'destructive' : 'secondary'
-                      }>
-                        {order.status}
-                      </Badge>
-                    </div>
-                    <div className="font-medium text-gray-900">{order.description}</div>
-                    {order.instructions && (
-                      <p className="text-sm text-gray-600 mt-1">{order.instructions}</p>
-                    )}
-                    <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <User className="h-3 w-3" />
-                        {patient?.firstName} {patient?.lastName}
-                      </span>
-                      <span>•</span>
-                      <span>{order.physicianName}</span>
-                      <span>•</span>
-                      <span>{order.orderDate.toLocaleDateString()}</span>
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="space-y-3">
+              {/* Tabla de órdenes */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b bg-gray-50">
+                      <th className="text-left p-3 font-medium">ID</th>
+                      <th className="text-left p-3 font-medium">Paciente</th>
+                      <th className="text-left p-3 font-medium">Médico</th>
+                      <th className="text-left p-3 font-medium">Texto Orden</th>
+                      <th className="text-left p-3 font-medium">Tipo</th>
+                      <th className="text-left p-3 font-medium">Fecha</th>
+                      <th className="text-left p-3 font-medium">Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredOrders.map(order => {
+                      const patient = patients.find(p => p.id === order.patientId);
+                      return (
+                        <tr key={order.id} className="border-b hover:bg-gray-50">
+                          <td className="p-3 font-mono text-xs">{order.id}</td>
+                          <td className="p-3">
+                            <div className="font-medium">{patient?.firstName} {patient?.lastName}</div>
+                            <div className="text-xs text-gray-500">{order.patientId}</div>
+                          </td>
+                          <td className="p-3">
+                            <div>{order.physicianName}</div>
+                            <div className="text-xs text-gray-500">ID: {order.physicianId}</div>
+                          </td>
+                          <td className="p-3 max-w-md">
+                            <div className="font-medium text-gray-900">{order.description}</div>
+                            {order.instructions && (
+                              <div className="text-xs text-gray-500 mt-1 truncate" title={order.instructions}>
+                                {order.instructions}
+                              </div>
+                            )}
+                          </td>
+                          <td className="p-3">
+                            <div className="flex flex-col gap-1">
+                              <Badge variant={
+                                order.category === 'Stat' || order.category === 'STAT' ? 'destructive' : 'secondary'
+                              } className="text-xs w-fit">
+                                {order.category}
+                              </Badge>
+                              <Badge variant="outline" className="text-xs w-fit">{order.type}</Badge>
+                            </div>
+                          </td>
+                          <td className="p-3 text-xs">
+                            {order.orderDate instanceof Date 
+                              ? order.orderDate.toLocaleDateString('es-ES', {
+                                  day: '2-digit',
+                                  month: '2-digit', 
+                                  year: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })
+                              : String(order.orderDate)
+                            }
+                          </td>
+                          <td className="p-3">
+                            {(isNurse || isDoctor || isAdmin) && order.status !== 'Cancelled' ? (
+                              <Select
+                                value={order.status}
+                                onValueChange={(value) => handleStatusChange(order.id, value)}
+                              >
+                                <SelectTrigger className="w-[130px] h-8 text-xs">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="Pending">Pendiente</SelectItem>
+                                  <SelectItem value="In Progress">En Progreso</SelectItem>
+                                  <SelectItem value="Completed">Completada</SelectItem>
+                                  {(isDoctor || isAdmin) && (
+                                    <SelectItem value="Cancelled">Cancelada</SelectItem>
+                                  )}
+                                </SelectContent>
+                              </Select>
+                            ) : (
+                              <Badge variant={
+                                order.status === 'Completed' ? 'default' :
+                                order.status === 'In Progress' ? 'outline' : 
+                                order.status === 'Cancelled' ? 'destructive' : 'secondary'
+                              } className="text-xs">
+                                {order.status === 'Pending' ? 'Pendiente' :
+                                 order.status === 'In Progress' ? 'En Progreso' :
+                                 order.status === 'Completed' ? 'Completada' : 'Cancelada'}
+                              </Badge>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </CardContent>

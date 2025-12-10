@@ -172,7 +172,7 @@ export async function POST(request: NextRequest) {
       // CAMAS
       // ============================================
       case 'update-bed-status':
-        const bedUpdated = await updateBedStatusSQLite(data.bedId, data.status);
+        const bedUpdated = await updateBedStatusSQLite(data.bedId, data.status, data.patientId);
         return NextResponse.json({ success: bedUpdated });
       
       // ============================================

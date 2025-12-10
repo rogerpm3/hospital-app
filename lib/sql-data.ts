@@ -1581,443 +1581,70 @@ export const sqlAdmissions: Admission[] = [
 ];
 
 // ============================================
-// ÓRDENES MÉDICAS (31 registros)
+// ÓRDENES MÉDICAS (según tabla OrdenMedica en database_all.sql)
+// Mapeo episodio -> paciente:
+// CTS880 -> IFV_0001 (Isabel Flores), WHG_123 -> JML_0001 (Javier Martinez)
+// EPI001 -> SVP_0001 (Samuel Vallbé), AEF498 -> JAV_0001 (Juan Agudells)
+// KOP233 -> MRS_0001 (María Rodríguez)
 // ============================================
 export const sqlMedicalOrders: MedicalOrder[] = [
-  {
-    id: "order-1",
-    patientId: "ORD342",
-    physicianId: "CTS880",
-    physicianName: "Dr. Sistema",
-    orderDate: new Date(),
-    type: "Medication",
-    category: "Routine",
-    description: "2014-01-02 10:30:00",
-    instructions: "2014-01-02 10:30:00",
-    status: "Completed",
-    cost: 0,
-    requiresConsent: false
-  },
-  {
-    id: "order-2",
-    patientId: "ORD892",
-    physicianId: "CTS880",
-    physicianName: "Dr. Sistema",
-    orderDate: new Date(),
-    type: "Medication",
-    category: "Routine",
-    description: "2014-03-27 10:00:00",
-    instructions: "2014-03-27 10:00:00",
-    status: "Completed",
-    cost: 0,
-    requiresConsent: false
-  },
-  {
-    id: "order-3",
-    patientId: "ORD326",
-    physicianId: "CTS880",
-    physicianName: "Dr. Sistema",
-    orderDate: new Date(),
-    type: "Medication",
-    category: "Routine",
-    description: "07/05/2014 13.00",
-    instructions: "07/05/2014 13.00",
-    status: "Completed",
-    cost: 0,
-    requiresConsent: false
-  },
-  {
-    id: "order-4",
-    patientId: "ORD123",
-    physicianId: "WHG_123",
-    physicianName: "Dr. Sistema",
-    orderDate: new Date(),
-    type: "Medication",
-    category: "Routine",
-    description: "2022-09-11 10:00:00",
-    instructions: "2022-09-11 10:00:00",
-    status: "Completed",
-    cost: 0,
-    requiresConsent: false
-  },
-  {
-    id: "order-5",
-    patientId: "ORD124",
-    physicianId: "WHG_123",
-    physicianName: "Dr. Sistema",
-    orderDate: new Date(),
-    type: "Medication",
-    category: "Routine",
-    description: "2022-09-11 10:00:00",
-    instructions: "2022-09-11 10:00:00",
-    status: "Completed",
-    cost: 0,
-    requiresConsent: false
-  },
-  {
-    id: "order-6",
-    patientId: "ORD125",
-    physicianId: "WHG_123",
-    physicianName: "Dr. Sistema",
-    orderDate: new Date(),
-    type: "Medication",
-    category: "Routine",
-    description: "2022-09-11 10:00:00",
-    instructions: "2022-09-11 10:00:00",
-    status: "Completed",
-    cost: 0,
-    requiresConsent: false
-  },
-  {
-    id: "order-7",
-    patientId: "ORD342",
-    physicianId: "EPI001",
-    physicianName: "Dr. Sistema",
-    orderDate: new Date(),
-    type: "Medication",
-    category: "Routine",
-    description: "2015-09-14 14:40:00",
-    instructions: "2015-09-14 14:40:00",
-    status: "Completed",
-    cost: 0,
-    requiresConsent: false
-  },
-  {
-    id: "order-8",
-    patientId: "ORD390",
-    physicianId: "EPI001",
-    physicianName: "Dr. Sistema",
-    orderDate: new Date(),
-    type: "Medication",
-    category: "Routine",
-    description: "2015-09-14 18:44:00",
-    instructions: "2015-09-14 18:44:00",
-    status: "Completed",
-    cost: 0,
-    requiresConsent: false
-  },
-  {
-    id: "order-9",
-    patientId: "ORD511",
-    physicianId: "EPI001",
-    physicianName: "Dr. Sistema",
-    orderDate: new Date(),
-    type: "Medication",
-    category: "Routine",
-    description: "2015-09-14 20:30:00",
-    instructions: "2015-09-14 20:30:00",
-    status: "Completed",
-    cost: 0,
-    requiresConsent: false
-  },
-  {
-    id: "order-10",
-    patientId: "ORD519",
-    physicianId: "EPI001",
-    physicianName: "Dr. Sistema",
-    orderDate: new Date(),
-    type: "Medication",
-    category: "Routine",
-    description: "15/09/2015 2015-09-15 09:00:00",
-    instructions: "15/09/2015 2015-09-15 09:00:00",
-    status: "Completed",
-    cost: 0,
-    requiresConsent: false
-  },
-  {
-    id: "order-11",
-    patientId: "ORD348",
-    physicianId: "EPI001",
-    physicianName: "Dr. Sistema",
-    orderDate: new Date(),
-    type: "Medication",
-    category: "Routine",
-    description: "2015-09-15 18:15:00",
-    instructions: "2015-09-15 18:15:00",
-    status: "Completed",
-    cost: 0,
-    requiresConsent: false
-  },
-  {
-    id: "order-12",
-    patientId: "ORD133",
-    physicianId: "AEF498",
-    physicianName: "Dr. Sistema",
-    orderDate: new Date(),
-    type: "Medication",
-    category: "Routine",
-    description: "2014-10-14 19:45:00",
-    instructions: "2014-10-14 19:45:00",
-    status: "Completed",
-    cost: 0,
-    requiresConsent: false
-  },
-  {
-    id: "order-13",
-    patientId: "ORD134",
-    physicianId: "AEF498",
-    physicianName: "Dr. Sistema",
-    orderDate: new Date(),
-    type: "Medication",
-    category: "Routine",
-    description: "2014-10-14 19:45:00.288000",
-    instructions: "2014-10-14 19:45:00.288000",
-    status: "Completed",
-    cost: 0,
-    requiresConsent: false
-  },
-  {
-    id: "order-14",
-    patientId: "ORD135",
-    physicianId: "AEF498",
-    physicianName: "Dr. Sistema",
-    orderDate: new Date(),
-    type: "Medication",
-    category: "Routine",
-    description: "2014-10-14 19:45:00.288000",
-    instructions: "2014-10-14 19:45:00.288000",
-    status: "Completed",
-    cost: 0,
-    requiresConsent: false
-  },
-  {
-    id: "order-15",
-    patientId: "ORD136",
-    physicianId: "AEF498",
-    physicianName: "Dr. Sistema",
-    orderDate: new Date(),
-    type: "Medication",
-    category: "Routine",
-    description: "2014-10-14 19:45:00.288000",
-    instructions: "2014-10-14 19:45:00.288000",
-    status: "Completed",
-    cost: 0,
-    requiresConsent: false
-  },
-  {
-    id: "order-16",
-    patientId: "ORD137",
-    physicianId: "AEF498",
-    physicianName: "Dr. Sistema",
-    orderDate: new Date(),
-    type: "Medication",
-    category: "Routine",
-    description: "2014-10-14 19:45:00",
-    instructions: "2014-10-14 19:45:00",
-    status: "Completed",
-    cost: 0,
-    requiresConsent: false
-  },
-  {
-    id: "order-17",
-    patientId: "ORD138",
-    physicianId: "AEF498",
-    physicianName: "Dr. Sistema",
-    orderDate: new Date(),
-    type: "Medication",
-    category: "Routine",
-    description: "2014-10-14 19:45:00",
-    instructions: "2014-10-14 19:45:00",
-    status: "Completed",
-    cost: 0,
-    requiresConsent: false
-  },
-  {
-    id: "order-18",
-    patientId: "ORD139",
-    physicianId: "AEF498",
-    physicianName: "Dr. Sistema",
-    orderDate: new Date(),
-    type: "Medication",
-    category: "Routine",
-    description: "2014-10-14 19:45:00",
-    instructions: "2014-10-14 19:45:00",
-    status: "Completed",
-    cost: 0,
-    requiresConsent: false
-  },
-  {
-    id: "order-19",
-    patientId: "ORD140",
-    physicianId: "AEF498",
-    physicianName: "Dr. Sistema",
-    orderDate: new Date(),
-    type: "Medication",
-    category: "Routine",
-    description: "2014-10-14 23:30:00.288000",
-    instructions: "2014-10-14 23:30:00.288000",
-    status: "Completed",
-    cost: 0,
-    requiresConsent: false
-  },
-  {
-    id: "order-20",
-    patientId: "ORD141",
-    physicianId: "AEF498",
-    physicianName: "Dr. Sistema",
-    orderDate: new Date(),
-    type: "Medication",
-    category: "Routine",
-    description: "2014-10-14 23:30:00.288000",
-    instructions: "2014-10-14 23:30:00.288000",
-    status: "Completed",
-    cost: 0,
-    requiresConsent: false
-  },
-  {
-    id: "order-21",
-    patientId: "ORD142",
-    physicianId: "AEF498",
-    physicianName: "Dr. Sistema",
-    orderDate: new Date(),
-    type: "Medication",
-    category: "Routine",
-    description: "2014-10-14 23:30:00.288000",
-    instructions: "2014-10-14 23:30:00.288000",
-    status: "Completed",
-    cost: 0,
-    requiresConsent: false
-  },
-  {
-    id: "order-22",
-    patientId: "ORD143",
-    physicianId: "AEF498",
-    physicianName: "Dr. Sistema",
-    orderDate: new Date(),
-    type: "Medication",
-    category: "Routine",
-    description: "2014-10-14 23:30:00.288000",
-    instructions: "2014-10-14 23:30:00.288000",
-    status: "Completed",
-    cost: 0,
-    requiresConsent: false
-  },
-  {
-    id: "order-23",
-    patientId: "ORD144",
-    physicianId: "AEF498",
-    physicianName: "Dr. Sistema",
-    orderDate: new Date(),
-    type: "Medication",
-    category: "Routine",
-    description: "2014-10-14 23:30:00.288000",
-    instructions: "2014-10-14 23:30:00.288000",
-    status: "Completed",
-    cost: 0,
-    requiresConsent: false
-  },
-  {
-    id: "order-24",
-    patientId: "ORD145",
-    physicianId: "AEF498",
-    physicianName: "Dr. Sistema",
-    orderDate: new Date(),
-    type: "Medication",
-    category: "Routine",
-    description: "2014-10-14 23:30:00.288000",
-    instructions: "2014-10-14 23:30:00.288000",
-    status: "Completed",
-    cost: 0,
-    requiresConsent: false
-  },
-  {
-    id: "order-25",
-    patientId: "ORD126",
-    physicianId: "KOP233",
-    physicianName: "Dr. Sistema",
-    orderDate: new Date(),
-    type: "Medication",
-    category: "Routine",
-    description: "2022-05-10 17:14:00",
-    instructions: "2022-05-10 17:14:00",
-    status: "Completed",
-    cost: 0,
-    requiresConsent: false
-  },
-  {
-    id: "order-26",
-    patientId: "ORD127",
-    physicianId: "KOP233",
-    physicianName: "Dr. Sistema",
-    orderDate: new Date(),
-    type: "Medication",
-    category: "Routine",
-    description: "2022-05-11 17:14:00",
-    instructions: "2022-05-11 17:14:00",
-    status: "Completed",
-    cost: 0,
-    requiresConsent: false
-  },
-  {
-    id: "order-27",
-    patientId: "ORD128",
-    physicianId: "KOP233",
-    physicianName: "Dr. Sistema",
-    orderDate: new Date(),
-    type: "Medication",
-    category: "Routine",
-    description: "2022-05-11 17:14:00",
-    instructions: "2022-05-11 17:14:00",
-    status: "Completed",
-    cost: 0,
-    requiresConsent: false
-  },
-  {
-    id: "order-28",
-    patientId: "ORD129",
-    physicianId: "KOP233",
-    physicianName: "Dr. Sistema",
-    orderDate: new Date(),
-    type: "Medication",
-    category: "Routine",
-    description: "2022-05-12 17:14:00",
-    instructions: "2022-05-12 17:14:00",
-    status: "Completed",
-    cost: 0,
-    requiresConsent: false
-  },
-  {
-    id: "order-29",
-    patientId: "ORD130",
-    physicianId: "KOP233",
-    physicianName: "Dr. Sistema",
-    orderDate: new Date(),
-    type: "Medication",
-    category: "Routine",
-    description: "2022-05-12 17:14:00",
-    instructions: "2022-05-12 17:14:00",
-    status: "Completed",
-    cost: 0,
-    requiresConsent: false
-  },
-  {
-    id: "order-30",
-    patientId: "ORD131",
-    physicianId: "KOP233",
-    physicianName: "Dr. Sistema",
-    orderDate: new Date(),
-    type: "Medication",
-    category: "Routine",
-    description: "2022-05-13 17:14:00",
-    instructions: "2022-05-13 17:14:00",
-    status: "Completed",
-    cost: 0,
-    requiresConsent: false
-  },
-  {
-    id: "order-31",
-    patientId: "ORD132",
-    physicianId: "KOP233",
-    physicianName: "Dr. Sistema",
-    orderDate: new Date(),
-    type: "Medication",
-    category: "Routine",
-    description: "2022-05-13 17:14:00",
-    instructions: "2022-05-13 17:14:00",
-    status: "Completed",
-    cost: 0,
-    requiresConsent: false
-  }
+  // ========================================
+  // Isabel Flores Viñales (IFV_0001) - Episodio CTS880
+  // Dr. Josep Blanch Alsina (27512) - Ginecología
+  // ========================================
+  { id: "ORD342", patientId: "IFV_0001", physicianId: "27512", physicianName: "Dr. Josep Blanch Alsina", orderDate: new Date("2014-01-02 10:30:00"), type: "Medication", category: "Routine", description: "Pluriamin prescription", instructions: "Prescripción de Pluriamin para control prenatal", status: "Pending", cost: 0, requiresConsent: false },
+  { id: "ORD892", patientId: "IFV_0001", physicianId: "27512", physicianName: "Dr. Josep Blanch Alsina", orderDate: new Date("2014-03-27 10:00:00"), type: "Medication", category: "Routine", description: "Ferrogradumet prescription", instructions: "Prescripción de Ferrogradumet - Suplementación de hierro", status: "Pending", cost: 0, requiresConsent: false },
+  { id: "ORD326", patientId: "IFV_0001", physicianId: "27512", physicianName: "Dr. Josep Blanch Alsina", orderDate: new Date("2014-05-07 13:00:00"), type: "Diet", category: "Routine", description: "Low-carbohydrate diet", instructions: "Dieta baja en carbohidratos", status: "Pending", cost: 0, requiresConsent: false },
+  
+  // ========================================
+  // Javier Martinez Lopez (JML_0001) - Episodio WHG_123
+  // Dra. Laura Martinez (12345) - Urgencias
+  // ========================================
+  { id: "ORD123", patientId: "JML_0001", physicianId: "12345", physicianName: "Dra. Laura Martinez", orderDate: new Date("2022-09-11 10:00:00"), type: "Medication", category: "Stat", description: "Analgesic treatment: Paracetamol 1g every 8 hours", instructions: "Tratamiento analgésico: Paracetamol 1g cada 8 horas", status: "Pending", cost: 0, requiresConsent: false },
+  { id: "ORD124", patientId: "JML_0001", physicianId: "12345", physicianName: "Dra. Laura Martinez", orderDate: new Date("2022-09-11 10:00:00"), type: "Medication", category: "Stat", description: "Low Molecular Weight Heparin (Enoxaparin): 40 mg subcutaneously once daily", instructions: "Heparina de bajo peso molecular (Enoxaparina): 40 mg subcutáneo una vez al día", status: "Pending", cost: 0, requiresConsent: false },
+  { id: "ORD125", patientId: "JML_0001", physicianId: "12345", physicianName: "Dra. Laura Martinez", orderDate: new Date("2022-09-11 10:00:00"), type: "Procedure", category: "Stat", description: "Cast fixation on right leg", instructions: "Fijación con yeso en pierna derecha", status: "Pending", cost: 0, requiresConsent: false },
+  
+  // ========================================
+  // Samuel Vallbé Picornell (SVP_0001) - Episodio EPI001
+  // Apendicectomía - Varios médicos
+  // ========================================
+  { id: "ORD342_EPI", patientId: "SVP_0001", physicianId: "56345", physicianName: "Dr. Orestes García", orderDate: new Date("2015-09-14 14:40:00"), type: "Procedure", category: "Stat", description: "Hospital admission. Urgent surgical intervention", instructions: "Ingreso hospitalario. Intervención quirúrgica urgente", status: "Pending", cost: 0, requiresConsent: true },
+  { id: "ORD390", patientId: "SVP_0001", physicianId: "33272", physicianName: "Dra. Clara Dolz", orderDate: new Date("2015-09-14 18:44:00"), type: "Medication", category: "Stat", description: "Premedication: Diazepam 10mg IV. Anesthesia induction with Propofol", instructions: "Premedicación: Diazepam 10mg IV. Inducción anestésica con Propofol", status: "Pending", cost: 0, requiresConsent: true },
+  { id: "ORD511", patientId: "SVP_0001", physicianId: "56345", physicianName: "Dr. Orestes García", orderDate: new Date("2015-09-14 20:30:00"), type: "Medication", category: "Routine", description: "Nil per os (NPO). Open nasogastric tube. Ringer-lactate 500ml/8h infusion. Clindamycin 300mg/12h IV. Paracetamol 500mg/8h as needed for pain", instructions: "Dieta absoluta (NPO). Sonda nasogástrica abierta. Perfusión Ringer-lactato 500ml/8h. Clindamicina 300mg/12h IV. Paracetamol 500mg/8h si dolor", status: "Pending", cost: 0, requiresConsent: false },
+  { id: "ORD519", patientId: "SVP_0001", physicianId: "56345", physicianName: "Dr. Orestes García", orderDate: new Date("2015-09-15 09:00:00"), type: "Diet", category: "Routine", description: "Remove nasogastric tube. Progressive liquid diet reintroduction", instructions: "Retirar sonda nasogástrica. Reintroducción progresiva dieta líquida", status: "Pending", cost: 0, requiresConsent: false },
+  { id: "ORD348", patientId: "SVP_0001", physicianId: "22567", physicianName: "Dr. Personal médico", orderDate: new Date("2015-09-15 18:15:00"), type: "Medication", category: "Stat", description: "Nil per os (NPO). Increase Ringer-lactate infusion to 500ml/6h. Ampicillin 500mg/6h IV. Gentamicin 20mg/8h IM", instructions: "Dieta absoluta (NPO). Aumentar perfusión Ringer-lactato a 500ml/6h. Ampicilina 500mg/6h IV. Gentamicina 20mg/8h IM", status: "Pending", cost: 0, requiresConsent: false },
+  
+  // ========================================
+  // Juan Agudells Valenciano (JAV_0001) - Episodio AEF498
+  // Dr. Román Sampedro (35678) - Medicina Interna
+  // Neumonía
+  // ========================================
+  { id: "ORD133", patientId: "JAV_0001", physicianId: "35678", physicianName: "Dr. Román Sampedro", orderDate: new Date("2014-10-14 19:45:00"), type: "Lab", category: "Stat", description: "Blood test", instructions: "Análisis de sangre", status: "Pending", cost: 0, requiresConsent: false },
+  { id: "ORD134", patientId: "JAV_0001", physicianId: "35678", physicianName: "Dr. Román Sampedro", orderDate: new Date("2014-10-14 19:45:00"), type: "Lab", category: "Stat", description: "Sputum culture", instructions: "Cultivo de esputo", status: "Pending", cost: 0, requiresConsent: false },
+  { id: "ORD135", patientId: "JAV_0001", physicianId: "35678", physicianName: "Dr. Román Sampedro", orderDate: new Date("2014-10-14 19:45:00"), type: "Imaging", category: "Stat", description: "Chest X-ray", instructions: "Radiografía de tórax", status: "Pending", cost: 0, requiresConsent: false },
+  { id: "ORD136", patientId: "JAV_0001", physicianId: "35678", physicianName: "Dr. Román Sampedro", orderDate: new Date("2014-10-14 19:45:00"), type: "Procedure", category: "Stat", description: "Vital signs monitoring", instructions: "Monitorización de signos vitales", status: "Pending", cost: 0, requiresConsent: false },
+  { id: "ORD137", patientId: "JAV_0001", physicianId: "35678", physicianName: "Dr. Román Sampedro", orderDate: new Date("2014-10-14 19:45:00"), type: "Diet", category: "Stat", description: "Nil per os (NPO)", instructions: "Dieta absoluta (NPO)", status: "Pending", cost: 0, requiresConsent: false },
+  { id: "ORD138", patientId: "JAV_0001", physicianId: "35678", physicianName: "Dr. Román Sampedro", orderDate: new Date("2014-10-14 19:45:00"), type: "Procedure", category: "Stat", description: "Saline infusion placement", instructions: "Colocación de vía salina", status: "Pending", cost: 0, requiresConsent: false },
+  { id: "ORD139", patientId: "JAV_0001", physicianId: "35678", physicianName: "Dr. Román Sampedro", orderDate: new Date("2014-10-14 19:45:00"), type: "Procedure", category: "Stat", description: "Transfer to observation area", instructions: "Traslado a área de observación", status: "Pending", cost: 0, requiresConsent: false },
+  { id: "ORD140", patientId: "JAV_0001", physicianId: "35678", physicianName: "Dr. Román Sampedro", orderDate: new Date("2014-10-14 23:30:00"), type: "Procedure", category: "Routine", description: "Transfer to internal medicine hospitalization", instructions: "Traslado a hospitalización de medicina interna", status: "Pending", cost: 0, requiresConsent: false },
+  { id: "ORD141", patientId: "JAV_0001", physicianId: "35678", physicianName: "Dr. Román Sampedro", orderDate: new Date("2014-10-14 23:30:00"), type: "Medication", category: "Routine", description: "Paracetamol 600 mg", instructions: "Paracetamol 600 mg para control de fiebre y dolor", status: "Pending", cost: 0, requiresConsent: false },
+  { id: "ORD142", patientId: "JAV_0001", physicianId: "35678", physicianName: "Dr. Román Sampedro", orderDate: new Date("2014-10-14 23:30:00"), type: "Medication", category: "Routine", description: "Oxygen via nasal cannula 4L/min", instructions: "Oxígeno por cánula nasal 4L/min", status: "Pending", cost: 0, requiresConsent: false },
+  { id: "ORD143", patientId: "JAV_0001", physicianId: "35678", physicianName: "Dr. Román Sampedro", orderDate: new Date("2014-10-14 23:30:00"), type: "Procedure", category: "Routine", description: "Vital signs taken every 8 hours", instructions: "Toma de signos vitales cada 8 horas", status: "Pending", cost: 0, requiresConsent: false },
+  { id: "ORD144", patientId: "JAV_0001", physicianId: "35678", physicianName: "Dr. Román Sampedro", orderDate: new Date("2014-10-14 23:30:00"), type: "Medication", category: "Routine", description: "Continuation of treatment prescribed by Dr. Garcés", instructions: "Continuación del tratamiento prescrito por el Dr. Garcés", status: "Pending", cost: 0, requiresConsent: false },
+  { id: "ORD145", patientId: "JAV_0001", physicianId: "35678", physicianName: "Dr. Román Sampedro", orderDate: new Date("2014-10-14 23:30:00"), type: "Medication", category: "Routine", description: "Cefuroxime", instructions: "Cefuroxima - Antibiótico para tratamiento de neumonía", status: "Pending", cost: 0, requiresConsent: false },
+  
+  // ========================================
+  // María Rodríguez Sánchez (MRS_0001) - Episodio KOP233
+  // Dr. Miguel Serrano (30123) - UCI
+  // Neumonía grave
+  // ========================================
+  { id: "ORD126", patientId: "MRS_0001", physicianId: "30123", physicianName: "Dr. Miguel Serrano", orderDate: new Date("2022-05-10 17:14:00"), type: "Medication", category: "Stat", description: "Ceftriaxone", instructions: "Ceftriaxona - Antibiótico de amplio espectro", status: "Pending", cost: 0, requiresConsent: false },
+  { id: "ORD127", patientId: "MRS_0001", physicianId: "30123", physicianName: "Dr. Miguel Serrano", orderDate: new Date("2022-05-11 17:14:00"), type: "Medication", category: "Stat", description: "Ceftriaxone", instructions: "Ceftriaxona - Continuar tratamiento día 2", status: "Pending", cost: 0, requiresConsent: false },
+  { id: "ORD128", patientId: "MRS_0001", physicianId: "30123", physicianName: "Dr. Miguel Serrano", orderDate: new Date("2022-05-11 17:14:00"), type: "Medication", category: "Stat", description: "Azithromycin", instructions: "Azitromicina - Macrólido añadido al tratamiento", status: "Pending", cost: 0, requiresConsent: false },
+  { id: "ORD129", patientId: "MRS_0001", physicianId: "30123", physicianName: "Dr. Miguel Serrano", orderDate: new Date("2022-05-12 17:14:00"), type: "Medication", category: "Routine", description: "Ceftriaxone", instructions: "Ceftriaxona - Continuar tratamiento día 3", status: "Pending", cost: 0, requiresConsent: false },
+  { id: "ORD130", patientId: "MRS_0001", physicianId: "30123", physicianName: "Dr. Miguel Serrano", orderDate: new Date("2022-05-12 17:14:00"), type: "Medication", category: "Routine", description: "Vancomycin", instructions: "Vancomicina - Cobertura SAMR añadida", status: "Pending", cost: 0, requiresConsent: false },
+  { id: "ORD131", patientId: "MRS_0001", physicianId: "30123", physicianName: "Dr. Miguel Serrano", orderDate: new Date("2022-05-13 17:14:00"), type: "Medication", category: "Routine", description: "Ceftriaxone", instructions: "Ceftriaxona - Continuar tratamiento día 4", status: "Pending", cost: 0, requiresConsent: false },
+  { id: "ORD132", patientId: "MRS_0001", physicianId: "30123", physicianName: "Dr. Miguel Serrano", orderDate: new Date("2022-05-13 17:14:00"), type: "Medication", category: "Routine", description: "Vancomycin", instructions: "Vancomicina - Última dosis UCI, traslado a planta", status: "Pending", cost: 0, requiresConsent: false },
 ];
 
 // ============================================
@@ -2136,10 +1763,6 @@ export const sqlPermisosAreaClinica: PermisoAreaClinica[] = [
   { id: 'PERM010', rol: 'cleaning', areaClinica: 'camas', puedeVer: true, puedeEditar: true, puedeCrear: false, puedeEliminar: false, accesoDatosSensibles: false, descripcion: 'Estado de limpieza de camas' },
   { id: 'PERM011', rol: 'cleaning', areaClinica: 'pacientes', puedeVer: false, puedeEditar: false, puedeCrear: false, puedeEliminar: false, accesoDatosSensibles: false, descripcion: 'Sin acceso a datos de pacientes' },
   
-  // Permisos de Admisiones (registro inicial)
-  { id: 'PERM012', rol: 'admission', areaClinica: 'registro_pacientes', puedeVer: true, puedeEditar: true, puedeCrear: true, puedeEliminar: false, accesoDatosSensibles: false, descripcion: 'Registro y admisión' },
-  { id: 'PERM013', rol: 'admission', areaClinica: 'camas', puedeVer: true, puedeEditar: true, puedeCrear: false, puedeEliminar: false, accesoDatosSensibles: false, descripcion: 'Asignación de camas' },
-  { id: 'PERM014', rol: 'admission', areaClinica: 'datos_clinicos', puedeVer: false, puedeEditar: false, puedeCrear: false, puedeEliminar: false, accesoDatosSensibles: false, descripcion: 'Sin acceso a datos clínicos' },
   
   // Permisos de Paciente (solo sus propios datos)
   { id: 'PERM017', rol: 'patient', areaClinica: 'datos_propios', puedeVer: true, puedeEditar: false, puedeCrear: false, puedeEliminar: false, accesoDatosSensibles: false, descripcion: 'Ver sus propios datos' },
@@ -2148,6 +1771,81 @@ export const sqlPermisosAreaClinica: PermisoAreaClinica[] = [
   // Permisos de Familia (datos limitados del familiar)
   { id: 'PERM019', rol: 'family', areaClinica: 'estado_paciente', puedeVer: true, puedeEditar: false, puedeCrear: false, puedeEliminar: false, accesoDatosSensibles: false, descripcion: 'Estado general del paciente' },
   { id: 'PERM020', rol: 'family', areaClinica: 'ubicacion', puedeVer: true, puedeEditar: false, puedeCrear: false, puedeEliminar: false, accesoDatosSensibles: false, descripcion: 'Ubicación en hospital' }
+];
+
+// ============================================
+// EPISODIOS CLÍNICOS (diagnósticos por paciente)
+// ============================================
+export interface EpisodioClinico {
+  id: string;
+  pacienteId: string;
+  fechaInicio: Date;
+  fechaFin?: Date;
+  motivoPrincipal: string;
+  diagnosticoId?: string;
+  activo: boolean;
+}
+
+export const sqlEpisodiosClinico: EpisodioClinico[] = [
+  // Episodios clínicos reales según tabla EpisodioClinico en database_all.sql
+  { id: 'CTS880_IFV', pacienteId: 'IFV_0001', fechaInicio: new Date('2014-01-02'), fechaFin: new Date('2014-07-07'), motivoPrincipal: 'Embarazo y parto gemelar', diagnosticoId: 'O30.0', activo: false },
+  { id: 'ACR468_IFV', pacienteId: 'IFV_0001', fechaInicio: new Date('2014-01-02'), fechaFin: new Date('2014-07-07'), motivoPrincipal: 'Embarazo y parto gemelar', diagnosticoId: 'O30.0', activo: false },
+  { id: 'TWD111_PIF', pacienteId: 'PIF_0010', fechaInicio: new Date('2014-07-03'), fechaFin: new Date('2014-07-07'), motivoPrincipal: 'Nacimiento', activo: false },
+  { id: 'STW345_MIF', pacienteId: 'MIF_0011', fechaInicio: new Date('2014-07-03'), fechaFin: new Date('2014-07-07'), motivoPrincipal: 'Nacimiento', activo: false },
+  { id: 'WHG123_JML_1', pacienteId: 'JML_0001', fechaInicio: new Date('2022-09-10'), fechaFin: new Date('2022-09-14'), motivoPrincipal: 'Accidente de tráfico con dolor en pierna derecha', activo: false },
+  { id: 'WHG123_JML_2', pacienteId: 'JML_0001', fechaInicio: new Date('2022-09-10'), fechaFin: new Date('2022-09-14'), motivoPrincipal: 'Falta de aire y mareos', activo: false },
+  { id: 'EPI001_SVP_1', pacienteId: 'SVP_0001', fechaInicio: new Date('2015-09-14'), fechaFin: new Date('2015-09-16'), motivoPrincipal: 'Dolor abdominal agudo', activo: false },
+  { id: 'KOP233_MRS', pacienteId: 'MRS_0001', fechaInicio: new Date('2022-05-10'), fechaFin: new Date('2022-06-02'), motivoPrincipal: 'Fiebre, asfixia y expectoración', activo: false },
+  { id: 'AEF497_JAV', pacienteId: 'JAV_0001', fechaInicio: new Date('2014-10-14'), fechaFin: new Date('2014-10-17'), motivoPrincipal: 'Constipado y asfixia', activo: false },
+  { id: 'AEF498_JAV', pacienteId: 'JAV_0001', fechaInicio: new Date('2014-10-14'), fechaFin: new Date('2014-10-17'), motivoPrincipal: 'Fiebre, asfixia y expectoración', activo: false },
+  { id: 'AEF502_JAV', pacienteId: 'JAV_0001', fechaInicio: new Date('2014-10-30'), fechaFin: new Date('2014-10-30'), motivoPrincipal: 'Seguimiento', activo: false },
+  { id: 'AEF503_JAV', pacienteId: 'JAV_0001', fechaInicio: new Date('2014-11-10'), fechaFin: new Date('2014-11-10'), motivoPrincipal: 'Tos con expectoración e hilillos de sangre', activo: true },
+];
+
+// ============================================
+// CATÁLOGO DE ALERGIAS
+// ============================================
+export interface Alergia {
+  id: string;
+  nombre: string;
+  tipo: 'medicamento' | 'alimento' | 'ambiental' | 'otro';
+  severidad?: 'leve' | 'moderada' | 'grave';
+}
+
+export const sqlAlergias: Alergia[] = [
+  // Alergia real según tabla Alergia en hospital_master_tables.sql
+  { id: '294976000', nombre: 'Cloranfenicol', tipo: 'medicamento', severidad: 'grave' },
+];
+
+// ============================================
+// ASIGNACIÓN DE ALERGIAS A PACIENTES
+// ============================================
+export interface AsignacionAlergia {
+  pacienteId: string;
+  alergiaId: string;
+  fechaDeteccion?: Date;
+  notas?: string;
+}
+
+export const sqlAsignacionesAlergia: AsignacionAlergia[] = [
+  // Alergias de pacientes reales del SQL (según tabla AsignacinAlergia en database_all.sql)
+  // Javier Martinez Lopez (JML_0001) tiene alergia al Cloranfenicol (id: 294976000)
+  { pacienteId: 'JML_0001', alergiaId: '294976000', notas: 'Alergia al Cloranfenicol' },
+];
+
+// ============================================
+// CATÁLOGO DE DIAGNÓSTICOS
+// ============================================
+export interface Diagnostico {
+  id: string;
+  codigo: string;
+  descripcion: string;
+  categoria?: string;
+}
+
+export const sqlDiagnosticos: Diagnostico[] = [
+  // Diagnóstico real según tabla Diagnostico en hospital_master_tables.sql
+  { id: 'O30.0', codigo: 'O30.0', descripcion: 'Embarazo gemelar', categoria: 'Obstetricia' },
 ];
 
 // Helper para obtener pacientes asignados a un profesional
@@ -2170,4 +1868,651 @@ export function getTipoAsignacion(profesionalId: string, pacienteId: string): st
     a => a.profesionalId === profesionalId && a.pacienteId === pacienteId && a.activo
   );
   return asignacion?.tipoAsignacion || null;
+}
+
+// ============================================
+// DOCUMENTOS DE ENFERMERÍA (DocumentoEnfermeria)
+// Mapeado desde database_all.sql
+// ============================================
+export interface NursingDocument {
+  id: string;
+  episodeId: string;
+  patientId: string;
+  professionalId: string;
+  professionalName: string;
+  dateTime: Date;
+  documentType: 'Progress' | 'High education' | 'Recommendation' | 'Initial assessment' | 'Hospital Admission Note';
+  text: string;
+}
+
+export const sqlNursingDocuments: NursingDocument[] = [
+  // ========================================
+  // Isabel Flores Viñales (IFV_0001) - Episodio CTS880
+  // Seguimiento de embarazo
+  // ========================================
+  { 
+    id: "ENF532", 
+    episodeId: "CTS880", 
+    patientId: "IFV_0001", 
+    professionalId: "43234", 
+    professionalName: "Montserrat Valls Blanco",
+    dateTime: new Date("2014-03-27 10:00:00"), 
+    documentType: "Progress", 
+    text: "Pregnancy follow-up" 
+  },
+  { 
+    id: "ENF987", 
+    episodeId: "CTS880", 
+    patientId: "IFV_0001", 
+    professionalId: "43234", 
+    professionalName: "Montserrat Valls Blanco",
+    dateTime: new Date("2014-05-07 13:00:00"), 
+    documentType: "Progress", 
+    text: "Gestational diabetes" 
+  },
+  // ========================================
+  // Isabel Flores Viñales (IFV_0001) - Episodio ACR468
+  // Postparto
+  // ========================================
+  { 
+    id: "ENF123", 
+    episodeId: "ACR468", 
+    patientId: "IFV_0001", 
+    professionalId: "43234", 
+    professionalName: "Montserrat Valls Blanco",
+    dateTime: new Date("2014-07-07 10:00:00"), 
+    documentType: "High education", 
+    text: "Postpartum recommendations" 
+  },
+  // ========================================
+  // Javier Martinez Lopez (JML_0001) - Episodio WHG123
+  // Fractura de tibia
+  // ========================================
+  { 
+    id: "ENF789", 
+    episodeId: "WHG123", 
+    patientId: "JML_0001", 
+    professionalId: "12345", 
+    professionalName: "Dra. Laura Martinez",
+    dateTime: new Date("2022-09-11 19:00:00"), 
+    documentType: "Recommendation", 
+    text: "Patient instructed on cast care, avoiding weight-bearing, and warning signs." 
+  },
+  // ========================================
+  // Samuel Vallbé Picornell (SVP_0001) - Episodio EPI001
+  // Apendicectomía
+  // ========================================
+  { 
+    id: "ENF333", 
+    episodeId: "EPI001", 
+    patientId: "SVP_0001", 
+    professionalId: "18376", 
+    professionalName: "Lucía Cabañes Mata",
+    dateTime: new Date("2015-09-14 20:30:00"), 
+    documentType: "Initial assessment", 
+    text: "Patient with acute abdominal pain, abdominal guarding, signs of peritonitis. Ringer-lactate 500ml/8h infusion started." 
+  },
+  { 
+    id: "ENF370", 
+    episodeId: "EPI001", 
+    patientId: "SVP_0001", 
+    professionalId: "25437", 
+    professionalName: "Juana Lavilla Royo",
+    dateTime: new Date("2014-09-14 22:00:00"), 
+    documentType: "Progress", 
+    text: "Patient with good post-operative progress. Spontaneous urination. No vomiting." 
+  },
+  { 
+    id: "ENF455", 
+    episodeId: "EPI001", 
+    patientId: "SVP_0001", 
+    professionalId: "61765", 
+    professionalName: "Personal de Enfermería",
+    dateTime: new Date("2015-09-15 09:00:00"), 
+    documentType: "Progress", 
+    text: "Surgical wound check. Good progress. Nasogastric tube removed. Started liquid diet." 
+  },
+  { 
+    id: "ENF498", 
+    episodeId: "EPI001", 
+    patientId: "SVP_0001", 
+    professionalId: "43256", 
+    professionalName: "Personal de Enfermería",
+    dateTime: new Date("2015-09-15 18:00:00"), 
+    documentType: "Progress", 
+    text: "Patient reports general discomfort, body pain, and dizziness. Experiencing chills." 
+  },
+  { 
+    id: "ENF5029", 
+    episodeId: "EPI001", 
+    patientId: "SVP_0001", 
+    professionalId: "25437", 
+    professionalName: "Juana Lavilla Royo",
+    dateTime: new Date("2015-09-16 08:00:00"), 
+    documentType: "Progress", 
+    text: "Patient improved. Has rested since 1 a.m. Good tolerance to treatment." 
+  },
+  // ========================================
+  // María Rodríguez Sánchez (MRS_0001) - Episodio KOP233
+  // Neumonía
+  // ========================================
+  { 
+    id: "ENF323", 
+    episodeId: "KOP233", 
+    patientId: "MRS_0001", 
+    professionalId: "30123", 
+    professionalName: "Miguel Serrano",
+    dateTime: new Date("2022-05-11 00:00:00"), 
+    documentType: "Progress", 
+    text: "María shows improvement in oxygen saturation. Less persistent cough. Antibiotic regimen maintained." 
+  },
+  { 
+    id: "ENF890", 
+    episodeId: "KOP233", 
+    patientId: "MRS_0001", 
+    professionalId: "30123", 
+    professionalName: "Miguel Serrano",
+    dateTime: new Date("2022-05-12 00:00:00"), 
+    documentType: "Progress", 
+    text: "Continued improvement in oxygen saturation. Fever resolved. Creatinine levels decreased." 
+  },
+  { 
+    id: "ENF444", 
+    episodeId: "KOP233", 
+    patientId: "MRS_0001", 
+    professionalId: "30123", 
+    professionalName: "Miguel Serrano",
+    dateTime: new Date("2022-05-13 00:00:00"), 
+    documentType: "Progress", 
+    text: "María shows marked improvement. Oxygen saturation within normal range. No fever. Creatinine at normal values." 
+  },
+  // ========================================
+  // Juan Agudells Vilaseca (JAV_0001) - Episodio AEF498
+  // EPOC
+  // ========================================
+  { 
+    id: "ENF201", 
+    episodeId: "AEF498", 
+    patientId: "JAV_0001", 
+    professionalId: "6234", 
+    professionalName: "Nuria Bòria Vila",
+    dateTime: new Date("2014-10-14 19:45:00"), 
+    documentType: "Hospital Admission Note", 
+    text: "Reason for consultation, vital signs taken." 
+  },
+  { 
+    id: "ENF202", 
+    episodeId: "AEF498", 
+    patientId: "JAV_0001", 
+    professionalId: "8512", 
+    professionalName: "Isabel Centelles Monfort",
+    dateTime: new Date("2014-10-15 12:30:00"), 
+    documentType: "Progress", 
+    text: "Patient more alert and expectorates less." 
+  },
+  { 
+    id: "ENF203", 
+    episodeId: "AEF498", 
+    patientId: "JAV_0001", 
+    professionalId: "8512", 
+    professionalName: "Isabel Centelles Monfort",
+    dateTime: new Date("2014-10-16 11:30:00"), 
+    documentType: "Progress", 
+    text: "Patient improved with good tolerance to oral food intake." 
+  },
+];
+
+// Helper para obtener documentos de enfermería por paciente
+export function getNursingDocumentsByPatient(patientId: string): NursingDocument[] {
+  return sqlNursingDocuments.filter(d => d.patientId === patientId);
+}
+
+// Helper para obtener documentos de enfermería por episodio
+export function getNursingDocumentsByEpisode(episodeId: string): NursingDocument[] {
+  return sqlNursingDocuments.filter(d => d.episodeId === episodeId);
+}
+
+// Helper para obtener episodios clínicos (diagnósticos) de un paciente
+export function getEpisodiosPorPaciente(pacienteId: string): EpisodioClinico[] {
+  return sqlEpisodiosClinico.filter(e => e.pacienteId === pacienteId);
+}
+
+// Helper para obtener el diagnóstico activo de un paciente
+export function getDiagnosticoActivoPaciente(pacienteId: string): string | null {
+  const episodioActivo = sqlEpisodiosClinico.find(e => e.pacienteId === pacienteId && e.activo);
+  return episodioActivo?.motivoPrincipal || null;
+}
+
+// Helper para obtener alergias de un paciente
+export function getAlergiasPorPaciente(pacienteId: string): Alergia[] {
+  const asignaciones = sqlAsignacionesAlergia.filter(a => a.pacienteId === pacienteId);
+  return asignaciones.map(asig => sqlAlergias.find(al => al.id === asig.alergiaId)).filter(Boolean) as Alergia[];
+}
+
+// Helper para obtener detalles de asignación de alergias
+export function getDetalleAlergiasPaciente(pacienteId: string): (AsignacionAlergia & { alergia: Alergia })[] {
+  return sqlAsignacionesAlergia
+    .filter(a => a.pacienteId === pacienteId)
+    .map(asig => {
+      const alergia = sqlAlergias.find(al => al.id === asig.alergiaId);
+      if (!alergia) return null;
+      return { ...asig, alergia };
+    })
+    .filter(Boolean) as (AsignacionAlergia & { alergia: Alergia })[];
+}
+
+// ============================================
+// ALTAS HOSPITALARIAS (Discharge)
+// Mapeado desde database_all.sql - Tabla 22
+// ============================================
+export interface Discharge {
+  id: string;
+  episodeId: string;
+  patientId: string;
+  dateTimeDischarge: Date;
+  reasonDischarge: string;
+  destinyDischarge: string;
+  diagnosticCode: string | null;
+  clinicalSummary: string | null;
+  treatmentDischarge: string;
+}
+
+// Mapeo de episodios a pacientes:
+// ACR468 -> IFV_0001 (Isabel Flores Viñales)
+// WHG123 -> JML_0001 (Javier Martinez Lopez)
+// EPI001 -> SVP_0001 (Samuel Vallbé Picornell)
+// AEF498 -> JAV_0001 (Juan Agudells Vilaseca)
+// KOP233 -> MRS_0001 (María Rodríguez Sánchez)
+
+export const sqlDischarges: Discharge[] = [
+  {
+    id: "ALT123",
+    episodeId: "ACR468",
+    patientId: "IFV_0001",
+    dateTimeDischarge: new Date("2014-07-07 11:00:00"),
+    reasonDischarge: "Delivery completed",
+    destinyDischarge: "Home",
+    diagnosticCode: "Z38.3",
+    clinicalSummary: "Multiple uncomplicated vaginal delivery",
+    treatmentDischarge: "Follow-up in 15 days"
+  },
+  {
+    id: "ALT456",
+    episodeId: "WHG123",
+    patientId: "JML_0001",
+    dateTimeDischarge: new Date("2022-09-14 11:00:00"),
+    reasonDischarge: "Improvement",
+    destinyDischarge: "Home",
+    diagnosticCode: "S82.21",
+    clinicalSummary: "Tibia fracture treated with cast",
+    treatmentDischarge: "Follow-up progress"
+  },
+  {
+    id: "ALT456_2",
+    episodeId: "WHG123",
+    patientId: "JML_0001",
+    dateTimeDischarge: new Date("2022-09-14 11:00:00"),
+    reasonDischarge: "Improvement",
+    destinyDischarge: "Home",
+    diagnosticCode: "D64.9",
+    clinicalSummary: "Anemia under follow-up",
+    treatmentDischarge: "Follow-up progress"
+  },
+  {
+    id: "ALT477",
+    episodeId: "EPI001",
+    patientId: "SVP_0001",
+    dateTimeDischarge: new Date("2015-09-16 12:00:00"),
+    reasonDischarge: "Clinical improvement",
+    destinyDischarge: "Home",
+    diagnosticCode: "DX001",
+    clinicalSummary: "Acute appendicitis operated, favorable progress",
+    treatmentDischarge: "Post-surgical follow-up"
+  },
+  {
+    id: "ALT439",
+    episodeId: "AEF498",
+    patientId: "JAV_0001",
+    dateTimeDischarge: new Date("2014-10-17 17:30:00"),
+    reasonDischarge: "Improvement",
+    destinyDischarge: "Home",
+    diagnosticCode: "J13",
+    clinicalSummary: "Maintenance of treatment and home discharge",
+    treatmentDischarge: "1-month follow-up"
+  },
+  {
+    id: "ALT727",
+    episodeId: "KOP233",
+    patientId: "MRS_0001",
+    dateTimeDischarge: new Date("2022-06-02 17:14:00"),
+    reasonDischarge: "Pneumonia resolved",
+    destinyDischarge: "Home",
+    diagnosticCode: null,
+    clinicalSummary: null,
+    treatmentDischarge: "Follow-up 06/15/2022"
+  }
+];
+
+// ============================================
+// INSTRUCCIONES AL PACIENTE (PatientInstructions)
+// Mapeado desde database_all.sql - Tabla 23
+// ============================================
+export interface PatientInstruction {
+  id: string;
+  dischargeId: string;
+  textInstructions: string;
+}
+
+export const sqlPatientInstructions: PatientInstruction[] = [
+  // Instrucciones para ALT123 (Isabel Flores - Parto)
+  { id: "INS123_1", dischargeId: "ALT123", textInstructions: "Postpartum hygiene + breastfeeding + warning signs" },
+  
+  // Instrucciones para ALT456 (Javier Martinez - Fractura tibia)
+  { id: "INS456_1", dischargeId: "ALT456", textInstructions: "Avoid weight-bearing on the right leg" },
+  { id: "INS456_2", dischargeId: "ALT456", textInstructions: "Keep the limb elevated" },
+  { id: "INS456_3", dischargeId: "ALT456", textInstructions: "Care for the cast as instructed" },
+  { id: "INS456_4", dischargeId: "ALT456", textInstructions: "Seek care if fever or severe pain occurs" },
+  
+  // Instrucciones para ALT477 (Samuel Vallbé - Apendicectomía)
+  { id: "INS477_1", dischargeId: "ALT477", textInstructions: "Post-surgical check-up, progressive diet" },
+  { id: "INS477_2", dischargeId: "ALT477", textInstructions: "Check surgical wound in outpatient consultation" },
+  { id: "INS477_3", dischargeId: "ALT477", textInstructions: "Avoid physical exertion for 2 weeks" },
+  { id: "INS477_4", dischargeId: "ALT477", textInstructions: "Go to emergency if fever > 38ºC or severe abdominal pain" },
+  
+  // Instrucciones para ALT439 (Juan Agudells - Neumonía/EPOC)
+  { id: "INS439_1", dischargeId: "ALT439", textInstructions: "Echocardiography" },
+  { id: "INS439_2", dischargeId: "ALT439", textInstructions: "Follow-up plan with primary care physician (Dr. Garcés)" },
+  
+  // Instrucciones para ALT727 (María Rodríguez - Neumonía)
+  { id: "INS727_1", dischargeId: "ALT727", textInstructions: "Visit Dr. Alberto Pérez" }
+];
+
+// Helper para obtener altas por paciente
+export function getDischargesByPatient(patientId: string): Discharge[] {
+  return sqlDischarges.filter(d => d.patientId === patientId);
+}
+
+// Helper para obtener altas por episodio
+export function getDischargesByEpisode(episodeId: string): Discharge[] {
+  return sqlDischarges.filter(d => d.episodeId === episodeId);
+}
+
+// Helper para obtener instrucciones por alta
+export function getInstructionsByDischarge(dischargeId: string): PatientInstruction[] {
+  return sqlPatientInstructions.filter(i => i.dischargeId === dischargeId);
+}
+
+// Helper para obtener alta completa con instrucciones
+export function getDischargeWithInstructions(dischargeId: string): (Discharge & { instructions: PatientInstruction[] }) | null {
+  const discharge = sqlDischarges.find(d => d.id === dischargeId);
+  if (!discharge) return null;
+  
+  return {
+    ...discharge,
+    instructions: getInstructionsByDischarge(dischargeId)
+  };
+}
+
+// ============================================
+// PARÁMETROS DE SIGNOS VITALES
+// Mapeado desde database_all.sql
+// ============================================
+export interface VitalSignParameter {
+  id: string;
+  name: string;
+  unit: string;
+  category: 'vital' | 'lab' | 'blood';
+}
+
+export const sqlVitalSignParameters: VitalSignParameter[] = [
+  // Signos Vitales Básicos
+  { id: '1', name: 'Peso', unit: 'kg', category: 'vital' },
+  { id: '2', name: 'Presión Sistólica', unit: 'mmHg', category: 'vital' },
+  { id: '3', name: 'Presión Diastólica', unit: 'mmHg', category: 'vital' },
+  { id: '4', name: 'Glucemia', unit: 'mg/dL', category: 'lab' },
+  { id: '17', name: 'Temperatura', unit: '°C', category: 'vital' },
+  { id: '18', name: 'Temperatura Rectal', unit: '°C', category: 'vital' },
+  { id: '19', name: 'Frecuencia Cardíaca', unit: 'lpm', category: 'vital' },
+  { id: '20', name: 'Frecuencia Respiratoria', unit: 'rpm', category: 'vital' },
+  { id: '21', name: 'Saturación O2', unit: '%', category: 'vital' },
+  { id: '22', name: 'SpO2', unit: '%', category: 'vital' },
+  { id: '23', name: 'Presión Arterial', unit: 'mmHg', category: 'vital' },
+  { id: '24', name: 'Saturación Oxígeno', unit: '%', category: 'vital' },
+  
+  // Análisis de Sangre / Laboratorio
+  { id: '10', name: 'Creatinina', unit: 'mg/dL', category: 'lab' },
+  { id: '11', name: 'Sodio', unit: 'mEq/L', category: 'lab' },
+  { id: '12', name: 'Potasio', unit: 'mEq/L', category: 'lab' },
+  { id: '13', name: 'Hemoglobina', unit: 'g/dL', category: 'blood' },
+  { id: '14', name: 'Hematocrito', unit: '%', category: 'blood' },
+  { id: '15', name: 'VCM', unit: 'fL', category: 'blood' },
+  { id: '16', name: 'Plaquetas', unit: '/µL', category: 'blood' },
+  { id: '30', name: 'Eritrocitos', unit: '/µL', category: 'blood' },
+  { id: '31', name: 'Leucocitos', unit: '/µL', category: 'blood' },
+  { id: '32', name: 'Segmentados', unit: '%', category: 'blood' },
+  { id: '33', name: 'Cayados', unit: '%', category: 'blood' },
+  { id: '34', name: 'Linfocitos', unit: '%', category: 'blood' },
+  { id: '35', name: 'Monocitos', unit: '%', category: 'blood' },
+  { id: '36', name: 'Eosinófilos', unit: '%', category: 'blood' }
+];
+
+// ============================================
+// DETALLE DE SIGNOS VITALES
+// Mapeado desde database_all.sql - Tabla 16
+// ============================================
+export interface DetailVitalSign {
+  registerId: string;
+  parameterId: string;
+  value: string;
+  patientId: string;
+  timestamp?: Date;
+}
+
+export const sqlDetailVitalSigns: DetailVitalSign[] = [
+  // Isabel Flores Viñales (IFV_0001) - Embarazo
+  { registerId: 'SV_IFV_0001_20140318_1500', parameterId: '4', value: '102', patientId: 'IFV_0001', timestamp: new Date('2014-03-18 15:00:00') },
+  { registerId: 'SV_IFV_0001_20140318_1500', parameterId: '10', value: '1.5', patientId: 'IFV_0001', timestamp: new Date('2014-03-18 15:00:00') },
+  { registerId: 'SV_IFV_0001_20140318_1500', parameterId: '13', value: '10.5', patientId: 'IFV_0001', timestamp: new Date('2014-03-18 15:00:00') },
+  { registerId: 'SV_IFV_0001_20140318_1500', parameterId: '11', value: '141', patientId: 'IFV_0001', timestamp: new Date('2014-03-18 15:00:00') },
+  { registerId: 'SV_IFV_0001_20140318_1500', parameterId: '12', value: '4.2', patientId: 'IFV_0001', timestamp: new Date('2014-03-18 15:00:00') },
+  { registerId: 'SV_IFV_0001_20140320_1000', parameterId: '1', value: '58', patientId: 'IFV_0001', timestamp: new Date('2014-03-20 10:00:00') },
+  { registerId: 'SV_IFV_0001_20140320_1000', parameterId: '2', value: '143', patientId: 'IFV_0001', timestamp: new Date('2014-03-20 10:00:00') },
+  { registerId: 'SV_IFV_0001_20140320_1000', parameterId: '3', value: '73', patientId: 'IFV_0001', timestamp: new Date('2014-03-20 10:00:00') },
+  { registerId: 'SV_IFV_0001_20140327_1000', parameterId: '2', value: '132', patientId: 'IFV_0001', timestamp: new Date('2014-03-27 10:00:00') },
+  { registerId: 'SV_IFV_0001_20140327_1000', parameterId: '3', value: '65', patientId: 'IFV_0001', timestamp: new Date('2014-03-27 10:00:00') },
+  { registerId: 'SV_IFV_0001_20140424_1100', parameterId: '4', value: '123', patientId: 'IFV_0001', timestamp: new Date('2014-04-24 11:00:00') },
+  { registerId: 'SV_IFV_0001_20140424_1100', parameterId: '10', value: '1.4', patientId: 'IFV_0001', timestamp: new Date('2014-04-24 11:00:00') },
+  { registerId: 'SV_IFV_0001_20140424_1100', parameterId: '13', value: '11.8', patientId: 'IFV_0001', timestamp: new Date('2014-04-24 11:00:00') },
+  { registerId: 'SV_IFV_0001_20140424_1100', parameterId: '11', value: '143', patientId: 'IFV_0001', timestamp: new Date('2014-04-24 11:00:00') },
+  { registerId: 'SV_IFV_0001_20140424_1100', parameterId: '12', value: '4.1', patientId: 'IFV_0001', timestamp: new Date('2014-04-24 11:00:00') },
+  { registerId: 'SV_IFV_0001_20140530_1000', parameterId: '2', value: '138', patientId: 'IFV_0001', timestamp: new Date('2014-05-30 10:00:00') },
+  { registerId: 'SV_IFV_0001_20140530_1000', parameterId: '3', value: '69', patientId: 'IFV_0001', timestamp: new Date('2014-05-30 10:00:00') },
+  { registerId: 'SV_IFV_0001_20140530_1000', parameterId: '1', value: '64.5', patientId: 'IFV_0001', timestamp: new Date('2014-05-30 10:00:00') },
+  { registerId: 'SV_IFV_0001_20140530_1000', parameterId: '4', value: '117', patientId: 'IFV_0001', timestamp: new Date('2014-05-30 10:00:00') },
+  { registerId: 'SV_IFV_0001_20140617_1000', parameterId: '2', value: '128', patientId: 'IFV_0001', timestamp: new Date('2014-06-17 10:00:00') },
+  { registerId: 'SV_IFV_0001_20140617_1000', parameterId: '3', value: '64', patientId: 'IFV_0001', timestamp: new Date('2014-06-17 10:00:00') },
+  { registerId: 'SV_IFV_0001_20140617_1000', parameterId: '1', value: '66', patientId: 'IFV_0001', timestamp: new Date('2014-06-17 10:00:00') },
+  { registerId: 'SV_IFV_0001_20140617_1000', parameterId: '4', value: '112', patientId: 'IFV_0001', timestamp: new Date('2014-06-17 10:00:00') },
+  { registerId: 'SV_IFV_0001_20140703_0432', parameterId: '2', value: '150', patientId: 'IFV_0001', timestamp: new Date('2014-07-03 04:32:00') },
+  { registerId: 'SV_IFV_0001_20140703_0432', parameterId: '3', value: '90', patientId: 'IFV_0001', timestamp: new Date('2014-07-03 04:32:00') },
+  { registerId: 'SV_IFV_0001_20140703_0432', parameterId: '1', value: '68', patientId: 'IFV_0001', timestamp: new Date('2014-07-03 04:32:00') },
+  { registerId: 'SV_PIF_0010_20140703_0815', parameterId: '1', value: '2.85', patientId: 'PIF_0010', timestamp: new Date('2014-07-03 08:15:00') },
+  { registerId: 'SV_MIF_0011_20140703_0821', parameterId: '1', value: '2.63', patientId: 'MIF_0011', timestamp: new Date('2014-07-03 08:21:00') },
+  
+  // Javier Martinez Lopez (JML_0001) - Accidente tráfico
+  { registerId: 'SV_JML_20220910_1900', parameterId: '13', value: '45878', patientId: 'JML_0001', timestamp: new Date('2022-09-10 19:00:00') },
+  { registerId: 'SV_JML_20220910_1900', parameterId: '14', value: '30', patientId: 'JML_0001', timestamp: new Date('2022-09-10 19:00:00') },
+  { registerId: 'SV_JML_20220910_1900', parameterId: '15', value: '45691', patientId: 'JML_0001', timestamp: new Date('2022-09-10 19:00:00') },
+  { registerId: 'SV_JML_20220910_1900', parameterId: '16', value: '220000', patientId: 'JML_0001', timestamp: new Date('2022-09-10 19:00:00') },
+  
+  // Samuel Vallbé Picornell (SVP_0001) - Apendicitis
+  { registerId: 'SV_SVP_0001_20150914_1431', parameterId: '17', value: '38.3', patientId: 'SVP_0001', timestamp: new Date('2015-09-14 14:31:00') },
+  { registerId: 'SV_SVP_0001_20150914_1431', parameterId: '2', value: '87', patientId: 'SVP_0001', timestamp: new Date('2015-09-14 14:31:00') },
+  { registerId: 'SV_SVP_0001_20150914_1431', parameterId: '3', value: '20', patientId: 'SVP_0001', timestamp: new Date('2015-09-14 14:31:00') },
+  { registerId: 'SV_SVP_0001_20150914_1431', parameterId: '19', value: '118', patientId: 'SVP_0001', timestamp: new Date('2015-09-14 14:31:00') },
+  { registerId: 'SV_SVP_0001_20150914_1431', parameterId: '20', value: '64', patientId: 'SVP_0001', timestamp: new Date('2015-09-14 14:31:00') },
+  { registerId: 'SV_SVP_0001_20150914_1500', parameterId: '17', value: '38.3', patientId: 'SVP_0001', timestamp: new Date('2015-09-14 15:00:00') },
+  { registerId: 'SV_SVP_0001_20150914_1500', parameterId: '18', value: '39.5', patientId: 'SVP_0001', timestamp: new Date('2015-09-14 15:00:00') },
+  { registerId: 'SV_SVP_0001_20150914_1500', parameterId: '2', value: '90', patientId: 'SVP_0001', timestamp: new Date('2015-09-14 15:00:00') },
+  { registerId: 'SV_SVP_0001_20150914_1500', parameterId: '3', value: '23', patientId: 'SVP_0001', timestamp: new Date('2015-09-14 15:00:00') },
+  { registerId: 'SV_SVP_0001_20150914_1500', parameterId: '19', value: '134', patientId: 'SVP_0001', timestamp: new Date('2015-09-14 15:00:00') },
+  { registerId: 'SV_SVP_0001_20150914_1500', parameterId: '20', value: '87', patientId: 'SVP_0001', timestamp: new Date('2015-09-14 15:00:00') },
+  { registerId: 'SV_SVP_0001_20150914_1530', parameterId: '17', value: '38.9', patientId: 'SVP_0001', timestamp: new Date('2015-09-14 15:30:00') },
+  { registerId: 'SV_SVP_0001_20150914_1530', parameterId: '2', value: '85', patientId: 'SVP_0001', timestamp: new Date('2015-09-14 15:30:00') },
+  { registerId: 'SV_SVP_0001_20150914_1530', parameterId: '3', value: '22', patientId: 'SVP_0001', timestamp: new Date('2015-09-14 15:30:00') },
+  { registerId: 'SV_SVP_0001_20150914_1530', parameterId: '19', value: '128', patientId: 'SVP_0001', timestamp: new Date('2015-09-14 15:30:00') },
+  { registerId: 'SV_SVP_0001_20150914_1530', parameterId: '20', value: '88', patientId: 'SVP_0001', timestamp: new Date('2015-09-14 15:30:00') },
+  { registerId: 'SV_SVP_0001_20150914_1600', parameterId: '17', value: '39.2', patientId: 'SVP_0001', timestamp: new Date('2015-09-14 16:00:00') },
+  { registerId: 'SV_SVP_0001_20150914_1600', parameterId: '2', value: '95', patientId: 'SVP_0001', timestamp: new Date('2015-09-14 16:00:00') },
+  { registerId: 'SV_SVP_0001_20150914_1600', parameterId: '3', value: '25', patientId: 'SVP_0001', timestamp: new Date('2015-09-14 16:00:00') },
+  { registerId: 'SV_SVP_0001_20150914_1600', parameterId: '19', value: '145', patientId: 'SVP_0001', timestamp: new Date('2015-09-14 16:00:00') },
+  { registerId: 'SV_SVP_0001_20150914_1600', parameterId: '20', value: '87', patientId: 'SVP_0001', timestamp: new Date('2015-09-14 16:00:00') },
+  { registerId: 'SV_SVP_0001_20150914_1835', parameterId: '17', value: '39.5', patientId: 'SVP_0001', timestamp: new Date('2015-09-14 18:35:00') },
+  { registerId: 'SV_SVP_0001_20150914_1835', parameterId: '2', value: '90', patientId: 'SVP_0001', timestamp: new Date('2015-09-14 18:35:00') },
+  { registerId: 'SV_SVP_0001_20150914_1835', parameterId: '3', value: '29', patientId: 'SVP_0001', timestamp: new Date('2015-09-14 18:35:00') },
+  { registerId: 'SV_SVP_0001_20150914_1835', parameterId: '19', value: '150', patientId: 'SVP_0001', timestamp: new Date('2015-09-14 18:35:00') },
+  { registerId: 'SV_SVP_0001_20150914_1835', parameterId: '20', value: '90', patientId: 'SVP_0001', timestamp: new Date('2015-09-14 18:35:00') },
+  { registerId: 'SV_SVP_0001_20150914_1835', parameterId: '21', value: '89', patientId: 'SVP_0001', timestamp: new Date('2015-09-14 18:35:00') },
+  { registerId: 'SV_SVP_0001_20150914_1900', parameterId: '17', value: '38.7', patientId: 'SVP_0001', timestamp: new Date('2015-09-14 19:00:00') },
+  { registerId: 'SV_SVP_0001_20150914_1900', parameterId: '2', value: '86', patientId: 'SVP_0001', timestamp: new Date('2015-09-14 19:00:00') },
+  { registerId: 'SV_SVP_0001_20150914_1900', parameterId: '3', value: '25', patientId: 'SVP_0001', timestamp: new Date('2015-09-14 19:00:00') },
+  { registerId: 'SV_SVP_0001_20150914_1900', parameterId: '19', value: '144', patientId: 'SVP_0001', timestamp: new Date('2015-09-14 19:00:00') },
+  { registerId: 'SV_SVP_0001_20150914_1900', parameterId: '20', value: '83', patientId: 'SVP_0001', timestamp: new Date('2015-09-14 19:00:00') },
+  { registerId: 'SV_SVP_0001_20150914_1900', parameterId: '21', value: '92', patientId: 'SVP_0001', timestamp: new Date('2015-09-14 19:00:00') },
+  { registerId: 'SV_SVP_0001_20150914_1915', parameterId: '17', value: '37.4', patientId: 'SVP_0001', timestamp: new Date('2015-09-14 19:15:00') },
+  { registerId: 'SV_SVP_0001_20150914_1915', parameterId: '2', value: '73', patientId: 'SVP_0001', timestamp: new Date('2015-09-14 19:15:00') },
+  { registerId: 'SV_SVP_0001_20150914_1915', parameterId: '3', value: '20', patientId: 'SVP_0001', timestamp: new Date('2015-09-14 19:15:00') },
+  { registerId: 'SV_SVP_0001_20150914_1915', parameterId: '19', value: '131', patientId: 'SVP_0001', timestamp: new Date('2015-09-14 19:15:00') },
+  { registerId: 'SV_SVP_0001_20150914_1915', parameterId: '20', value: '80', patientId: 'SVP_0001', timestamp: new Date('2015-09-14 19:15:00') },
+  { registerId: 'SV_SVP_0001_20150914_1915', parameterId: '21', value: '96', patientId: 'SVP_0001', timestamp: new Date('2015-09-14 19:15:00') },
+  { registerId: 'SV_SVP_0001_20150914_1930', parameterId: '17', value: '36.6', patientId: 'SVP_0001', timestamp: new Date('2015-09-14 19:30:00') },
+  { registerId: 'SV_SVP_0001_20150914_1930', parameterId: '2', value: '71', patientId: 'SVP_0001', timestamp: new Date('2015-09-14 19:30:00') },
+  { registerId: 'SV_SVP_0001_20150914_1930', parameterId: '3', value: '18', patientId: 'SVP_0001', timestamp: new Date('2015-09-14 19:30:00') },
+  { registerId: 'SV_SVP_0001_20150914_1930', parameterId: '19', value: '129', patientId: 'SVP_0001', timestamp: new Date('2015-09-14 19:30:00') },
+  { registerId: 'SV_SVP_0001_20150914_1930', parameterId: '20', value: '77', patientId: 'SVP_0001', timestamp: new Date('2015-09-14 19:30:00') },
+  { registerId: 'SV_SVP_0001_20150914_1930', parameterId: '21', value: '98', patientId: 'SVP_0001', timestamp: new Date('2015-09-14 19:30:00') },
+  { registerId: 'SV_SVP_0001_20150914_1945', parameterId: '17', value: '36.9', patientId: 'SVP_0001', timestamp: new Date('2015-09-14 19:45:00') },
+  { registerId: 'SV_SVP_0001_20150914_1945', parameterId: '2', value: '72', patientId: 'SVP_0001', timestamp: new Date('2015-09-14 19:45:00') },
+  { registerId: 'SV_SVP_0001_20150914_1945', parameterId: '3', value: '20', patientId: 'SVP_0001', timestamp: new Date('2015-09-14 19:45:00') },
+  { registerId: 'SV_SVP_0001_20150914_1945', parameterId: '19', value: '125', patientId: 'SVP_0001', timestamp: new Date('2015-09-14 19:45:00') },
+  { registerId: 'SV_SVP_0001_20150914_1945', parameterId: '20', value: '70', patientId: 'SVP_0001', timestamp: new Date('2015-09-14 19:45:00') },
+  { registerId: 'SV_SVP_0001_20150914_1945', parameterId: '21', value: '98', patientId: 'SVP_0001', timestamp: new Date('2015-09-14 19:45:00') },
+  { registerId: 'SV_SVP_0001_20150915_1500', parameterId: '17', value: '39.0', patientId: 'SVP_0001', timestamp: new Date('2015-09-15 15:00:00') },
+  { registerId: 'SV_SVP_0001_20150915_1500', parameterId: '2', value: '92', patientId: 'SVP_0001', timestamp: new Date('2015-09-15 15:00:00') },
+  { registerId: 'SV_SVP_0001_20150915_1500', parameterId: '3', value: '22', patientId: 'SVP_0001', timestamp: new Date('2015-09-15 15:00:00') },
+  { registerId: 'SV_SVP_0001_20150915_1500', parameterId: '19', value: '112', patientId: 'SVP_0001', timestamp: new Date('2015-09-15 15:00:00') },
+  { registerId: 'SV_SVP_0001_20150915_1500', parameterId: '20', value: '66', patientId: 'SVP_0001', timestamp: new Date('2015-09-15 15:00:00') },
+  { registerId: 'SV_SVP_0001_20150916_0100', parameterId: '17', value: '37.2', patientId: 'SVP_0001', timestamp: new Date('2015-09-16 01:00:00') },
+  { registerId: 'SV_SVP_0001_20150916_0100', parameterId: '2', value: '76', patientId: 'SVP_0001', timestamp: new Date('2015-09-16 01:00:00') },
+  { registerId: 'SV_SVP_0001_20150916_0100', parameterId: '3', value: '14', patientId: 'SVP_0001', timestamp: new Date('2015-09-16 01:00:00') },
+  { registerId: 'SV_SVP_0001_20150916_0100', parameterId: '19', value: '128', patientId: 'SVP_0001', timestamp: new Date('2015-09-16 01:00:00') },
+  { registerId: 'SV_SVP_0001_20150916_0100', parameterId: '20', value: '79', patientId: 'SVP_0001', timestamp: new Date('2015-09-16 01:00:00') },
+  
+  // María Rodríguez Sánchez (MRS_0001) - Neumonía UCI
+  { registerId: 'SV_MRS_0001_20220510_1000', parameterId: '22', value: '88', patientId: 'MRS_0001', timestamp: new Date('2022-05-10 10:00:00') },
+  { registerId: 'SV_MRS_0001_20220510_1000', parameterId: '2', value: '140', patientId: 'MRS_0001', timestamp: new Date('2022-05-10 10:00:00') },
+  { registerId: 'SV_MRS_0001_20220510_1000', parameterId: '3', value: '90', patientId: 'MRS_0001', timestamp: new Date('2022-05-10 10:00:00') },
+  { registerId: 'SV_MRS_0001_20220510_1000', parameterId: '19', value: '110', patientId: 'MRS_0001', timestamp: new Date('2022-05-10 10:00:00') },
+  { registerId: 'SV_MRS_0001_20220510_1000', parameterId: '10', value: '68', patientId: 'MRS_0001', timestamp: new Date('2022-05-10 10:00:00') },
+  { registerId: 'SV_MRS_0001_20220510_1000', parameterId: '11', value: '138', patientId: 'MRS_0001', timestamp: new Date('2022-05-10 10:00:00') },
+  { registerId: 'SV_MRS_0001_20220510_1000', parameterId: '12', value: '3.8', patientId: 'MRS_0001', timestamp: new Date('2022-05-10 10:00:00') },
+  { registerId: 'SV_MRS_0001_20220510_1000', parameterId: '13', value: '12.5', patientId: 'MRS_0001', timestamp: new Date('2022-05-10 10:00:00') },
+  { registerId: 'SV_MRS_0001_20220511_1000', parameterId: '22', value: '92', patientId: 'MRS_0001', timestamp: new Date('2022-05-11 10:00:00') },
+  { registerId: 'SV_MRS_0001_20220511_1000', parameterId: '2', value: '130', patientId: 'MRS_0001', timestamp: new Date('2022-05-11 10:00:00') },
+  { registerId: 'SV_MRS_0001_20220511_1000', parameterId: '3', value: '85', patientId: 'MRS_0001', timestamp: new Date('2022-05-11 10:00:00') },
+  { registerId: 'SV_MRS_0001_20220511_1000', parameterId: '19', value: '100', patientId: 'MRS_0001', timestamp: new Date('2022-05-11 10:00:00') },
+  { registerId: 'SV_MRS_0001_20220511_1000', parameterId: '10', value: '1.2', patientId: 'MRS_0001', timestamp: new Date('2022-05-11 10:00:00') },
+  { registerId: 'SV_MRS_0001_20220511_1000', parameterId: '11', value: '140', patientId: 'MRS_0001', timestamp: new Date('2022-05-11 10:00:00') },
+  { registerId: 'SV_MRS_0001_20220511_1000', parameterId: '12', value: '3.9', patientId: 'MRS_0001', timestamp: new Date('2022-05-11 10:00:00') },
+  { registerId: 'SV_MRS_0001_20220511_1000', parameterId: '13', value: '12.4', patientId: 'MRS_0001', timestamp: new Date('2022-05-11 10:00:00') },
+  { registerId: 'SV_MRS_0001_20220512_1000', parameterId: '22', value: '94', patientId: 'MRS_0001', timestamp: new Date('2022-05-12 10:00:00') },
+  { registerId: 'SV_MRS_0001_20220512_1000', parameterId: '2', value: '135', patientId: 'MRS_0001', timestamp: new Date('2022-05-12 10:00:00') },
+  { registerId: 'SV_MRS_0001_20220512_1000', parameterId: '3', value: '88', patientId: 'MRS_0001', timestamp: new Date('2022-05-12 10:00:00') },
+  { registerId: 'SV_MRS_0001_20220512_1000', parameterId: '19', value: '95', patientId: 'MRS_0001', timestamp: new Date('2022-05-12 10:00:00') },
+  { registerId: 'SV_MRS_0001_20220512_1000', parameterId: '10', value: '1.1', patientId: 'MRS_0001', timestamp: new Date('2022-05-12 10:00:00') },
+  { registerId: 'SV_MRS_0001_20220512_1000', parameterId: '11', value: '142', patientId: 'MRS_0001', timestamp: new Date('2022-05-12 10:00:00') },
+  { registerId: 'SV_MRS_0001_20220512_1000', parameterId: '12', value: '4.0', patientId: 'MRS_0001', timestamp: new Date('2022-05-12 10:00:00') },
+  { registerId: 'SV_MRS_0001_20220512_1000', parameterId: '13', value: '12.3', patientId: 'MRS_0001', timestamp: new Date('2022-05-12 10:00:00') },
+  { registerId: 'SV_MRS_0001_20220513_1000', parameterId: '22', value: '96', patientId: 'MRS_0001', timestamp: new Date('2022-05-13 10:00:00') },
+  { registerId: 'SV_MRS_0001_20220513_1000', parameterId: '2', value: '130', patientId: 'MRS_0001', timestamp: new Date('2022-05-13 10:00:00') },
+  { registerId: 'SV_MRS_0001_20220513_1000', parameterId: '3', value: '85', patientId: 'MRS_0001', timestamp: new Date('2022-05-13 10:00:00') },
+  { registerId: 'SV_MRS_0001_20220513_1000', parameterId: '19', value: '90', patientId: 'MRS_0001', timestamp: new Date('2022-05-13 10:00:00') },
+  { registerId: 'SV_MRS_0001_20220513_1000', parameterId: '10', value: '1.0', patientId: 'MRS_0001', timestamp: new Date('2022-05-13 10:00:00') },
+  { registerId: 'SV_MRS_0001_20220513_1000', parameterId: '11', value: '143', patientId: 'MRS_0001', timestamp: new Date('2022-05-13 10:00:00') },
+  { registerId: 'SV_MRS_0001_20220513_1000', parameterId: '12', value: '4.1', patientId: 'MRS_0001', timestamp: new Date('2022-05-13 10:00:00') },
+  { registerId: 'SV_MRS_0001_20220513_1000', parameterId: '13', value: '12.2', patientId: 'MRS_0001', timestamp: new Date('2022-05-13 10:00:00') },
+  
+  // Juan Agudells Vilaseca (JAV_0001) - EPOC/Neumonía
+  { registerId: 'SV_JAV_0001_20141014_1001', parameterId: '17', value: '39.5', patientId: 'JAV_0001', timestamp: new Date('2014-10-14 10:01:00') },
+  { registerId: 'SV_JAV_0001_20141014_1001', parameterId: '19', value: '90', patientId: 'JAV_0001', timestamp: new Date('2014-10-14 10:01:00') },
+  { registerId: 'SV_JAV_0001_20141014_1001', parameterId: '20', value: '31', patientId: 'JAV_0001', timestamp: new Date('2014-10-14 10:01:00') },
+  { registerId: 'SV_JAV_0001_20141014_1001', parameterId: '23', value: '150/90', patientId: 'JAV_0001', timestamp: new Date('2014-10-14 10:01:00') },
+  { registerId: 'SV_JAV_0001_20141014_1001', parameterId: '24', value: '89', patientId: 'JAV_0001', timestamp: new Date('2014-10-14 10:01:00') },
+  { registerId: 'SV_JAV_0001_20141014_1002', parameterId: '17', value: '38.3', patientId: 'JAV_0001', timestamp: new Date('2014-10-14 10:02:00') },
+  { registerId: 'SV_JAV_0001_20141014_1002', parameterId: '19', value: '85', patientId: 'JAV_0001', timestamp: new Date('2014-10-14 10:02:00') },
+  { registerId: 'SV_JAV_0001_20141014_1002', parameterId: '20', value: '28', patientId: 'JAV_0001', timestamp: new Date('2014-10-14 10:02:00') },
+  { registerId: 'SV_JAV_0001_20141014_1002', parameterId: '23', value: '142/88', patientId: 'JAV_0001', timestamp: new Date('2014-10-14 10:02:00') },
+  { registerId: 'SV_JAV_0001_20141014_1002', parameterId: '24', value: '92', patientId: 'JAV_0001', timestamp: new Date('2014-10-14 10:02:00') },
+  { registerId: 'SV_JAV_0001_20141014_1003', parameterId: '17', value: '36.6', patientId: 'JAV_0001', timestamp: new Date('2014-10-14 10:03:00') },
+  { registerId: 'SV_JAV_0001_20141014_1003', parameterId: '19', value: '83', patientId: 'JAV_0001', timestamp: new Date('2014-10-14 10:03:00') },
+  { registerId: 'SV_JAV_0001_20141014_1003', parameterId: '20', value: '23', patientId: 'JAV_0001', timestamp: new Date('2014-10-14 10:03:00') },
+  { registerId: 'SV_JAV_0001_20141014_1003', parameterId: '23', value: '145/87', patientId: 'JAV_0001', timestamp: new Date('2014-10-14 10:03:00') },
+  { registerId: 'SV_JAV_0001_20141014_1003', parameterId: '24', value: '93', patientId: 'JAV_0001', timestamp: new Date('2014-10-14 10:03:00') },
+  { registerId: 'SV_JAV_0001_20141014_1004', parameterId: '17', value: '37.2', patientId: 'JAV_0001', timestamp: new Date('2014-10-14 10:04:00') },
+  { registerId: 'SV_JAV_0001_20141014_1004', parameterId: '19', value: '74', patientId: 'JAV_0001', timestamp: new Date('2014-10-14 10:04:00') },
+  { registerId: 'SV_JAV_0001_20141014_1004', parameterId: '20', value: '21', patientId: 'JAV_0001', timestamp: new Date('2014-10-14 10:04:00') },
+  { registerId: 'SV_JAV_0001_20141014_1004', parameterId: '23', value: '139/90', patientId: 'JAV_0001', timestamp: new Date('2014-10-14 10:04:00') },
+  { registerId: 'SV_JAV_0001_20141014_1004', parameterId: '24', value: '96', patientId: 'JAV_0001', timestamp: new Date('2014-10-14 10:04:00') },
+  { registerId: 'SV_JAV_0001_20141014_1005', parameterId: '17', value: '36.1', patientId: 'JAV_0001', timestamp: new Date('2014-10-14 10:05:00') },
+  { registerId: 'SV_JAV_0001_20141014_1005', parameterId: '19', value: '72', patientId: 'JAV_0001', timestamp: new Date('2014-10-14 10:05:00') },
+  { registerId: 'SV_JAV_0001_20141014_1005', parameterId: '20', value: '18', patientId: 'JAV_0001', timestamp: new Date('2014-10-14 10:05:00') },
+  { registerId: 'SV_JAV_0001_20141014_1005', parameterId: '23', value: '140/89', patientId: 'JAV_0001', timestamp: new Date('2014-10-14 10:05:00') },
+  { registerId: 'SV_JAV_0001_20141014_1005', parameterId: '24', value: '98', patientId: 'JAV_0001', timestamp: new Date('2014-10-14 10:05:00') },
+  { registerId: 'SV_JAV_0001_20141014_1006', parameterId: '17', value: '36.6', patientId: 'JAV_0001', timestamp: new Date('2014-10-14 10:06:00') },
+  { registerId: 'SV_JAV_0001_20141014_1006', parameterId: '19', value: '68', patientId: 'JAV_0001', timestamp: new Date('2014-10-14 10:06:00') },
+  { registerId: 'SV_JAV_0001_20141014_1006', parameterId: '20', value: '20', patientId: 'JAV_0001', timestamp: new Date('2014-10-14 10:06:00') },
+  { registerId: 'SV_JAV_0001_20141014_1006', parameterId: '23', value: '137/87', patientId: 'JAV_0001', timestamp: new Date('2014-10-14 10:06:00') },
+  { registerId: 'SV_JAV_0001_20141014_1006', parameterId: '24', value: '98', patientId: 'JAV_0001', timestamp: new Date('2014-10-14 10:06:00') },
+  // Analítica de Juan Agudells
+  { registerId: 'SV_JAV_0001_20141014_1000', parameterId: '14', value: '42', patientId: 'JAV_0001', timestamp: new Date('2014-10-14 10:00:00') },
+  { registerId: 'SV_JAV_0001_20141014_1000', parameterId: '13', value: '45852', patientId: 'JAV_0001', timestamp: new Date('2014-10-14 10:00:00') },
+  { registerId: 'SV_JAV_0001_20141014_1000', parameterId: '30', value: '4950000', patientId: 'JAV_0001', timestamp: new Date('2014-10-14 10:00:00') },
+  { registerId: 'SV_JAV_0001_20141014_1000', parameterId: '31', value: '7643', patientId: 'JAV_0001', timestamp: new Date('2014-10-14 10:00:00') },
+  { registerId: 'SV_JAV_0001_20141014_1000', parameterId: '16', value: '240000', patientId: 'JAV_0001', timestamp: new Date('2014-10-14 10:00:00') },
+  { registerId: 'SV_JAV_0001_20141014_1000', parameterId: '32', value: '73', patientId: 'JAV_0001', timestamp: new Date('2014-10-14 10:00:00') },
+  { registerId: 'SV_JAV_0001_20141014_1000', parameterId: '33', value: '2', patientId: 'JAV_0001', timestamp: new Date('2014-10-14 10:00:00') },
+  { registerId: 'SV_JAV_0001_20141014_1000', parameterId: '34', value: '1', patientId: 'JAV_0001', timestamp: new Date('2014-10-14 10:00:00') },
+  { registerId: 'SV_JAV_0001_20141014_1000', parameterId: '35', value: '20', patientId: 'JAV_0001', timestamp: new Date('2014-10-14 10:00:00') },
+  { registerId: 'SV_JAV_0001_20141014_1000', parameterId: '36', value: '4', patientId: 'JAV_0001', timestamp: new Date('2014-10-14 10:00:00') }
+];
+
+// Helper para obtener signos vitales por paciente
+export function getDetailVitalSignsByPatient(patientId: string): DetailVitalSign[] {
+  return sqlDetailVitalSigns.filter(d => d.patientId === patientId);
+}
+
+// Helper para obtener signos vitales agrupados por registro
+export function getVitalSignsGroupedByRegister(patientId: string): Map<string, DetailVitalSign[]> {
+  const signs = getDetailVitalSignsByPatient(patientId);
+  const grouped = new Map<string, DetailVitalSign[]>();
+  
+  for (const sign of signs) {
+    const existing = grouped.get(sign.registerId) || [];
+    existing.push(sign);
+    grouped.set(sign.registerId, existing);
+  }
+  
+  return grouped;
+}
+
+// Helper para obtener nombre de parámetro
+export function getVitalSignParameterName(parameterId: string): string {
+  const param = sqlVitalSignParameters.find(p => p.id === parameterId);
+  return param?.name || `Parámetro ${parameterId}`;
+}
+
+// Helper para obtener unidad de parámetro
+export function getVitalSignParameterUnit(parameterId: string): string {
+  const param = sqlVitalSignParameters.find(p => p.id === parameterId);
+  return param?.unit || '';
 }

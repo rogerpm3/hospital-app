@@ -208,6 +208,21 @@ async function importFromSQLFiles(database: Database.Database): Promise<void> {
     
     console.log('✅ Datos importados correctamente desde archivos SQL');
     
+    // Crear tabla AsignacionCama para persistir asignaciones de pacientes a camas
+    try {
+      database.exec(`
+        CREATE TABLE IF NOT EXISTS AsignacionCama (
+          id_cama VARCHAR(255) PRIMARY KEY,
+          id_paciente VARCHAR(255),
+          fecha_asignacion DATETIME DEFAULT CURRENT_TIMESTAMP,
+          estado VARCHAR(50) DEFAULT 'activa'
+        )
+      `);
+      console.log('✅ Tabla AsignacionCama creada/verificada');
+    } catch (e) {
+      console.warn('⚠️ Error creando tabla AsignacionCama:', e);
+    }
+    
   } catch (error) {
     console.error('❌ Error importando datos:', error);
     throw error;
@@ -429,6 +444,15 @@ export function getRoomsAndBedsSQLite(): { rooms: Room[], beds: Bed[] } {
     const camaRows = database.prepare('SELECT * FROM Cama').all() as any[];
     const unidadRows = database.prepare('SELECT * FROM UnidadHospitalaria').all() as any[];
     
+    // Obtener asignaciones de pacientes a camas
+    let asignacionRows: any[] = [];
+    try {
+      asignacionRows = database.prepare('SELECT * FROM AsignacionCama WHERE estado = ?').all('activa') as any[];
+    } catch (e) {
+      // Tabla puede no existir aún
+      console.log('ℹ️ Tabla AsignacionCama no disponible');
+    }
+    
     const habitacionTable = {
       name: 'Habitacion',
       columns: habitacionRows.length > 0 ? Object.keys(habitacionRows[0]) : [],
@@ -447,7 +471,25 @@ export function getRoomsAndBedsSQLite(): { rooms: Room[], beds: Bed[] } {
       rows: unidadRows
     };
     
-    return sqlRoomsToAppRooms(habitacionTable, camaTable, unidadTable);
+    const result = sqlRoomsToAppRooms(habitacionTable, camaTable, unidadTable);
+    
+    // Aplicar asignaciones de pacientes a camas
+    if (asignacionRows.length > 0) {
+      result.beds = result.beds.map(bed => {
+        const asignacion = asignacionRows.find(a => a.id_cama === bed.id);
+        if (asignacion && asignacion.id_paciente) {
+          return {
+            ...bed,
+            patientId: asignacion.id_paciente,
+            status: 'Occupied' as const,
+            isOccupied: true
+          };
+        }
+        return bed;
+      });
+    }
+    
+    return result;
   } catch (error) {
     console.error('Error obteniendo habitaciones y camas:', error);
     return { rooms: [], beds: [] };
@@ -715,34 +757,54 @@ export async function updatePatientSQLite(id: string, updates: Partial<Patient>)
     throw new Error('SQLite solo funciona en servidor');
   }
   
-  const existingPatient = getPatientByIdSQLite(id);
-  if (!existingPatient) return false;
-  
-  const updatedPatient = { ...existingPatient, ...updates };
-  const sqlRow = appPatientToSQLRow(updatedPatient);
-  const database = getDatabase();
-  
-  database.prepare(`
-    UPDATE Paciente 
-    SET Nombre = ?, Apellidos = ?, Fecha_nacimiento = ?, 
-        Sexo = ?, ID_documento = ?, HealthCard_Number = ?,
-        Direccion = ?, Phone = ?, Email = ?, Emergency_Contact = ?
-    WHERE id_paciente = ?
-  `).run(
-    sqlRow.Nombre,
-    sqlRow.Apellidos,
-    sqlRow.Fecha_nacimiento,
-    sqlRow.Sexo,
-    sqlRow.ID_documento,
-    sqlRow.HealthCard_Number,
-    sqlRow.Direccion,
-    sqlRow.Phone,
-    sqlRow.Email,
-    sqlRow.Emergency_Contact,
-    id
-  );
-  
-  return true;
+  try {
+    const database = getDatabase();
+    
+    // Intentar obtener el paciente existente
+    const existingPatient = getPatientByIdSQLite(id);
+    
+    // Si no existe en SQLite, intentar solo actualizar campos específicos
+    if (!existingPatient) {
+      console.log(`⚠️ Paciente ${id} no encontrado en SQLite, actualizando solo campos específicos`);
+      
+      // Si solo estamos actualizando roomId/bedNumber, no es crítico
+      if (updates.roomId !== undefined || updates.bedNumber !== undefined) {
+        console.log('ℹ️ Actualización de ubicación - paciente puede estar solo en datos estáticos');
+        return true; // Retornar éxito porque el estado local ya se actualizó
+      }
+      
+      return false;
+    }
+    
+    const updatedPatient = { ...existingPatient, ...updates };
+    const sqlRow = appPatientToSQLRow(updatedPatient);
+    
+    database.prepare(`
+      UPDATE Paciente 
+      SET Nombre = ?, Apellidos = ?, Fecha_nacimiento = ?, 
+          Sexo = ?, ID_documento = ?, HealthCard_Number = ?,
+          Direccion = ?, Phone = ?, Email = ?, Emergency_Contact = ?
+      WHERE id_paciente = ?
+    `).run(
+      sqlRow.Nombre || '',
+      sqlRow.Apellidos || '',
+      sqlRow.Fecha_nacimiento || '',
+      sqlRow.Sexo || '',
+      sqlRow.ID_documento || '',
+      sqlRow.HealthCard_Number || '',
+      sqlRow.Direccion || '',
+      sqlRow.Phone || '',
+      sqlRow.Email || '',
+      sqlRow.Emergency_Contact || '',
+      id
+    );
+    
+    console.log(`✅ Paciente ${id} actualizado en SQLite`);
+    return true;
+  } catch (error) {
+    console.error(`❌ Error actualizando paciente ${id}:`, error);
+    return false;
+  }
 }
 
 /**
@@ -896,9 +958,9 @@ export async function addMedicalOrderSQLite(order: Omit<MedicalOrder, 'id'>): Pr
 }
 
 /**
- * Actualiza el estado de una cama
+ * Actualiza el estado de una cama y opcionalmente el paciente asignado
  */
-export async function updateBedStatusSQLite(bedId: string, status: Bed['status']): Promise<boolean> {
+export async function updateBedStatusSQLite(bedId: string, status: Bed['status'], patientId?: string | null): Promise<boolean> {
   if (typeof window !== 'undefined') {
     throw new Error('SQLite solo funciona en servidor');
   }
@@ -912,10 +974,50 @@ export async function updateBedStatusSQLite(bedId: string, status: Bed['status']
   };
   
   const database = getDatabase();
+  
+  // Actualizar estado de la cama
   database.prepare('UPDATE Cama SET Estado = ? WHERE id_cama = ?').run(
     estadoMapping[status] || 'operativa',
     bedId
   );
+  
+  console.log(`🛏️ Actualizando cama ${bedId}: estado=${status}, patientId=${patientId}`);
+  
+  // Gestionar asignación de paciente
+  if (typeof patientId !== 'undefined') {
+    try {
+      // Verificar si la tabla existe
+      const hasTable = database.prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name='AsignacionCama'`).get();
+      
+      if (!hasTable) {
+        // Crear la tabla si no existe
+        database.exec(`
+          CREATE TABLE IF NOT EXISTS AsignacionCama (
+            id_cama VARCHAR(255) PRIMARY KEY,
+            id_paciente VARCHAR(255),
+            fecha_asignacion DATETIME DEFAULT CURRENT_TIMESTAMP,
+            estado VARCHAR(50) DEFAULT 'activa'
+          )
+        `);
+        console.log('✅ Tabla AsignacionCama creada');
+      }
+      
+      if (patientId === null || patientId === undefined) {
+        // Desasignar paciente - marcar como inactiva o eliminar
+        database.prepare('DELETE FROM AsignacionCama WHERE id_cama = ?').run(bedId);
+        console.log(`✅ Paciente desasignado de cama ${bedId}`);
+      } else {
+        // Asignar paciente
+        database.prepare(`
+          INSERT OR REPLACE INTO AsignacionCama (id_cama, id_paciente, fecha_asignacion, estado) 
+          VALUES (?, ?, datetime('now'), 'activa')
+        `).run(bedId, patientId);
+        console.log(`✅ Paciente ${patientId} asignado a cama ${bedId}`);
+      }
+    } catch (e) {
+      console.error('❌ Error gestionando AsignacionCama:', e);
+    }
+  }
   
   return true;
 }

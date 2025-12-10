@@ -61,7 +61,6 @@ export default function MessagingPanel() {
     { value: "auxiliary", label: "Auxiliares", icon: <Users className="w-4 h-4" /> },
     { value: "cleaning", label: "Limpieza", icon: <Users className="w-4 h-4" /> },
     { value: "radiology", label: "Radiología", icon: <Users className="w-4 h-4" /> },
-    { value: "admission", label: "Admisiones", icon: <Users className="w-4 h-4" /> }
   ]
 
   const priorities = [

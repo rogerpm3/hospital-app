@@ -13,7 +13,7 @@ import {
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import { Bell, Menu, Settings, LogOut, User, Shield, MessageSquare, CheckCheck, ArrowLeft, Home } from 'lucide-react';
+import { Bell, Menu, LogOut, Shield, MessageSquare, CheckCheck, ArrowLeft, Home } from 'lucide-react';
 
 interface HeaderProps {
   onToggleSidebar: () => void;
@@ -56,7 +56,6 @@ export default function Header({ onToggleSidebar, title, activeSection, onNaviga
       auxiliary: 'Auxiliar',
       cleaning: 'Limpieza',
       radiology: 'Radiología',
-      admission: 'Admisiones',
       social_work: 'Trabajo Social',
       patient: 'Paciente',
       family: 'Familiar'
@@ -235,18 +234,6 @@ export default function Header({ onToggleSidebar, title, activeSection, onNaviga
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-64 bg-white border border-gray-200">
             <DropdownMenuLabel className="text-gray-900 font-semibold">Mi Cuenta</DropdownMenuLabel>
-            <DropdownMenuSeparator className="bg-gray-200" />
-            
-            <DropdownMenuItem className="flex items-center gap-2 text-gray-700 cursor-pointer">
-              <User className="h-4 w-4 text-gray-500" />
-              <span>Perfil</span>
-            </DropdownMenuItem>
-            
-            <DropdownMenuItem className="flex items-center gap-2 text-gray-700 cursor-pointer">
-              <Settings className="h-4 w-4 text-gray-500" />
-              <span>Configuración</span>
-            </DropdownMenuItem>
-            
             <DropdownMenuSeparator className="bg-gray-200" />
             
             <div className="px-3 py-2">

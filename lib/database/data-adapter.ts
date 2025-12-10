@@ -367,7 +367,7 @@ export function sqlVitalSignsToAppVitalSigns(
       painLevel: 0,
       glucoseLevel,
       weight,
-      notes: 'Registro de base de datos SQL',
+      notes: '',
       alerts: []
     };
   });

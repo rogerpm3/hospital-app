@@ -1,17 +1,18 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState, useMemo } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { 
   Plus, FileText, CheckCircle, Clock, Users, Download, 
   Calendar, AlertTriangle, Heart, Stethoscope, Pill,
-  FileDown, Send, Bell, Home
+  FileDown, Send, Bell, Home, ClipboardList, History
 } from 'lucide-react';
 import { useHospital } from '@/lib/hospital-context';
 import { useAuth } from '@/lib/auth-context';
@@ -19,6 +20,7 @@ import DischargeChecklist from './discharge-checklist';
 import FutureAppointmentsPanel from './future-appointments-panel';
 import DischargeDocuments from './discharge-documents';
 import FollowUpAlertsPanel from './follow-up-alerts-panel';
+import { sqlDischarges, sqlPatientInstructions, getInstructionsByDischarge, Discharge, PatientInstruction } from '@/lib/sql-data';
 
 export default function EnhancedDischargeDashboard() {
   const { 
@@ -35,14 +37,51 @@ export default function EnhancedDischargeDashboard() {
   const [dischargeInstructions, setDischargeInstructions] = useState('');
   const [medicalRecommendations, setMedicalRecommendations] = useState(['']);
 
+  // Permisos según rol:
+  // - Admin: ver todo, crear, editar
+  // - Médico: ver sus pacientes, crear altas
+  // - Enfermera: ver sus pacientes (solo lectura, no puede crear ni editar)
+  const canCreateDischarge = user?.role === 'admin' || user?.role === 'doctor';
+  const canEditDischarge = user?.role === 'admin' || user?.role === 'doctor';
+  const isReadOnly = user?.role === 'nurse';
+
   // Obtener pacientes filtrados según el rol del usuario
   const accessiblePatients = getFilteredPatients();
   const hospitalizedPatients = accessiblePatients.filter(p => p.roomId);
-  const pendingDischarges = dischargeChecklists.filter(dc => dc.status === 'In Progress');
-  const readyForDischarge = dischargeChecklists.filter(dc => dc.status === 'Ready');
-  const todayDischarges = dischargeChecklists.filter(dc => 
+  
+  // Filtrar listas de checklists según pacientes accesibles
+  const myPatientIds = accessiblePatients.map(p => p.id);
+  
+  const filteredDischargeChecklists = useMemo(() => {
+    if (user?.role === 'admin') {
+      return dischargeChecklists;
+    }
+    return dischargeChecklists.filter(dc => myPatientIds.includes(dc.patientId));
+  }, [user?.role, dischargeChecklists, myPatientIds]);
+  
+  const pendingDischarges = filteredDischargeChecklists.filter(dc => dc.status === 'In Progress');
+  const readyForDischarge = filteredDischargeChecklists.filter(dc => dc.status === 'Ready');
+  const todayDischarges = filteredDischargeChecklists.filter(dc => 
     dc.expectedDischargeDate.toDateString() === new Date().toDateString()
   );
+
+  // Obtener altas del SQL con instrucciones
+  const sqlDischargesWithInstructions = useMemo(() => {
+    return sqlDischarges.map(discharge => ({
+      ...discharge,
+      instructions: getInstructionsByDischarge(discharge.id),
+      patient: patients.find(p => p.id === discharge.patientId)
+    }));
+  }, [patients]);
+
+  // Filtrar altas según rol del usuario (médicos y enfermeras solo ven sus pacientes)
+  const filteredSqlDischarges = useMemo(() => {
+    if (user?.role === 'admin') {
+      return sqlDischargesWithInstructions;
+    }
+    // Médicos y enfermeras solo ven altas de sus pacientes asignados
+    return sqlDischargesWithInstructions.filter(d => myPatientIds.includes(d.patientId));
+  }, [user?.role, myPatientIds, sqlDischargesWithInstructions]);
 
   const generateDischargePDF = (patientId: string) => {
     // Simular generación de PDF
@@ -89,9 +128,12 @@ export default function EnhancedDischargeDashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Alta Hospitalaria Mejorada</h1>
+          <h1 className="text-3xl font-bold">Alta Hospitalaria</h1>
           <p className="text-muted-foreground">
-            Gestión integral con citas futuras y documentación automática
+            {isReadOnly 
+              ? `Consulta de altas (solo lectura) - ${accessiblePatients.length} pacientes asignados`
+              : `Gestión de altas - ${accessiblePatients.length} pacientes asignados`
+            }
           </p>
         </div>
         <div className="flex items-center space-x-2">
@@ -105,10 +147,12 @@ export default function EnhancedDischargeDashboard() {
             <FileDown className="h-4 w-4 mr-2" />
             Reporte Completo
           </Button>
-          <Button onClick={() => setShowNewDischargeDialog(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Nuevo Plan de Alta
-          </Button>
+          {canCreateDischarge && (
+            <Button onClick={() => setShowNewDischargeDialog(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Nuevo Plan de Alta
+            </Button>
+          )}
         </div>
       </div>
 
@@ -160,13 +204,125 @@ export default function EnhancedDischargeDashboard() {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="discharge-queue" className="space-y-4">
+      <Tabs defaultValue="discharge-history" className="space-y-4">
         <TabsList>
+          <TabsTrigger value="discharge-history" className="flex items-center gap-2">
+            <History className="h-4 w-4" />
+            Historial Altas ({filteredSqlDischarges.length})
+          </TabsTrigger>
           <TabsTrigger value="discharge-queue">Cola de Altas</TabsTrigger>
           <TabsTrigger value="future-appointments">Citas Futuras</TabsTrigger>
           <TabsTrigger value="follow-up-alerts">Alertas de Seguimiento</TabsTrigger>
           <TabsTrigger value="documents">Documentación</TabsTrigger>
         </TabsList>
+
+        {/* Historial de Altas del SQL */}
+        <TabsContent value="discharge-history">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ClipboardList className="h-5 w-5" />
+                Historial de Altas Hospitalarias
+              </CardTitle>
+              <CardDescription>
+                Registro completo de altas con instrucciones al paciente
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {filteredSqlDischarges.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <History className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No hay registros de altas disponibles</p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {filteredSqlDischarges.map(discharge => (
+                    <div key={discharge.id} className="border rounded-lg p-4 bg-card">
+                      {/* Header del alta */}
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="font-mono">{discharge.id}</Badge>
+                            <Badge variant="secondary">{discharge.episodeId}</Badge>
+                          </div>
+                          <h3 className="text-lg font-semibold">
+                            {discharge.patient?.firstName} {discharge.patient?.lastName}
+                          </h3>
+                          <p className="text-sm text-muted-foreground">
+                            ID Paciente: {discharge.patientId}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <Badge className="bg-green-100 text-green-800">
+                            <Home className="h-3 w-3 mr-1" />
+                            {discharge.destinyDischarge}
+                          </Badge>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {discharge.dateTimeDischarge.toLocaleDateString('es-ES', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Detalles del alta */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-muted-foreground">Motivo:</span>
+                            <span className="text-sm">{discharge.reasonDischarge}</span>
+                          </div>
+                          {discharge.diagnosticCode && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium text-muted-foreground">Diagnóstico:</span>
+                              <Badge variant="outline">{discharge.diagnosticCode}</Badge>
+                            </div>
+                          )}
+                        </div>
+                        <div className="space-y-2">
+                          {discharge.clinicalSummary && (
+                            <div>
+                              <span className="text-sm font-medium text-muted-foreground">Resumen clínico:</span>
+                              <p className="text-sm mt-1">{discharge.clinicalSummary}</p>
+                            </div>
+                          )}
+                          <div>
+                            <span className="text-sm font-medium text-muted-foreground">Tratamiento al alta:</span>
+                            <p className="text-sm mt-1">{discharge.treatmentDischarge}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Instrucciones al paciente */}
+                      {discharge.instructions.length > 0 && (
+                        <div className="border-t pt-4">
+                          <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                            <FileText className="h-4 w-4" />
+                            Instrucciones al Paciente ({discharge.instructions.length})
+                          </h4>
+                          <div className="bg-blue-50 dark:bg-blue-950 rounded-lg p-3">
+                            <ul className="space-y-2">
+                              {discharge.instructions.map(instruction => (
+                                <li key={instruction.id} className="flex items-start gap-2 text-sm">
+                                  <CheckCircle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                                  <span>{instruction.textInstructions}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         {/* Cola de Altas */}
         <TabsContent value="discharge-queue">

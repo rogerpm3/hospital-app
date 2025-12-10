@@ -166,7 +166,6 @@ export default function Sidebar({ open, setOpen, activeSection, setActiveSection
                 {user.role === 'auxiliary' && 'Auxiliar'}
                 {user.role === 'cleaning' && 'Limpieza'}
                 {user.role === 'radiology' && 'Radiología'}
-                {user.role === 'admission' && 'Admisiones'}
                 {user.role === 'social_work' && 'Trabajo Social'}
                 {user.role === 'patient' && 'Paciente'}
                 {user.role === 'family' && 'Familiar'}
@@ -240,16 +239,6 @@ export default function Sidebar({ open, setOpen, activeSection, setActiveSection
         {/* Footer */}
         <div className="border-t p-4">
           <div className="space-y-2">
-            {user.role === 'admin' && (
-              <Button
-                variant="ghost"
-                className="w-full justify-start gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-                onClick={() => handleMenuClick('settings')}
-              >
-                <Settings className="h-4 w-4" />
-                Configuración
-              </Button>
-            )}
             <Button
               variant="ghost"
               className="w-full justify-start gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"

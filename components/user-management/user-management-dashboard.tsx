@@ -186,7 +186,6 @@ export default function UserManagementDashboard() {
       auxiliary: 'Auxiliar',
       cleaning: 'Personal de Limpieza',
       radiology: 'Radiología',
-      admission: 'Admisión',
       social_work: 'Trabajo Social',
       patient: 'Paciente',
       family: 'Familiar'
@@ -301,7 +300,6 @@ export default function UserManagementDashboard() {
                   <option value="family">Familiar</option>
                   <option value="doctor">Médico</option>
                   <option value="nurse">Enfermero/a</option>
-                  <option value="admission">Admisión</option>
                   <option value="cleaning">Personal de Limpieza</option>
                 </select>
               </div>

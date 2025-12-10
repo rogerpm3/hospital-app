@@ -54,7 +54,6 @@ export default function StaffList() {
       auxiliary: 'Auxiliar',
       cleaning: 'Limpieza',
       radiology: 'Radiología',
-      admission: 'Admisiones',
       social_work: 'Trabajo Social'
     };
     return labels[role] || role;
@@ -159,7 +158,6 @@ export default function StaffList() {
                 <SelectItem value="auxiliary">Auxiliar</SelectItem>
                 <SelectItem value="cleaning">Limpieza</SelectItem>
                 <SelectItem value="radiology">Radiología</SelectItem>
-                <SelectItem value="admission">Admisiones</SelectItem>
                 <SelectItem value="social_work">Trabajo Social</SelectItem>
               </SelectContent>
             </Select>

@@ -26,8 +26,8 @@ export default function CleaningDashboard() {
   const { rooms, beds, hospitalFloors } = useHospital()
   const [activeTab, setActiveTab] = useState("tasks")
 
-  // Estado de tareas de limpieza
-  const [cleaningTasks, setCleaningTasks] = useState([
+  // Datos por defecto de tareas
+  const defaultTasks = [
     {
       id: "1",
       room: "101",
@@ -76,12 +76,30 @@ export default function CleaningDashboard() {
       lastCleaned: new Date(Date.now() - 24 * 60 * 60 * 1000),
       notes: ""
     }
-  ])
+  ];
 
-  // Función para cambiar el estado de una tarea
+  // Estado de tareas de limpieza - con persistencia en localStorage
+  const [cleaningTasks, setCleaningTasks] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('cleaningTasksStatus');
+      if (saved) {
+        const savedStatuses = JSON.parse(saved) as Record<string, { status: string; lastCleaned: string | null }>;
+        return defaultTasks.map(task => ({
+          ...task,
+          status: savedStatuses[task.id]?.status || task.status,
+          lastCleaned: savedStatuses[task.id]?.lastCleaned 
+            ? new Date(savedStatuses[task.id].lastCleaned) 
+            : task.lastCleaned
+        }));
+      }
+    }
+    return defaultTasks;
+  })
+
+  // Función para cambiar el estado de una tarea - con persistencia
   const updateTaskStatus = (taskId: string, newStatus: string) => {
-    setCleaningTasks(prevTasks => 
-      prevTasks.map(task => 
+    setCleaningTasks(prevTasks => {
+      const updatedTasks = prevTasks.map(task => 
         task.id === taskId 
           ? { 
               ...task, 
@@ -89,8 +107,22 @@ export default function CleaningDashboard() {
               lastCleaned: newStatus === 'completed' ? new Date() : task.lastCleaned
             }
           : task
-      )
-    )
+      );
+      
+      // Persistir en localStorage
+      if (typeof window !== 'undefined') {
+        const statusesToSave: Record<string, { status: string; lastCleaned: string | null }> = {};
+        updatedTasks.forEach(task => {
+          statusesToSave[task.id] = {
+            status: task.status,
+            lastCleaned: task.lastCleaned ? task.lastCleaned.toISOString() : null
+          };
+        });
+        localStorage.setItem('cleaningTasksStatus', JSON.stringify(statusesToSave));
+      }
+      
+      return updatedTasks;
+    });
   }
 
   const getStatusIcon = (status: string) => {

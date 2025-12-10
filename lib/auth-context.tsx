@@ -42,7 +42,6 @@ const defaultCredentials: Record<string, { password: string; role: UserRole; pro
   '56789012E': { password: 'clean123', role: 'cleaning', professionalId: 'LIM001' },
   '67890123F': { password: 'nurse123', role: 'nurse', professionalId: 'ENF002' },
   '89012345H': { password: 'radiology123', role: 'radiology', professionalId: 'RAD001' },
-  '90123456I': { password: 'admission123', role: 'admission', professionalId: 'ADM002' },
   '01234567J': { password: 'social123', role: 'social_work', professionalId: 'SOC001' },
   // Credenciales del personal SQL
   'DNI-58601_ADM': { password: 'admin123', role: 'admin', professionalId: '58601' },
@@ -73,13 +72,10 @@ const defaultCredentials: Record<string, { password: string; role: UserRole; pro
   'DNI-30123': { password: 'nurse123', role: 'nurse', professionalId: '30123' },
   'DNI-7777': { password: 'nurse123', role: 'nurse', professionalId: '7777' },
   'DNI-40876': { password: 'nurse123', role: 'nurse', professionalId: '40876' },
-  // Usuarios de Admisiones
-  'ADM001001': { password: 'admision123', role: 'admission', professionalId: 'ADM-001' },
-  'ADM001002': { password: 'admision123', role: 'admission', professionalId: 'ADM-002' },
-  // Usuarios Pacientes
-  'PAC001001': { password: 'paciente123', role: 'patient', professionalId: 'PAC-001' },
-  'PAC001002': { password: 'paciente123', role: 'patient', professionalId: 'PAC-002' },
-  'PAC001003': { password: 'paciente123', role: 'patient', professionalId: 'PAC-003' },
+  // Usuarios Pacientes del SQL (datos reales)
+  '80111345H': { password: 'paciente123', role: 'patient', professionalId: 'IFV_0001' },  // Isabel Flores Viñales
+  '71403289D': { password: 'paciente123', role: 'patient', professionalId: 'PIF_0010' },  // Paula Imbernón Flores
+  '71403312E': { password: 'paciente123', role: 'patient', professionalId: 'MIF_0011' },  // Martín Imbernón Flores
   // Usuarios Familiares
   'FAM001001': { password: 'familiar123', role: 'family', professionalId: 'FAM-001' },
   'FAM001002': { password: 'familiar123', role: 'family', professionalId: 'FAM-002' }

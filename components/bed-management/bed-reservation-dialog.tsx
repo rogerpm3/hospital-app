@@ -107,8 +107,9 @@ export default function BedReservationDialog({ open, onOpenChange, onClose, bedI
         : patientName
       } (DNI: ${reservationType === 'existing' ? patientInfo?.dni : patientDni})${reason ? ` | Motivo: ${reason}` : ''}${notes ? ` | Notas: ${notes}` : ''} | Reservado por: ${user?.firstName + ' ' + user?.lastName || 'Usuario'}`;
 
-      // Reservar la cama usando la función correcta
-      reserveBed(effectiveBedId, expirationDate, reservationNotes);
+      // Reservar la cama usando la función correcta - pasar patientId si es paciente existente
+      const selectedPatientId = reservationType === 'existing' ? patientId : undefined;
+      reserveBed(effectiveBedId, expirationDate, reservationNotes, selectedPatientId);
 
       toast({
         title: "Reserva creada exitosamente",
