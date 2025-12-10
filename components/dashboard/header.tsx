@@ -57,6 +57,7 @@ export default function Header({ onToggleSidebar, title, activeSection, onNaviga
       cleaning: 'Limpieza',
       radiology: 'Radiología',
       social_work: 'Trabajo Social',
+      admission: 'Admisiones',
       patient: 'Paciente',
       family: 'Familiar'
     };

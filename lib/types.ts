@@ -8,6 +8,7 @@ export type UserRole =
   | 'cleaning' 
   | 'radiology' 
   | 'social_work' 
+  | 'admission'
   | 'patient' 
   | 'family';
 
@@ -752,6 +753,17 @@ export const roleDataVisibility: Record<UserRole, DataVisibilityFilter> = {
     mostrarContactosEmergencia: true,
     usarIdentificadorAnonimo: false
   },
+  admission: {
+    mostrarNombreCompleto: true,
+    mostrarDNI: true,
+    mostrarHistorialMedico: false, // NO puede ver historial médico
+    mostrarDiagnosticos: false,    // NO puede ver diagnósticos
+    mostrarMedicaciones: false,    // NO puede ver medicaciones
+    mostrarNotasClinicas: false,   // NO puede ver notas clínicas
+    mostrarDatosFinancieros: true, // SÍ puede ver datos financieros
+    mostrarContactosEmergencia: true,
+    usarIdentificadorAnonimo: false
+  },
   patient: {
     mostrarNombreCompleto: true,
     mostrarDNI: true,
@@ -830,6 +842,16 @@ export const rolePermissions: Record<UserRole, string[]> = {
     'view_patients', 'manage_discharge_planning', 'coordinate_home_care', 
     'view_communication', 'assess_social_needs'
   ],
+  admission: [
+    'view_patients',           // Ver información básica de pacientes
+    'register_patients',       // Registrar nuevos pacientes
+    'manage_appointments',     // Programar y confirmar citas
+    'view_financial_info',     // Ver información financiera
+    'manage_admissions',       // Gestionar admisiones
+    'view_bed_overview',       // Ver estado de camas (para asignar)
+    'view_communication',      // Comunicación básica
+    'view_basic_patient_info'  // Info básica del paciente
+  ],
   patient: [
     'view_own_records', 'view_appointments', 'view_test_results', 'communicate_with_staff',
     'view_discharge_instructions', 'view_own_schedule', 'request_appointments'
@@ -866,6 +888,9 @@ export const roleMenuItems: Record<UserRole, string[]> = {
   ],
   social_work: [
     'dashboard', 'patients', 'discharge', 'communication'
+  ],
+  admission: [
+    'dashboard', 'patients', 'appointments', 'admissions', 'bed-management', 'communication'
   ],
   patient: [
     'dashboard', 'appointments', 'satisfaction-survey'

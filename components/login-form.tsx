@@ -123,9 +123,11 @@ export default function LoginForm({ onForgotPassword }: LoginFormProps) {
     ],
     support: [
       { dni: '56789012E', password: 'clean123', professionalId: 'LIM001', role: 'Limpieza', color: 'from-amber-500 to-orange-600' },
+      { dni: '78901234G', password: 'admision123', professionalId: 'ADM002', role: 'Admisiones', color: 'from-pink-500 to-rose-600' },
     ],
     patients: [
-      { dni: 'PAC001001', password: 'paciente123', professionalId: 'PAC-001', role: 'Paciente', color: 'from-sky-500 to-blue-600' },
+      { dni: 'PAC001001', password: 'paciente123', professionalId: 'PAC-001', role: 'Paciente 1', color: 'from-sky-500 to-blue-600' },
+      { dni: 'PAC002002', password: 'paciente123', professionalId: 'PAC-002', role: 'Paciente 2', color: 'from-cyan-500 to-sky-600' },
       { dni: 'FAM001001', password: 'familiar123', professionalId: 'FAM-001', role: 'Familiar', color: 'from-teal-500 to-emerald-600' },
     ]
   };
@@ -413,7 +415,7 @@ export default function LoginForm({ onForgotPassword }: LoginFormProps) {
               </div>
               
               <p className="text-xs text-gray-500 font-medium uppercase tracking-wider mt-4">Pacientes y Familiares</p>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 {demoUsers.patients.map((user, index) => (
                   <button
                     key={index}

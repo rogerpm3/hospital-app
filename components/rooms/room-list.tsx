@@ -2,20 +2,27 @@
 
 import { useState } from 'react';
 import { useHospital } from '@/lib/hospital-context';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Search, Filter, Building2, Bed, CheckCircle, AlertCircle } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Search, Building2, Bed, CheckCircle, AlertCircle, Edit, Eye, Wrench, Sparkles } from 'lucide-react';
 
 export default function RoomList() {
-  const { rooms, beds, patients } = useHospital();
+  const { rooms, beds, patients, updateBedStatus, updateBedCleaning } = useHospital();
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [departmentFilter, setDepartmentFilter] = useState<string>('all');
+  
+  // Estados para diálogos
+  const [showRoomDialog, setShowRoomDialog] = useState(false);
+  const [selectedRoom, setSelectedRoom] = useState<any>(null);
+  const [showBedDialog, setShowBedDialog] = useState(false);
+  const [selectedBed, setSelectedBed] = useState<any>(null);
 
   const filteredRooms = rooms.filter(room => {
     const matchesSearch = searchTerm === '' || 
@@ -179,6 +186,7 @@ export default function RoomList() {
       <Card>
         <CardHeader>
           <CardTitle>Habitaciones ({filteredRooms.length})</CardTitle>
+          <CardDescription>Haz clic en "Ver/Editar" para gestionar las camas de cada habitación</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
@@ -191,6 +199,7 @@ export default function RoomList() {
                 <TableHead>Camas</TableHead>
                 <TableHead>Pacientes</TableHead>
                 <TableHead>Tarifa Diaria</TableHead>
+                <TableHead className="text-right">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -241,6 +250,19 @@ export default function RoomList() {
                     <TableCell>
                       <div className="font-medium">€{room.dailyRate.toFixed(2)}</div>
                     </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setSelectedRoom(room);
+                          setShowRoomDialog(true);
+                        }}
+                      >
+                        <Eye className="h-4 w-4 mr-1" />
+                        Ver/Editar
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 );
               })}
@@ -248,6 +270,167 @@ export default function RoomList() {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Diálogo de detalle de habitación con camas */}
+      <Dialog open={showRoomDialog} onOpenChange={setShowRoomDialog}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              Habitación {selectedRoom?.number} - {selectedRoom?.department}
+            </DialogTitle>
+          </DialogHeader>
+          {selectedRoom && (
+            <div className="space-y-6">
+              {/* Info de la habitación */}
+              <div className="grid grid-cols-4 gap-4">
+                <Card>
+                  <CardContent className="pt-4">
+                    <div className="text-sm text-muted-foreground">Tipo</div>
+                    <div className="font-semibold">{selectedRoom.type}</div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-4">
+                    <div className="text-sm text-muted-foreground">Piso</div>
+                    <div className="font-semibold">{selectedRoom.floor}</div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-4">
+                    <div className="text-sm text-muted-foreground">Capacidad</div>
+                    <div className="font-semibold">{selectedRoom.capacity} camas</div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-4">
+                    <div className="text-sm text-muted-foreground">Tarifa</div>
+                    <div className="font-semibold">€{selectedRoom.dailyRate?.toFixed(2)}/día</div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Lista de camas de la habitación */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Bed className="h-5 w-5" />
+                    Camas de la habitación
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Cama</TableHead>
+                        <TableHead>Estado</TableHead>
+                        <TableHead>Limpieza</TableHead>
+                        <TableHead>Paciente</TableHead>
+                        <TableHead className="text-right">Acciones</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {getRoomBeds(selectedRoom.id).map(bed => {
+                        const patient = bed.patientId ? patients.find(p => p.id === bed.patientId) : null;
+                        return (
+                          <TableRow key={bed.id}>
+                            <TableCell className="font-medium">Cama {bed.number}</TableCell>
+                            <TableCell>
+                              <Badge 
+                                variant={
+                                  bed.status === 'Available' ? 'default' :
+                                  bed.status === 'Occupied' ? 'destructive' :
+                                  bed.status === 'Reserved' ? 'secondary' :
+                                  'outline'
+                                }
+                              >
+                                {bed.status === 'Available' && 'Disponible'}
+                                {bed.status === 'Occupied' && 'Ocupada'}
+                                {bed.status === 'Reserved' && 'Reservada'}
+                                {bed.status === 'Maintenance' && 'Mantenimiento'}
+                                {bed.status === 'Cleaning Required' && 'Requiere limpieza'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge 
+                                variant="outline"
+                                className={
+                                  bed.cleaningStatus === 'Clean' ? 'border-green-500 text-green-700' :
+                                  bed.cleaningStatus === 'Dirty' ? 'border-red-500 text-red-700' :
+                                  'border-yellow-500 text-yellow-700'
+                                }
+                              >
+                                {bed.cleaningStatus === 'Clean' && '✓ Limpia'}
+                                {bed.cleaningStatus === 'Dirty' && '✗ Sucia'}
+                                {bed.cleaningStatus === 'In Progress' && '⟳ Limpiando'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {patient ? (
+                                <span>{patient.firstName} {patient.lastName}</span>
+                              ) : (
+                                <span className="text-muted-foreground">-</span>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-2">
+                                <Select 
+                                  value={bed.status}
+                                  onValueChange={(value) => {
+                                    updateBedStatus(bed.id, value as any);
+                                  }}
+                                >
+                                  <SelectTrigger className="w-[140px] h-8">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="Available">Disponible</SelectItem>
+                                    <SelectItem value="Occupied">Ocupada</SelectItem>
+                                    <SelectItem value="Reserved">Reservada</SelectItem>
+                                    <SelectItem value="Maintenance">Mantenimiento</SelectItem>
+                                    <SelectItem value="Cleaning Required">Req. Limpieza</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <Select 
+                                  value={bed.cleaningStatus}
+                                  onValueChange={(value) => {
+                                    updateBedCleaning(bed.id, value as any);
+                                  }}
+                                >
+                                  <SelectTrigger className="w-[120px] h-8">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="Clean">Limpia</SelectItem>
+                                    <SelectItem value="Dirty">Sucia</SelectItem>
+                                    <SelectItem value="In Progress">En proceso</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                      {getRoomBeds(selectedRoom.id).length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center text-muted-foreground py-4">
+                            No hay camas registradas en esta habitación
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+
+              <div className="flex justify-end">
+                <Button variant="outline" onClick={() => setShowRoomDialog(false)}>
+                  Cerrar
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -124,6 +124,21 @@ export const mockUsers: User[] = [
     department: 'Trabajo Social',
     isActive: true
   },
+  {
+    id: '11',
+    dni: '78901234G',
+    firstName: 'Patricia',
+    lastName: 'Navarro',
+    email: 'patricia.navarro@hospital.com',
+    phone: '+34 600 000 011',
+    role: 'admission',
+    department: 'Admisiones',
+    professionalId: 'ADM002',
+    isActive: true,
+    anonymousId: 'ADM-002',
+    failedLoginAttempts: 0,
+    isLocked: false
+  },
   // Usuarios Pacientes del SQL (datos reales)
   {
     id: 'IFV_0001',
@@ -164,6 +179,49 @@ export const mockUsers: User[] = [
     professionalId: 'MIF_0011',
     isActive: true,
     anonymousId: 'PAT-MIF011',
+    failedLoginAttempts: 0,
+    isLocked: false
+  },
+  // Pacientes Demo (para facilitar pruebas)
+  {
+    id: 'PAC-001',
+    dni: 'PAC001001',
+    firstName: 'Juan',
+    lastName: 'García López',
+    email: 'juan.garcia@paciente.com',
+    phone: '+34 600 100 001',
+    role: 'patient',
+    professionalId: 'PAC-001',
+    isActive: true,
+    anonymousId: 'PAT-001',
+    failedLoginAttempts: 0,
+    isLocked: false
+  },
+  {
+    id: 'PAC-002',
+    dni: 'PAC002002',
+    firstName: 'María',
+    lastName: 'Rodríguez Pérez',
+    email: 'maria.rodriguez@paciente.com',
+    phone: '+34 600 100 002',
+    role: 'patient',
+    professionalId: 'PAC-002',
+    isActive: true,
+    anonymousId: 'PAT-002',
+    failedLoginAttempts: 0,
+    isLocked: false
+  },
+  {
+    id: 'PAC-003',
+    dni: 'PAC003003',
+    firstName: 'Carlos',
+    lastName: 'Martínez Sánchez',
+    email: 'carlos.martinez@paciente.com',
+    phone: '+34 600 100 003',
+    role: 'patient',
+    professionalId: 'PAC-003',
+    isActive: true,
+    anonymousId: 'PAT-003',
     failedLoginAttempts: 0,
     isLocked: false
   },
@@ -451,6 +509,103 @@ export const mockPatients: Patient[] = [
     currentMedications: ['Antihistamínicos'],
     currentCondition: 'Good',
     riskLevel: 'Low'
+  },
+  // Pacientes Demo (para autenticación de pruebas)
+  {
+    id: 'PAC-001',
+    dni: 'PAC001001',
+    firstName: 'Juan',
+    lastName: 'García López',
+    dateOfBirth: new Date('1985-06-20'),
+    gender: 'M',
+    bloodType: 'A+',
+    phone: '+34 600 100 001',
+    email: 'juan.garcia@paciente.com',
+    address: {
+      street: 'Calle Demo 1',
+      city: 'Madrid',
+      postalCode: '28001',
+      country: 'España'
+    },
+    emergencyContact: {
+      name: 'Ana García',
+      relationship: 'Esposa',
+      phone: '+34 600 100 011'
+    },
+    allergies: ['Ibuprofeno'],
+    medicalHistory: ['Hipertensión leve'],
+    currentMedications: ['Enalapril 5mg'],
+    insuranceInfo: {
+      provider: 'Sanitas',
+      policyNumber: 'SAN-001-2024',
+      expirationDate: new Date('2025-12-31')
+    },
+    currentCondition: 'Stable',
+    riskLevel: 'Medium'
+  },
+  {
+    id: 'PAC-002',
+    dni: 'PAC002002',
+    firstName: 'María',
+    lastName: 'Rodríguez Pérez',
+    dateOfBirth: new Date('1990-11-15'),
+    gender: 'F',
+    bloodType: 'O-',
+    phone: '+34 600 100 002',
+    email: 'maria.rodriguez@paciente.com',
+    address: {
+      street: 'Calle Demo 2',
+      city: 'Barcelona',
+      postalCode: '08001',
+      country: 'España'
+    },
+    emergencyContact: {
+      name: 'Pedro Rodríguez',
+      relationship: 'Hermano',
+      phone: '+34 600 100 022'
+    },
+    allergies: [],
+    medicalHistory: ['Asma infantil (remitida)'],
+    currentMedications: [],
+    insuranceInfo: {
+      provider: 'Adeslas',
+      policyNumber: 'ADE-002-2024',
+      expirationDate: new Date('2025-12-31')
+    },
+    currentCondition: 'Good',
+    riskLevel: 'Low'
+  },
+  {
+    id: 'PAC-003',
+    dni: 'PAC003003',
+    firstName: 'Carlos',
+    lastName: 'Martínez Sánchez',
+    dateOfBirth: new Date('1978-03-08'),
+    gender: 'M',
+    bloodType: 'B+',
+    phone: '+34 600 100 003',
+    email: 'carlos.martinez@paciente.com',
+    address: {
+      street: 'Calle Demo 3',
+      city: 'Valencia',
+      postalCode: '46001',
+      country: 'España'
+    },
+    emergencyContact: {
+      name: 'Lucía Martínez',
+      relationship: 'Hija',
+      phone: '+34 600 100 033'
+    },
+    allergies: ['Penicilina', 'Sulfamidas'],
+    medicalHistory: ['Diabetes tipo 2', 'Artrosis de rodilla'],
+    currentMedications: ['Metformina 850mg', 'Paracetamol 1g'],
+    insuranceInfo: {
+      provider: 'Mapfre Salud',
+      policyNumber: 'MAP-003-2024',
+      expirationDate: new Date('2025-12-31')
+    },
+    currentCondition: 'Stable',
+    riskLevel: 'Medium'
   }
 ];
 

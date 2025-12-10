@@ -66,33 +66,226 @@ export default function AIAssistantDashboard() {
   };
 
   const generateAIResponse = (userQuery: string) => {
-    const lowerQuery = userQuery.toLowerCase();
+    const lowerQuery = userQuery.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     let response = '';
     let category = 'general';
 
-    if (lowerQuery.includes('camas') || lowerQuery.includes('bed') || lowerQuery.includes('disponible')) {
+    // Buscar paciente específico por nombre
+    const searchPatient = (name: string) => {
+      return patients.find(p => 
+        `${p.firstName} ${p.lastName}`.toLowerCase().includes(name.toLowerCase()) ||
+        p.id.toLowerCase().includes(name.toLowerCase()) ||
+        p.dni?.toLowerCase().includes(name.toLowerCase())
+      );
+    };
+
+    // Extraer nombre de la consulta
+    const extractName = (query: string): string | null => {
+      const patterns = [
+        /(?:paciente|buscar|encontrar|donde esta|informacion de|datos de)\s+([a-záéíóúñ\s]+)/i,
+        /([a-záéíóúñ]+\s+[a-záéíóúñ]+(?:\s+[a-záéíóúñ]+)?)\s+(?:esta|tiene|como|donde)/i
+      ];
+      for (const pattern of patterns) {
+        const match = query.match(pattern);
+        if (match) return match[1].trim();
+      }
+      return null;
+    };
+
+    // === CAMAS Y OCUPACIÓN ===
+    if (lowerQuery.includes('cama') || lowerQuery.includes('bed') || lowerQuery.includes('disponible') || lowerQuery.includes('ocupacion')) {
       const availableBeds = beds.filter(bed => bed.status === 'Available').length;
       const occupiedBeds = beds.filter(bed => bed.status === 'Occupied').length;
-      response = `📊 Estado actual de camas:\n\n✅ **${availableBeds} camas disponibles**\n🔴 **${occupiedBeds} camas ocupadas**\n\n¿Te gustaría ver detalles de una planta específica o necesitas reservar una cama?`;
-      category = 'bed-info';
-    } else if (lowerQuery.includes('paciente') || lowerQuery.includes('patient')) {
-      response = `👥 Tenemos **${patients.length} pacientes** activos en el sistema.\n\n¿Buscas información de un paciente específico? Puedo ayudarte con:\n• Búsqueda por nombre o ID\n• Estado clínico\n• Ubicación de habitación\n• Historial reciente`;
+      const reservedBeds = beds.filter(bed => bed.status === 'Reserved').length;
+      const maintenanceBeds = beds.filter(bed => bed.status === 'Maintenance').length;
+      const totalBeds = beds.length;
+      const occupancyRate = totalBeds > 0 ? ((occupiedBeds / totalBeds) * 100).toFixed(1) : 0;
+      
+      // Si preguntan por UCI específicamente
+      if (lowerQuery.includes('uci') || lowerQuery.includes('intensivo')) {
+        const uciBeds = beds.filter(bed => bed.roomId?.toLowerCase().includes('uci'));
+        const uciAvailable = uciBeds.filter(bed => bed.status === 'Available').length;
+        const uciOccupied = uciBeds.filter(bed => bed.status === 'Occupied').length;
+        response = `🏥 **Estado UCI en tiempo real:**\n\n` +
+          `• Camas UCI totales: **${uciBeds.length}**\n` +
+          `• ✅ Disponibles: **${uciAvailable}**\n` +
+          `• 🔴 Ocupadas: **${uciOccupied}**\n\n` +
+          `${uciAvailable === 0 ? '⚠️ **ALERTA: UCI completa. Considerar derivación.**' : `Hay ${uciAvailable} cama(s) disponible(s) para ingreso urgente.`}`;
+        category = 'uci-info';
+      } else {
+        response = `📊 **Estado actual de camas hospitalarias:**\n\n` +
+          `• Total: **${totalBeds} camas**\n` +
+          `• ✅ Disponibles: **${availableBeds}** (${((availableBeds/totalBeds)*100).toFixed(0)}%)\n` +
+          `• 🔴 Ocupadas: **${occupiedBeds}** (${occupancyRate}%)\n` +
+          `• 🟡 Reservadas: **${reservedBeds}**\n` +
+          `• 🔧 Mantenimiento: **${maintenanceBeds}**\n\n` +
+          `📈 Tasa de ocupación: **${occupancyRate}%**\n\n` +
+          `${parseFloat(occupancyRate as string) > 85 ? '⚠️ Alta ocupación. Revisar altas pendientes.' : '✅ Ocupación dentro de parámetros normales.'}`;
+        category = 'bed-info';
+      }
+    }
+    // === BÚSQUEDA DE PACIENTE ESPECÍFICO ===
+    else if (lowerQuery.includes('buscar') || lowerQuery.includes('encontrar') || lowerQuery.includes('donde esta') || lowerQuery.includes('informacion de')) {
+      const nameToSearch = extractName(userQuery);
+      if (nameToSearch) {
+        const foundPatient = searchPatient(nameToSearch);
+        if (foundPatient) {
+          const patientBed = beds.find(b => b.patientId === foundPatient.id);
+          response = `👤 **Paciente encontrado:**\n\n` +
+            `• **Nombre:** ${foundPatient.firstName} ${foundPatient.lastName}\n` +
+            `• **ID:** ${foundPatient.id}\n` +
+            `• **DNI:** ${foundPatient.dni || 'No registrado'}\n` +
+            `• **Estado:** ${foundPatient.currentCondition || 'Estable'}\n` +
+            `• **Riesgo:** ${foundPatient.riskLevel || 'Bajo'}\n` +
+            `• **Ubicación:** ${patientBed ? `Habitación ${patientBed.roomId}, Cama ${patientBed.number}` : 'Sin cama asignada'}\n` +
+            `• **Alergias:** ${foundPatient.allergies?.length ? foundPatient.allergies.join(', ') : 'Ninguna registrada'}\n\n` +
+            `¿Necesitas más información sobre este paciente?`;
+          category = 'patient-detail';
+        } else {
+          response = `❌ No encontré ningún paciente con "${nameToSearch}".\n\nPuedes buscar por:\n• Nombre completo\n• ID de paciente\n• DNI\n\n¿Deseas ver la lista de pacientes activos?`;
+          category = 'patient-not-found';
+        }
+      } else {
+        response = `🔍 Para buscar un paciente, indícame:\n• Nombre (ej: "buscar Isabel Flores")\n• ID (ej: "buscar IFV_0001")\n• DNI (ej: "buscar 80111345H")`;
+        category = 'search-help';
+      }
+    }
+    // === INFORMACIÓN DE PACIENTES ===
+    else if (lowerQuery.includes('paciente') || lowerQuery.includes('patient')) {
+      const hospitalized = patients.filter(p => p.roomId).length;
+      const critical = patients.filter(p => p.riskLevel === 'Critical' || p.currentCondition === 'Critical').length;
+      const stable = patients.filter(p => p.currentCondition === 'Stable').length;
+      
+      response = `👥 **Resumen de pacientes:**\n\n` +
+        `• Total registrados: **${patients.length}**\n` +
+        `• 🏥 Hospitalizados: **${hospitalized}**\n` +
+        `• 🔴 Estado crítico: **${critical}**\n` +
+        `• ✅ Estables: **${stable}**\n\n` +
+        `**Pacientes recientes:**\n${patients.slice(0, 3).map(p => `• ${p.firstName} ${p.lastName} (${p.id})`).join('\n')}\n\n` +
+        `Para buscar un paciente específico, escribe "buscar [nombre]"`;
       category = 'patient-info';
-    } else if (lowerQuery.includes('cita') || lowerQuery.includes('appointment')) {
+    }
+    // === CITAS ===
+    else if (lowerQuery.includes('cita') || lowerQuery.includes('appointment') || lowerQuery.includes('agenda')) {
+      const today = new Date();
       const todayAppointments = appointments.filter(apt => 
-        apt.date.toDateString() === new Date().toDateString()
-      ).length;
-      response = `📅 Información de citas:\n\n**${todayAppointments} citas programadas para hoy**\n\n¿Necesitas:\n• Ver citas de un médico específico?\n• Programar una nueva cita?\n• Verificar disponibilidad?`;
+        apt.date.toDateString() === today.toDateString()
+      );
+      const pendingToday = todayAppointments.filter(apt => apt.status === 'Scheduled').length;
+      const completedToday = todayAppointments.filter(apt => apt.status === 'Completed').length;
+      
+      response = `📅 **Agenda del día (${today.toLocaleDateString('es-ES')}):**\n\n` +
+        `• Total citas: **${todayAppointments.length}**\n` +
+        `• ⏳ Pendientes: **${pendingToday}**\n` +
+        `• ✅ Completadas: **${completedToday}**\n\n` +
+        `${todayAppointments.length > 0 ? 
+          `**Próximas citas:**\n${todayAppointments.slice(0, 3).map(apt => {
+            const patient = patients.find(p => p.id === apt.patientId);
+            return `• ${apt.time} - ${patient?.firstName || 'Paciente'} ${patient?.lastName || ''} (${apt.type})`;
+          }).join('\n')}` : 
+          '📭 No hay citas programadas para hoy.'}\n\n` +
+        `¿Necesitas programar o modificar alguna cita?`;
       category = 'appointment-info';
-    } else if (lowerQuery.includes('urgencia') || lowerQuery.includes('emergency') || lowerQuery.includes('crítico')) {
-      response = `🚨 **Panel de Urgencias**\n\nAcciones rápidas disponibles:\n• Ver pacientes críticos\n• Estado UCI en tiempo real\n• Alertas activas\n• Disponibilidad quirófanos\n\n¿Qué información específica necesitas?`;
+    }
+    // === URGENCIAS Y CRÍTICOS ===
+    else if (lowerQuery.includes('urgencia') || lowerQuery.includes('emergency') || lowerQuery.includes('critico') || lowerQuery.includes('alerta')) {
+      const criticalPatients = patients.filter(p => 
+        p.riskLevel === 'Critical' || p.currentCondition === 'Critical'
+      );
+      const highRiskPatients = patients.filter(p => p.riskLevel === 'High');
+      
+      response = `🚨 **Panel de Urgencias - Estado actual:**\n\n` +
+        `**Pacientes críticos: ${criticalPatients.length}**\n` +
+        `${criticalPatients.length > 0 ? 
+          criticalPatients.map(p => {
+            const bed = beds.find(b => b.patientId === p.id);
+            return `• 🔴 ${p.firstName} ${p.lastName} - ${bed ? `Hab. ${bed.roomId}` : 'Sin ubicación'}`;
+          }).join('\n') : 
+          '✅ Sin pacientes críticos actualmente'}\n\n` +
+        `**Pacientes alto riesgo: ${highRiskPatients.length}**\n` +
+        `${highRiskPatients.slice(0, 3).map(p => `• 🟠 ${p.firstName} ${p.lastName}`).join('\n')}\n\n` +
+        `¿Necesitas más detalles de algún paciente específico?`;
       category = 'emergency';
-    } else if (lowerQuery.includes('estadística') || lowerQuery.includes('reporte') || lowerQuery.includes('analítica')) {
-      response = `📈 **Estadísticas Hospitalarias**\n\nPuedo generar reportes sobre:\n• Ocupación por plantas\n• Tiempos de espera\n• Rendimiento por departamento\n• Indicadores de calidad\n\n¿Qué tipo de análisis necesitas?`;
+    }
+    // === ESTADÍSTICAS Y REPORTES ===
+    else if (lowerQuery.includes('estadistica') || lowerQuery.includes('reporte') || lowerQuery.includes('analitica') || lowerQuery.includes('resumen')) {
+      const occupiedBeds = beds.filter(bed => bed.status === 'Occupied').length;
+      const totalBeds = beds.length;
+      const occupancyRate = totalBeds > 0 ? ((occupiedBeds / totalBeds) * 100).toFixed(1) : 0;
+      const todayAppts = appointments.filter(apt => apt.date.toDateString() === new Date().toDateString()).length;
+      
+      response = `📈 **Dashboard Ejecutivo - ${new Date().toLocaleDateString('es-ES')}**\n\n` +
+        `**🏥 Ocupación hospitalaria**\n` +
+        `• Tasa: ${occupancyRate}% (${occupiedBeds}/${totalBeds} camas)\n\n` +
+        `**👥 Pacientes**\n` +
+        `• Activos: ${patients.length}\n` +
+        `• Hospitalizados: ${patients.filter(p => p.roomId).length}\n\n` +
+        `**📅 Actividad del día**\n` +
+        `• Citas programadas: ${todayAppts}\n\n` +
+        `**📊 Indicadores clave**\n` +
+        `• ${parseFloat(occupancyRate as string) > 85 ? '⚠️ Alta ocupación' : '✅ Ocupación normal'}\n` +
+        `• ${patients.filter(p => p.riskLevel === 'Critical').length > 0 ? '🔴 Hay pacientes críticos' : '✅ Sin pacientes críticos'}`;
       category = 'analytics';
-    } else {
-      response = `🤖 Entiendo que necesitas ayuda con: "${userQuery}"\n\nPuedo asistirte con:\n• 🏥 **Información hospitalaria** - Estado de camas, ocupación\n• 👥 **Gestión de pacientes** - Búsquedas, ubicaciones\n• 📅 **Programación** - Citas, disponibilidad\n• 📊 **Estadísticas** - Reportes y análisis\n• 🚨 **Urgencias** - Información crítica\n\n¿Podrías ser más específico?`;
-      category = 'general';
+    }
+    // === AYUDA Y COMANDOS ===
+    else if (lowerQuery.includes('ayuda') || lowerQuery.includes('help') || lowerQuery.includes('que puedes') || lowerQuery.includes('comandos')) {
+      response = `🤖 **Comandos disponibles de MediBot:**\n\n` +
+        `**🏥 Camas y ocupación:**\n` +
+        `• "¿Cuántas camas disponibles?"\n` +
+        `• "Estado de UCI"\n` +
+        `• "Ocupación del hospital"\n\n` +
+        `**👤 Pacientes:**\n` +
+        `• "Buscar [nombre paciente]"\n` +
+        `• "Pacientes críticos"\n` +
+        `• "Lista de pacientes"\n\n` +
+        `**📅 Citas:**\n` +
+        `• "Citas de hoy"\n` +
+        `• "Agenda del día"\n\n` +
+        `**📊 Estadísticas:**\n` +
+        `• "Resumen del día"\n` +
+        `• "Estadísticas generales"\n\n` +
+        `**🚨 Urgencias:**\n` +
+        `• "Alertas activas"\n` +
+        `• "Pacientes críticos"`;
+      category = 'help';
+    }
+    // === SALUDOS ===
+    else if (lowerQuery.includes('hola') || lowerQuery.includes('buenos') || lowerQuery.includes('buenas')) {
+      const hour = new Date().getHours();
+      const greeting = hour < 12 ? 'Buenos días' : hour < 20 ? 'Buenas tardes' : 'Buenas noches';
+      response = `${greeting}, ${user?.firstName || 'usuario'}! 👋\n\n` +
+        `Soy **MediBot**, tu asistente hospitalario inteligente.\n\n` +
+        `¿En qué puedo ayudarte hoy?\n\n` +
+        `💡 **Sugerencias:**\n` +
+        `• Ver estado de camas\n` +
+        `• Buscar un paciente\n` +
+        `• Ver citas del día\n` +
+        `• Resumen de urgencias`;
+      category = 'greeting';
+    }
+    // === RESPUESTA GENERAL MEJORADA ===
+    else {
+      // Intenta buscar si es un nombre de paciente
+      const possiblePatient = searchPatient(userQuery);
+      if (possiblePatient) {
+        const patientBed = beds.find(b => b.patientId === possiblePatient.id);
+        response = `👤 ¿Buscas información de **${possiblePatient.firstName} ${possiblePatient.lastName}**?\n\n` +
+          `• **ID:** ${possiblePatient.id}\n` +
+          `• **Estado:** ${possiblePatient.currentCondition || 'Estable'}\n` +
+          `• **Ubicación:** ${patientBed ? `Habitación ${patientBed.roomId}, Cama ${patientBed.number}` : 'Sin cama asignada'}\n\n` +
+          `¿Necesitas más detalles?`;
+        category = 'patient-quick';
+      } else {
+        response = `🤔 No entendí completamente tu consulta: "${userQuery}"\n\n` +
+          `**Prueba con frases como:**\n` +
+          `• "¿Cuántas camas disponibles?"\n` +
+          `• "Buscar paciente Isabel Flores"\n` +
+          `• "Citas de hoy"\n` +
+          `• "Pacientes críticos"\n` +
+          `• "Estadísticas del hospital"\n\n` +
+          `Escribe **"ayuda"** para ver todos los comandos disponibles.`;
+        category = 'not-understood';
+      }
     }
 
     return {
@@ -105,11 +298,14 @@ export default function AIAssistantDashboard() {
   };
 
   const quickSuggestions = [
-    '¿Cuántas camas están disponibles en UCI?',
-    'Mostrar pacientes críticos',
-    'Estado de quirófanos',
+    '¿Cuántas camas disponibles hay?',
+    'Estado de UCI',
+    'Pacientes críticos',
     'Citas de hoy',
-    'Generar reporte de ocupación'
+    'Buscar paciente Isabel Flores',
+    'Resumen del hospital',
+    'Alertas activas',
+    'Ayuda'
   ];
 
   return (

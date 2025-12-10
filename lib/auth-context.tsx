@@ -43,6 +43,7 @@ const defaultCredentials: Record<string, { password: string; role: UserRole; pro
   '67890123F': { password: 'nurse123', role: 'nurse', professionalId: 'ENF002' },
   '89012345H': { password: 'radiology123', role: 'radiology', professionalId: 'RAD001' },
   '01234567J': { password: 'social123', role: 'social_work', professionalId: 'SOC001' },
+  '78901234G': { password: 'admision123', role: 'admission', professionalId: 'ADM002' },
   // Credenciales del personal SQL
   'DNI-58601_ADM': { password: 'admin123', role: 'admin', professionalId: '58601' },
   'DNI-27512': { password: 'doctor123', role: 'doctor', professionalId: '27512' },
@@ -76,6 +77,10 @@ const defaultCredentials: Record<string, { password: string; role: UserRole; pro
   '80111345H': { password: 'paciente123', role: 'patient', professionalId: 'IFV_0001' },  // Isabel Flores Viñales
   '71403289D': { password: 'paciente123', role: 'patient', professionalId: 'PIF_0010' },  // Paula Imbernón Flores
   '71403312E': { password: 'paciente123', role: 'patient', professionalId: 'MIF_0011' },  // Martín Imbernón Flores
+  // Pacientes Demo (para facilitar pruebas)
+  'PAC001001': { password: 'paciente123', role: 'patient', professionalId: 'PAC-001' },  // Juan García López
+  'PAC002002': { password: 'paciente123', role: 'patient', professionalId: 'PAC-002' },  // María Rodríguez Pérez
+  'PAC003003': { password: 'paciente123', role: 'patient', professionalId: 'PAC-003' },  // Carlos Martínez Sánchez
   // Usuarios Familiares
   'FAM001001': { password: 'familiar123', role: 'family', professionalId: 'FAM-001' },
   'FAM001002': { password: 'familiar123', role: 'family', professionalId: 'FAM-002' }

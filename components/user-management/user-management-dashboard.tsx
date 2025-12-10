@@ -1,50 +1,54 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
-  Users, Plus, Search, Filter, Eye, Edit, Trash2,
-  Shield, Heart, User, UserPlus, Family, Phone,
-  Mail, Lock, Unlock, AlertTriangle, CheckCircle
+  Users, Plus, Search, Eye, Edit, Trash2,
+  Shield, Heart, User, UserPlus,
+  Lock, AlertTriangle, CheckCircle, Save
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
+import { useHospital } from '@/lib/hospital-context';
 import { UserRole } from '@/lib/types';
+import { mockUsers } from '@/lib/mock-data';
+import { sqlStaff, sqlPatients } from '@/lib/sql-data';
 
 interface ExtendedUser {
   id: string;
   dni: string;
   firstName: string;
   lastName: string;
-  email: string;
-  phone: string;
+  email?: string;
+  phone?: string;
   role: UserRole;
   department?: string;
   professionalId?: string;
   isActive: boolean;
   lastLogin?: Date;
   anonymousId?: string;
-  // Campos específicos para familias
   relatedPatientId?: string;
   relationshipToPatient?: string;
   accessLevel?: 'full' | 'limited' | 'basic';
-  // Estado de seguridad
   failedLoginAttempts?: number;
   isLocked?: boolean;
-  createdAt: Date;
+  createdAt?: Date;
 }
 
 export default function UserManagementDashboard() {
   const { user } = useAuth();
+  const { patients, staff } = useHospital();
   const [activeTab, setActiveTab] = useState('all-users');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState<string>('all');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<ExtendedUser | null>(null);
   const [newUser, setNewUser] = useState({
     dni: '',
     firstName: '',
@@ -59,100 +63,92 @@ export default function UserManagementDashboard() {
     accessLevel: 'basic' as 'full' | 'limited' | 'basic'
   });
 
-  // Datos simulados de usuarios extendidos
-  const extendedUsers: ExtendedUser[] = [
-    // Staff existente
-    {
-      id: '1',
-      dni: '12345678A',
-      firstName: 'Carlos',
-      lastName: 'Administrador',
-      email: 'admin@hospital.com',
-      phone: '+34 600 000 001',
-      role: 'admin',
-      department: 'Administración',
-      professionalId: 'ADM001',
-      isActive: true,
-      lastLogin: new Date('2024-01-15T08:30:00Z'),
-      anonymousId: 'ADMIN-001',
-      failedLoginAttempts: 0,
-      isLocked: false,
-      createdAt: new Date('2024-01-01T00:00:00Z')
-    },
-    {
-      id: '2',
-      dni: '23456789B',
-      firstName: 'Ana',
-      lastName: 'García',
-      email: 'ana.garcia@hospital.com',
-      phone: '+34 600 000 002',
-      role: 'doctor',
-      department: 'Cardiología',
-      professionalId: 'MED001',
-      isActive: true,
-      lastLogin: new Date('2024-01-15T09:15:00Z'),
-      anonymousId: 'DOC-001',
-      failedLoginAttempts: 0,
-      isLocked: false,
-      createdAt: new Date('2024-01-01T00:00:00Z')
-    },
-    // Pacientes
-    {
-      id: 'patient-1',
-      dni: '11111111A',
-      firstName: 'Juan',
-      lastName: 'Pérez González',
-      email: 'juan.perez@email.com',
-      phone: '+34 600 111 001',
-      role: 'patient',
-      isActive: true,
-      anonymousId: 'PAT-001',
-      createdAt: new Date('2024-01-10T00:00:00Z')
-    },
-    {
-      id: 'patient-2',
-      dni: '22222222B',
-      firstName: 'Elena',
-      lastName: 'Martín Ruiz',
-      email: 'elena.martin@email.com',
-      phone: '+34 600 222 001',
-      role: 'patient',
-      isActive: true,
-      anonymousId: 'PAT-002',
-      createdAt: new Date('2024-01-12T00:00:00Z')
-    },
-    // Familias
-    {
-      id: 'family-1',
-      dni: '33333333C',
-      firstName: 'María',
-      lastName: 'Pérez López',
-      email: 'maria.perez@email.com',
-      phone: '+34 600 333 001',
-      role: 'family',
-      isActive: true,
-      anonymousId: 'FAM-001',
-      relatedPatientId: 'patient-1',
-      relationshipToPatient: 'Esposa',
-      accessLevel: 'limited',
-      createdAt: new Date('2024-01-10T00:00:00Z')
-    },
-    {
-      id: 'family-2',
-      dni: '44444444D',
-      firstName: 'Carlos',
-      lastName: 'Martín Fernández',
-      email: 'carlos.martin@email.com',
-      phone: '+34 600 444 001',
-      role: 'family',
-      isActive: true,
-      anonymousId: 'FAM-002',
-      relatedPatientId: 'patient-2',
-      relationshipToPatient: 'Hermano',
-      accessLevel: 'basic',
-      createdAt: new Date('2024-01-12T00:00:00Z')
-    }
-  ];
+  // Combinar todos los usuarios del sistema
+  const extendedUsers: ExtendedUser[] = useMemo(() => {
+    const allUsers: ExtendedUser[] = [];
+    
+    // Agregar usuarios mock (staff original)
+    mockUsers.forEach(u => {
+      allUsers.push({
+        id: u.id,
+        dni: u.dni,
+        firstName: u.firstName,
+        lastName: u.lastName,
+        email: u.email,
+        phone: u.phone,
+        role: u.role,
+        department: u.department,
+        professionalId: u.professionalId,
+        isActive: u.isActive ?? true,
+        lastLogin: u.lastLogin,
+        anonymousId: u.anonymousId,
+        failedLoginAttempts: u.failedLoginAttempts ?? 0,
+        isLocked: u.isLocked ?? false,
+        createdAt: new Date('2024-01-01')
+      });
+    });
+
+    // Agregar staff del SQL (evitar duplicados)
+    sqlStaff.forEach(s => {
+      if (!allUsers.find(u => u.dni === s.dni)) {
+        allUsers.push({
+          id: s.id,
+          dni: s.dni,
+          firstName: s.firstName,
+          lastName: s.lastName,
+          email: s.email,
+          phone: s.phone,
+          role: s.role,
+          department: s.department,
+          professionalId: s.professionalId,
+          isActive: s.isActive ?? true,
+          lastLogin: s.lastLogin,
+          anonymousId: s.anonymousId,
+          failedLoginAttempts: s.failedLoginAttempts ?? 0,
+          isLocked: s.isLocked ?? false,
+          createdAt: new Date('2024-01-01')
+        });
+      }
+    });
+
+    // Agregar pacientes como usuarios (del SQL)
+    sqlPatients.forEach(p => {
+      if (!allUsers.find(u => u.dni === p.dni)) {
+        allUsers.push({
+          id: p.id,
+          dni: p.dni || `PAT-${p.id}`,
+          firstName: p.firstName,
+          lastName: p.lastName,
+          email: p.email,
+          phone: p.phone,
+          role: 'patient',
+          isActive: true,
+          anonymousId: p.anonymousId || `PAT-${p.id}`,
+          createdAt: new Date('2024-01-01')
+        });
+      }
+    });
+
+    // Agregar pacientes del contexto (evitar duplicados)
+    patients.forEach(p => {
+      if (!allUsers.find(u => u.id === p.id || u.dni === p.dni)) {
+        allUsers.push({
+          id: p.id,
+          dni: p.dni || `PAT-${p.id}`,
+          firstName: p.firstName,
+          lastName: p.lastName,
+          email: p.email,
+          phone: p.phone,
+          role: 'patient',
+          isActive: true,
+          anonymousId: p.anonymousId || `PAT-${p.id}`,
+          createdAt: new Date('2024-01-01')
+        });
+      }
+    });
+
+    return allUsers;
+  }, [patients, staff]);
 
   const getRoleIcon = (role: UserRole) => {
     switch (role) {
@@ -490,20 +486,168 @@ export default function UserManagementDashboard() {
                       )}
                       
                       <div className="flex space-x-1">
-                        <Button size="sm" variant="outline" className="h-8 px-2">
-                          <Eye className="h-3 w-3" />
-                        </Button>
-                        <Button size="sm" variant="outline" className="h-8 px-2">
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="h-8 px-2"
+                          onClick={() => {
+                            setSelectedUser(usr);
+                            setShowEditDialog(true);
+                          }}
+                        >
                           <Edit className="h-3 w-3" />
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="h-8 px-2 text-red-600 hover:text-red-700"
+                          onClick={() => {
+                            if (confirm(`¿Desactivar usuario ${usr.firstName} ${usr.lastName}?`)) {
+                              console.log('Desactivando usuario:', usr.id);
+                            }
+                          }}
+                        >
+                          <Trash2 className="h-3 w-3" />
                         </Button>
                       </div>
                     </div>
                   </div>
                 ))}
+                {filteredUsers.length === 0 && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No se encontraron usuarios con los filtros aplicados.
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* Diálogo de Edición */}
+        <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Editar Usuario</DialogTitle>
+            </DialogHeader>
+            {selectedUser && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">Nombre</label>
+                    <Input
+                      value={selectedUser.firstName}
+                      onChange={(e) => setSelectedUser({...selectedUser, firstName: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Apellidos</label>
+                    <Input
+                      value={selectedUser.lastName}
+                      onChange={(e) => setSelectedUser({...selectedUser, lastName: e.target.value})}
+                    />
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">DNI</label>
+                    <Input value={selectedUser.dni} disabled className="bg-gray-100" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">ID Profesional</label>
+                    <Input
+                      value={selectedUser.professionalId || ''}
+                      onChange={(e) => setSelectedUser({...selectedUser, professionalId: e.target.value})}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">Email</label>
+                    <Input
+                      value={selectedUser.email || ''}
+                      onChange={(e) => setSelectedUser({...selectedUser, email: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Teléfono</label>
+                    <Input
+                      value={selectedUser.phone || ''}
+                      onChange={(e) => setSelectedUser({...selectedUser, phone: e.target.value})}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">Rol</label>
+                    <Select 
+                      value={selectedUser.role} 
+                      onValueChange={(value) => setSelectedUser({...selectedUser, role: value as UserRole})}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="admin">Administrador</SelectItem>
+                        <SelectItem value="doctor">Médico</SelectItem>
+                        <SelectItem value="nurse">Enfermero/a</SelectItem>
+                        <SelectItem value="cleaning">Limpieza</SelectItem>
+                        <SelectItem value="patient">Paciente</SelectItem>
+                        <SelectItem value="family">Familiar</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Departamento</label>
+                    <Input
+                      value={selectedUser.department || ''}
+                      onChange={(e) => setSelectedUser({...selectedUser, department: e.target.value})}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="isActive"
+                      checked={selectedUser.isActive}
+                      onChange={(e) => setSelectedUser({...selectedUser, isActive: e.target.checked})}
+                      className="h-4 w-4"
+                    />
+                    <label htmlFor="isActive" className="text-sm">Usuario Activo</label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="isLocked"
+                      checked={selectedUser.isLocked || false}
+                      onChange={(e) => setSelectedUser({...selectedUser, isLocked: e.target.checked})}
+                      className="h-4 w-4"
+                    />
+                    <label htmlFor="isLocked" className="text-sm">Bloqueado</label>
+                  </div>
+                </div>
+                
+                <div className="flex justify-end space-x-2 pt-4">
+                  <Button variant="outline" onClick={() => setShowEditDialog(false)}>
+                    Cancelar
+                  </Button>
+                  <Button onClick={() => {
+                    console.log('Guardando usuario:', selectedUser);
+                    setShowEditDialog(false);
+                    // Aquí iría la lógica de actualización real
+                  }}>
+                    <Save className="h-4 w-4 mr-2" />
+                    Guardar Cambios
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
 
         <TabsContent value="patients" className="space-y-4">
           <Card>
